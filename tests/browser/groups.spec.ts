@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { seedExamples } from './fixtures';
+import { seedExamples, openFullView } from './fixtures';
 
 test('group actions pack only visible items and retain independent card tags', async ({ page }) => {
   await seedExamples();
@@ -59,6 +59,7 @@ test('group packing reports a stale item separately and leaves it selected', asy
   await second.goto('/');
   await second.getByRole('button', { name: 'Sign in as test owner' }).click();
   await second.getByRole('button', { name: 'Open Synthetic Linen sheets', exact: true }).click();
+  await openFullView(second);
   await second.getByLabel('Packing box').selectOption('');
   await second.getByRole('button', { name: 'Pack / unpack', exact: true }).click();
   await expect(second.getByRole('status').filter({ hasText: 'Packing saved' })).toBeVisible();
@@ -74,6 +75,7 @@ test('group packing reports a stale item separately and leaves it selected', asy
     .click();
   await page.getByLabel('Group by').selectOption('box');
   await second.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }).click();
+  await openFullView(second);
   await second.getByLabel('Notes', { exact: true }).fill('Newer synthetic group details');
   await second.getByRole('button', { name: 'Save details', exact: true }).click();
   await expect(second.getByRole('status').filter({ hasText: 'Details saved' })).toBeVisible();
@@ -86,6 +88,7 @@ test('group packing reports a stale item separately and leaves it selected', asy
   ).toBeVisible();
   await expect(page.getByLabel('Select Synthetic Wool blanket', { exact: true })).toBeChecked();
   await page.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }).click();
+  await openFullView(page);
   await expect(page.getByLabel('Notes', { exact: true })).toHaveValue(
     'Newer synthetic group details',
   );

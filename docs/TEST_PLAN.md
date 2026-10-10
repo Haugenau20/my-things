@@ -156,3 +156,5 @@ Workspace coverage includes dedicated navigation/admin views, unfinished-restore
 Cards/group tests verify independent tags and redundant-tag hiding, visible-group selection and packing, per-item revision conflicts with failures retained, acknowledged new-box creation with duplicate-label confirmation, Open box navigation, and no horizontal overflow at desktop breakpoint widths.
 
 Contextual selection tests cover forward/reverse Shift ranges, stale anchors, Escape and Clear, hidden bulk controls with no selection, Select all filtered, acknowledged results and expandable per-item conflicts, room/category/packing commands, moving warnings, Trash/Restore, and clearance for the last card row below the floating bar.
+
+Inspector tests cover the mounted filtered grid, selected-card ring, filtered previous/next and keyboard navigation, retained full view, phone fallback, save-on-change acknowledgment and rollback, confirmed/canceled disposal, retained unsaved details on conflict and explicit Load latest. Retained full-view regressions continue exercising private photos, attachment recovery and money validation.

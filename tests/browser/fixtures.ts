@@ -2,6 +2,14 @@ import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { assertLocalTarget } from '../../scripts/safety';
 import { LOCAL_ACCOUNTS } from '../../src/data/local-accounts';
 import { syntheticInventory } from '../../src/domain/synthetic-inventory';
+import type { Page } from '@playwright/test';
+
+// Existing full-detail workflows use the retained full view on desktop and phone.
+export async function openFullView(page: Page): Promise<void> {
+  const inspector = page.getByRole('region', { name: 'Item inspector', exact: true });
+  if (await inspector.isVisible())
+    await inspector.getByRole('button', { name: 'Open full view', exact: true }).click();
+}
 
 export async function seedExamples(): Promise<void> {
   assertLocalTarget('demo-inventory', process.env);

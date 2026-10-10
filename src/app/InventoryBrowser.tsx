@@ -4,9 +4,8 @@ import type { Item, Room } from '../domain/item';
 import { DEFAULT_FILTERS, filterItems, formatMoney, isDisposed } from '../domain/organize';
 import type { Box, Filters } from '../domain/organize';
 import type { PhotoSession } from '../media/photo-session';
-import { PrivatePhoto } from './PrivatePhoto';
-import { PhotoAttachment } from './PhotoAttachment';
-import { ItemEditor } from './ItemEditor';
+import { ItemDetail } from './ItemDetail';
+import { useNarrow } from './use-narrow';
 import { BulkEditor } from './BulkEditor';
 import { BrowseFilters } from './BrowseFilters';
 import { defaultGrouping, selectionTitle, groupVisibleItems } from '../domain/browse';
@@ -59,6 +58,8 @@ export function InventoryBrowser({
   const [groupingChoice, setGroupingChoice] = useState<Grouping>();
   const grouping = groupingChoice ?? defaultGrouping(filters);
   const [selected, setSelected] = useState<string>();
+  const [fullView, setFullView] = useState(false);
+  const narrow = useNarrow();
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [announcement, setAnnouncement] = useState('');
   const [groupBusy, setGroupBusy] = useMutationState();
@@ -129,7 +130,6 @@ export function InventoryBrowser({
       : item.boxId
         ? (boxes.find((box) => box.id === item.boxId)?.label ?? 'Unavailable box')
         : 'Not packed';
-  const locationName = (item: Item) => roomName(item.roomId) + ' · ' + boxName(item);
   function toggle(id: string, checked: boolean, shift = false) {
     const order = grid
       ? groups.flatMap((group) => group.items.map((item) => item.id))
@@ -141,6 +141,7 @@ export function InventoryBrowser({
   function open(id: string) {
     scroll.current = window.scrollY;
     setSelected(id);
+    setFullView(false);
     setAnnouncement('');
   }
   function back() {
@@ -148,6 +149,54 @@ export function InventoryBrowser({
     setSelected(undefined);
     requestAnimationFrame(() => window.scrollTo({ top: scroll.current }));
   }
+  function moveDetail(direction: number) {
+    const index = visible.findIndex((item) => item.id === selected);
+    const target =
+      index < 0 ? visible[direction > 0 ? 0 : visible.length - 1] : visible[index + direction];
+    if (target) setSelected(target.id);
+  }
+  function nextReview() {
+    const pending = items
+      .filter(
+        (item) =>
+          item.recordState === 'ready' &&
+          item.deletedAt === null &&
+          !isDisposed(item) &&
+          item.reviewStatus === 'needs_review' &&
+          item.id !== selected,
+      )
+      .sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+    if (pending[0]) setSelected(pending[0].id);
+    else {
+      back();
+      setAnnouncement('No other items need review.');
+    }
+  }
+  useEffect(() => {
+    if (!detail || fullView || narrow) return;
+    const key = (event: KeyboardEvent) => {
+      if (
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        gallery.current?.offsetParent === null ||
+        (event.target instanceof Element &&
+          event.target.closest('input,textarea,select,[contenteditable="true"]'))
+      )
+        return;
+      const direction = ['j', 'ArrowRight', 'ArrowDown'].includes(event.key)
+        ? 1
+        : ['k', 'ArrowLeft', 'ArrowUp'].includes(event.key)
+          ? -1
+          : 0;
+      if (direction) {
+        event.preventDefault();
+        moveDetail(direction);
+      }
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  });
   async function packGroup(
     group: ItemGroup,
     destination: { boxId: string } | { newLabel: string },
@@ -199,354 +248,286 @@ export function InventoryBrowser({
   return (
     <section
       ref={gallery}
-      className="gallery-panel"
+      className={detail && !fullView && !narrow ? 'gallery-panel has-inspector' : 'gallery-panel'}
       aria-label="Saved inventory"
       style={{ paddingBottom: bulkHeight ? bulkHeight + 48 : undefined }}
     >
       {announcement && <p role="status">{announcement}</p>}
-      {detail ? (
-        <>
-          <button className="text-button" onClick={back}>
-            Back to gallery
-          </button>
-          <h2>{detail.name}</h2>
-          <p>
-            {locationName(detail)} ·{' '}
-            {detail.reviewStatus === 'reviewed' ? 'Reviewed' : 'Needs review'} ·{' '}
-            {label(detail.decision)} / {label(detail.progress)}
-            {isDisposed(detail) ? ' · Gone' : ''}
-            {detail.deletedAt ? ' · Trash' : ''}
+      <div className="browse-column" hidden={!!detail && (fullView || narrow)}>
+        {!metadataReady && (
+          <p role="status">
+            Loading the complete metadata index. Search and bulk actions are unavailable until every
+            page is loaded successfully.
           </p>
-          <p className="supporting">
-            Room: {roomName(detail.roomId)} · Quantity: {detail.quantity}
+        )}
+        <BrowseFilters
+          items={items}
+          rooms={rooms}
+          boxes={boxes}
+          filters={filters}
+          ready={metadataReady && !groupBusy}
+          change={(patch) => {
+            setFilters((current) => ({ ...current, ...patch }));
+            setSelection(new Set());
+          }}
+          clear={() => {
+            setFilters({
+              ...DEFAULT_FILTERS,
+              trash: workspaceView === 'trash',
+              reviewStatus: workspaceView === 'review' ? 'needs_review' : '',
+            });
+            setSelection(new Set());
+          }}
+        />
+        <div className="gallery-heading">
+          <div className="gallery-title">
+            <h2>{selectionTitle(filters, rooms, boxes)}</h2>
+            <span>
+              {visible.length} things in{' '}
+              {new Set(visible.map((item) => item.roomId).filter(Boolean)).size} rooms
+              {metadataReady ? '' : ' · refreshing metadata'}
+            </span>
+          </div>
+          <div className="browse-toolbar">
+            <label>
+              Group by
+              <select
+                aria-label="Group by"
+                value={grouping}
+                onChange={(event) => setGroupingChoice(event.target.value as Grouping)}
+              >
+                <option value="room">Room</option>
+                <option value="box">Box</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <button className="secondary-button" aria-pressed={grid} onClick={() => setGrid(true)}>
+              Grid
+            </button>
+            <button
+              className="secondary-button"
+              aria-pressed={!grid}
+              onClick={() => setGrid(false)}
+            >
+              Table
+            </button>
+            <button
+              className="text-button"
+              disabled={!metadataReady || !visible.length}
+              onClick={() => setSelection(new Set(visible.map((item) => item.id)))}
+            >
+              Select {visible.length} filtered entries
+            </button>
+            <button className="text-button" onClick={() => setSelection(new Set())}>
+              Clear selection
+            </button>
+          </div>
+        </div>
+        <BulkEditor
+          items={
+            metadataReady && !groupBusy ? visible.filter((item) => selection.has(item.id)) : []
+          }
+          rooms={rooms}
+          boxes={boxes}
+          services={services}
+          inventoryId={inventoryId}
+          signal={signal}
+          isTrash={filters.trash}
+          filteredCount={visible.length}
+          selectAll={() => setSelection(new Set(visible.map((item) => item.id)))}
+          clear={() => {
+            setSelection(new Set());
+            selectionAnchor.current = undefined;
+          }}
+          reserve={setBulkHeight}
+          finished={async (results) => {
+            setSelection(
+              new Set(
+                results.filter((result) => result.status !== 'saved').map((result) => result.id),
+              ),
+            );
+            await reload();
+          }}
+        />
+        {groupBusy && <p role="status">Packing this visible group…</p>}
+        {groupError && (
+          <p role="alert" className="error-message">
+            {groupError}
           </p>
-          <div className="item-detail-layout">
-            <div className="item-detail-media">
-              <div className="detail-photos">
-                {!detail.photos.some((photo) => photo.state === 'ready') && (
-                  <p className="photo-placeholder">No photo yet</p>
+        )}
+        {!!groupResults.length && (
+          <div className="group-results">
+            <p role="status">
+              {groupResults.filter((result) => result.status === 'saved').length} saved ·{' '}
+              {groupResults.filter((result) => result.status !== 'saved').length} not saved
+            </p>
+            <ul className="bulk-results">
+              {groupResults.map((result) => (
+                <li key={result.id}>
+                  {result.name}: {result.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {!visible.length && (
+          <div className="empty-gallery">
+            <span aria-hidden="true">◌</span>
+            <h3>
+              {items.length ? 'No things match these filters.' : 'A little space to get started.'}
+            </h3>
+            <p>Your saved things will appear here.</p>
+          </div>
+        )}
+        {grid ? (
+          <div className="grouped-gallery">
+            {groups.map((group) => (
+              <section
+                className="item-group"
+                key={group.key}
+                aria-label={group.label || 'All things'}
+              >
+                {grouping !== 'none' && (
+                  <div className="group-heading">
+                    <h3 className={group.room !== undefined ? 'room-tag' : 'box-tag'}>
+                      {group.label}
+                    </h3>
+                    <span>{group.items.length} things</span>
+                    <GroupActions
+                      group={group}
+                      boxes={boxes}
+                      disabled={!metadataReady || groupBusy}
+                      canPack={
+                        !filters.trash &&
+                        (group.box === 'unpacked' ||
+                          (group.room !== undefined && filters.box === 'unpacked'))
+                      }
+                      select={() =>
+                        setSelection(
+                          (current) => new Set([...current, ...group.items.map((item) => item.id)]),
+                        )
+                      }
+                      openBox={() => {
+                        setFilters((current) => ({ ...current, box: group.box ?? '' }));
+                        setSelection(new Set());
+                      }}
+                      pack={(destination) => packGroup(group, destination)}
+                    />
+                  </div>
                 )}
-                {detail.photos
-                  .filter((photo) => photo.state === 'ready')
-                  .map((photo, index) => (
-                    <PrivatePhoto
-                      key={photo.id}
-                      file={photo.detail}
+                <div className="gallery-grid">
+                  {group.items.map((item) => (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      rooms={rooms}
+                      boxes={boxes}
+                      grouping={grouping}
                       session={session}
-                      detail
-                      alt={`${detail.name} · photo ${index + 1}`}
+                      checked={selection.has(item.id)}
+                      selecting={selection.size > 0}
+                      inspected={selected === item.id}
+                      disabled={!metadataReady || groupBusy}
+                      open={() => open(item.id)}
+                      toggle={(checked, shift) => toggle(item.id, checked, shift)}
                     />
                   ))}
-              </div>
-              {detail.deletedAt === null &&
-                (detail.photos.length === 0 || activeAttempt === detail.id) && (
-                  <PhotoAttachment
-                    key={`photos-${detail.id}`}
-                    item={detail}
-                    services={services}
-                    inventoryId={inventoryId}
-                    signal={signal}
-                    onSaved={async () => {
-                      setActiveAttempt(undefined);
-                      await reload();
-                    }}
-                    onAttempt={async (id) => {
-                      setActiveAttempt(id);
-                      await reload();
-                    }}
-                  />
-                )}
-            </div>
-            <ItemEditor
-              key={`editor-${detail.id}`}
-              item={detail}
-              rooms={rooms}
-              boxes={boxes}
-              services={services}
-              inventoryId={inventoryId}
-              defaultCurrency={defaultCurrency}
-              setDefaultCurrency={setDefaultCurrency}
-              requestDeletion={requestDeletion}
-              signal={signal}
-              reload={reload}
-              next={() => {
-                const pending = items
-                  .filter(
-                    (item) =>
-                      item.recordState === 'ready' &&
-                      item.deletedAt === null &&
-                      !isDisposed(item) &&
-                      item.reviewStatus === 'needs_review' &&
-                      item.id !== detail.id,
-                  )
-                  .sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
-                if (pending[0]) setSelected(pending[0].id);
-                else {
-                  back();
-                  setAnnouncement('No other items need review.');
-                }
-              }}
-            />
+                </div>
+              </section>
+            ))}
           </div>
-        </>
-      ) : (
-        <>
-          {!metadataReady && (
-            <p role="status">
-              Loading the complete metadata index. Search and bulk actions are unavailable until
-              every page is loaded successfully.
-            </p>
-          )}
-          <BrowseFilters
-            items={items}
-            rooms={rooms}
-            boxes={boxes}
-            filters={filters}
-            ready={metadataReady && !groupBusy}
-            change={(patch) => {
-              setFilters((current) => ({ ...current, ...patch }));
-              setSelection(new Set());
-            }}
-            clear={() => {
-              setFilters({
-                ...DEFAULT_FILTERS,
-                trash: workspaceView === 'trash',
-                reviewStatus: workspaceView === 'review' ? 'needs_review' : '',
-              });
-              setSelection(new Set());
-            }}
-          />
-          <div className="gallery-heading">
-            <div className="gallery-title">
-              <h2>{selectionTitle(filters, rooms, boxes)}</h2>
-              <span>
-                {visible.length} things in{' '}
-                {new Set(visible.map((item) => item.roomId).filter(Boolean)).size} rooms
-                {metadataReady ? '' : ' · refreshing metadata'}
-              </span>
-            </div>
-            <div className="browse-toolbar">
-              <label>
-                Group by
-                <select
-                  aria-label="Group by"
-                  value={grouping}
-                  onChange={(event) => setGroupingChoice(event.target.value as Grouping)}
-                >
-                  <option value="room">Room</option>
-                  <option value="box">Box</option>
-                  <option value="none">None</option>
-                </select>
-              </label>
-              <button
-                className="secondary-button"
-                aria-pressed={grid}
-                onClick={() => setGrid(true)}
-              >
-                Grid
-              </button>
-              <button
-                className="secondary-button"
-                aria-pressed={!grid}
-                onClick={() => setGrid(false)}
-              >
-                Table
-              </button>
-              <button
-                className="text-button"
-                disabled={!metadataReady || !visible.length}
-                onClick={() => setSelection(new Set(visible.map((item) => item.id)))}
-              >
-                Select {visible.length} filtered entries
-              </button>
-              <button className="text-button" onClick={() => setSelection(new Set())}>
-                Clear selection
-              </button>
-            </div>
-          </div>
-          <BulkEditor
-            items={
-              metadataReady && !groupBusy ? visible.filter((item) => selection.has(item.id)) : []
-            }
-            rooms={rooms}
-            boxes={boxes}
-            services={services}
-            inventoryId={inventoryId}
-            signal={signal}
-            isTrash={filters.trash}
-            filteredCount={visible.length}
-            selectAll={() => setSelection(new Set(visible.map((item) => item.id)))}
-            clear={() => {
-              setSelection(new Set());
-              selectionAnchor.current = undefined;
-            }}
-            reserve={setBulkHeight}
-            finished={async (results) => {
-              setSelection(
-                new Set(
-                  results.filter((result) => result.status !== 'saved').map((result) => result.id),
-                ),
-              );
-              await reload();
-            }}
-          />
-          {groupBusy && <p role="status">Packing this visible group…</p>}
-          {groupError && (
-            <p role="alert" className="error-message">
-              {groupError}
-            </p>
-          )}
-          {!!groupResults.length && (
-            <div className="group-results">
-              <p role="status">
-                {groupResults.filter((result) => result.status === 'saved').length} saved ·{' '}
-                {groupResults.filter((result) => result.status !== 'saved').length} not saved
-              </p>
-              <ul className="bulk-results">
-                {groupResults.map((result) => (
-                  <li key={result.id}>
-                    {result.name}: {result.message}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {!visible.length && (
-            <div className="empty-gallery">
-              <span aria-hidden="true">◌</span>
-              <h3>
-                {items.length ? 'No things match these filters.' : 'A little space to get started.'}
-              </h3>
-              <p>Your saved things will appear here.</p>
-            </div>
-          )}
-          {grid ? (
-            <div className="grouped-gallery">
-              {groups.map((group) => (
-                <section
-                  className="item-group"
-                  key={group.key}
-                  aria-label={group.label || 'All things'}
-                >
-                  {grouping !== 'none' && (
-                    <div className="group-heading">
-                      <h3 className={group.room !== undefined ? 'room-tag' : 'box-tag'}>
-                        {group.label}
-                      </h3>
-                      <span>{group.items.length} things</span>
-                      <GroupActions
-                        group={group}
-                        boxes={boxes}
-                        disabled={!metadataReady || groupBusy}
-                        canPack={
-                          !filters.trash &&
-                          (group.box === 'unpacked' ||
-                            (group.room !== undefined && filters.box === 'unpacked'))
-                        }
-                        select={() =>
-                          setSelection(
-                            (current) =>
-                              new Set([...current, ...group.items.map((item) => item.id)]),
+        ) : (
+          <div className="table-scroll">
+            <table className="inventory-table">
+              <caption>
+                Filtered inventory · values are totals per entry, currencies remain separate
+              </caption>
+              <thead>
+                <tr>
+                  {[
+                    'Select',
+                    'Name',
+                    'Room',
+                    'Box',
+                    'Quantity',
+                    'Value',
+                    'Serial',
+                    'Category',
+                    'Review',
+                    'Decision / progress',
+                  ].map((title) => (
+                    <th scope="col" key={title}>
+                      {title}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${item.name}`}
+                        disabled={!metadataReady}
+                        checked={selection.has(item.id)}
+                        onChange={(event) =>
+                          toggle(
+                            item.id,
+                            event.target.checked,
+                            event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey,
                           )
                         }
-                        openBox={() => {
-                          setFilters((current) => ({ ...current, box: group.box ?? '' }));
-                          setSelection(new Set());
-                        }}
-                        pack={(destination) => packGroup(group, destination)}
                       />
-                    </div>
-                  )}
-                  <div className="gallery-grid">
-                    {group.items.map((item) => (
-                      <ItemCard
-                        key={item.id}
-                        item={item}
-                        rooms={rooms}
-                        boxes={boxes}
-                        grouping={grouping}
-                        session={session}
-                        checked={selection.has(item.id)}
-                        selecting={selection.size > 0}
-                        disabled={!metadataReady || groupBusy}
-                        open={() => open(item.id)}
-                        toggle={(checked, shift) => toggle(item.id, checked, shift)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
-          ) : (
-            <div className="table-scroll">
-              <table className="inventory-table">
-                <caption>
-                  Filtered inventory · values are totals per entry, currencies remain separate
-                </caption>
-                <thead>
-                  <tr>
-                    {[
-                      'Select',
-                      'Name',
-                      'Room',
-                      'Box',
-                      'Quantity',
-                      'Value',
-                      'Serial',
-                      'Category',
-                      'Review',
-                      'Decision / progress',
-                    ].map((title) => (
-                      <th scope="col" key={title}>
-                        {title}
-                      </th>
-                    ))}
+                    </td>
+                    <td>
+                      <button
+                        className="text-button"
+                        aria-label={`Open ${item.name}`}
+                        onClick={() => open(item.id)}
+                      >
+                        {item.name}
+                      </button>
+                    </td>
+                    <td>{roomName(item.roomId)}</td>
+                    <td>{boxName(item)}</td>
+                    <td>{item.quantity}</td>
+                    <td>{formatMoney(item.estimatedValue)}</td>
+                    <td>{item.serialNumber ?? '—'}</td>
+                    <td>{item.category ?? '—'}</td>
+                    <td>{label(item.reviewStatus)}</td>
+                    <td>
+                      {label(item.decision)} / {label(item.progress)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {visible.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${item.name}`}
-                          disabled={!metadataReady}
-                          checked={selection.has(item.id)}
-                          onChange={(event) =>
-                            toggle(
-                              item.id,
-                              event.target.checked,
-                              event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey,
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <button
-                          className="text-button"
-                          aria-label={`Open ${item.name}`}
-                          onClick={() => open(item.id)}
-                        >
-                          {item.name}
-                        </button>
-                      </td>
-                      <td>{roomName(item.roomId)}</td>
-                      <td>{boxName(item)}</td>
-                      <td>{item.quantity}</td>
-                      <td>{formatMoney(item.estimatedValue)}</td>
-                      <td>{item.serialNumber ?? '—'}</td>
-                      <td>{item.category ?? '—'}</td>
-                      <td>{label(item.reviewStatus)}</td>
-                      <td>
-                        {label(item.decision)} / {label(item.progress)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {detail && (
+        <ItemDetail
+          item={detail}
+          compact={!fullView && !narrow}
+          visible={visible}
+          rooms={rooms}
+          boxes={boxes}
+          services={services}
+          inventoryId={inventoryId}
+          session={session}
+          signal={signal}
+          activeAttempt={activeAttempt}
+          setActiveAttempt={setActiveAttempt}
+          reload={reload}
+          defaultCurrency={defaultCurrency}
+          setDefaultCurrency={setDefaultCurrency}
+          requestDeletion={requestDeletion}
+          close={back}
+          fullView={() => setFullView(true)}
+          move={moveDetail}
+          nextReview={nextReview}
+        />
       )}
     </section>
   );

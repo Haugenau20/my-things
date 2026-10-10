@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { seedExamples } from './fixtures';
+import { seedExamples, openFullView } from './fixtures';
 
 test('bulk actions appear only for selection, support ranges and leave room for the last row', async ({
   page,
@@ -106,5 +106,6 @@ test('contextual category and pack/unpack actions preserve the room tag', async 
   await bulk.getByRole('button', { name: 'Apply to 1 selected', exact: true }).click();
   await expect(card.locator('.packing-text')).toHaveText('not packed');
   await page.getByRole('button', { name: 'Open Synthetic Picture frames', exact: true }).click();
+  await openFullView(page);
   await expect(page.getByLabel('Category', { exact: true })).toHaveValue('Synthetic fragile');
 });

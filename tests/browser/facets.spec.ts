@@ -55,7 +55,7 @@ test('room and box chips combine, cross-count, retain context and clear selectio
   await box.getByRole('button', { name: /Not packed\s*1/ }).click();
   await expect(page.getByLabel('Group by')).toHaveValue('room');
   await page.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }).click();
-  await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
+  await page.getByRole('button', { name: 'Close inspector', exact: true }).click();
   await expect(room.getByRole('button', { name: /Synthetic bedroom\s*1/ })).toHaveAttribute(
     'aria-pressed',
     'true',

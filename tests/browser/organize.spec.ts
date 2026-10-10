@@ -1,3 +1,4 @@
+import { openFullView } from './fixtures';
 import { expect, test } from '@playwright/test';
 
 let errors: string[] = [];
@@ -22,6 +23,7 @@ test('desktop review, metadata search, packing, archive, and trash preserve mean
     page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }).click();
+  await openFullView(page);
   await page.getByLabel('Serial number').fill('0000123');
   await page.getByLabel('Notes', { exact: true }).fill('<script>synthetic search needle</script>');
   await page.getByLabel('Quantity', { exact: true }).fill('7');
@@ -64,12 +66,14 @@ test('desktop review, metadata search, packing, archive, and trash preserve mean
     .getByRole('button', { name: /^Gone\s*\d+$/ })
     .click();
   await page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }).click();
+  await openFullView(page);
   await expect(page.getByText('Room:', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Move to trash', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm move to trash', exact: true }).click();
   await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
   await page.getByRole('button', { name: 'Trash', exact: true }).click();
   await page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }).click();
+  await openFullView(page);
   await page.getByRole('button', { name: 'Restore item', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Restored' })).toBeVisible();
   await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
@@ -105,6 +109,7 @@ test('location labels use stable references, occupancy blocks archive, and filte
   await page.getByLabel('Item name').fill('Synthetic packing record');
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await page.getByRole('button', { name: 'Open Synthetic packing record', exact: true }).click();
+  await openFullView(page);
   await page.getByLabel('Packing box').selectOption({ label: 'B098' });
   await page.getByRole('button', { name: 'Pack / unpack', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Packing saved' })).toBeVisible();
@@ -129,6 +134,7 @@ test('location labels use stable references, occupancy blocks archive, and filte
       .getByRole('button', { name: /^B098\s*\d+$/ }),
   ).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Open Synthetic packing record', exact: true }).click();
+  await openFullView(page);
   await expect(page.getByText(/Room: Synthetic renamed M2 room/)).toBeVisible();
   await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
   await expect(
@@ -154,6 +160,7 @@ test('two-tab bulk conflicts report each outcome without overwriting the newer d
   await second.goto('/');
   await second.getByRole('button', { name: 'Sign in as test owner' }).click();
   await second.getByRole('button', { name: 'Open Synthetic conflicted item', exact: true }).click();
+  await openFullView(second);
   await second.getByLabel('Notes', { exact: true }).fill('Newer details from another tab');
   await second.getByRole('button', { name: 'Save details', exact: true }).click();
   await expect(second.getByRole('status').filter({ hasText: 'Details saved' })).toBeVisible();
@@ -174,6 +181,7 @@ test('two-tab bulk conflicts report each outcome without overwriting the newer d
     page.getByLabel('Select Synthetic successful item', { exact: true }),
   ).not.toBeChecked();
   await page.getByRole('button', { name: 'Open Synthetic conflicted item', exact: true }).click();
+  await openFullView(page);
   await expect(page.getByLabel('Notes', { exact: true })).toHaveValue(
     'Newer details from another tab',
   );
@@ -188,6 +196,7 @@ test('phone-width editing and currency defaults preserve existing amounts', asyn
   await page.getByLabel('Item name').fill('Synthetic currency item');
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await page.getByRole('button', { name: 'Open Synthetic currency item', exact: true }).click();
+  await openFullView(page);
   await page.getByLabel('Total estimated value').fill('12.345');
   await page.getByLabel('Value currency', { exact: true }).selectOption('EUR');
   await page.getByRole('button', { name: 'Save details', exact: true }).click();
@@ -213,6 +222,7 @@ test('phone-width editing and currency defaults preserve existing amounts', asyn
   await page.reload();
   await page.getByRole('button', { name: /^Things/ }).click();
   await page.getByRole('button', { name: 'Open Synthetic currency item', exact: true }).click();
+  await openFullView(page);
   await expect(page.getByLabel('Total estimated value')).toHaveValue('12.345');
   await expect(page.getByLabel('Value currency', { exact: true })).toHaveValue('KWD');
 });

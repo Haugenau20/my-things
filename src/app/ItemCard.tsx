@@ -14,6 +14,7 @@ export function ItemCard({
   session,
   checked,
   selecting,
+  inspected = false,
   disabled,
   open,
   toggle,
@@ -25,6 +26,7 @@ export function ItemCard({
   session: PhotoSession;
   checked: boolean;
   selecting: boolean;
+  inspected?: boolean;
   disabled: boolean;
   open: () => void;
   toggle: (checked: boolean, shift: boolean) => void;
@@ -35,7 +37,7 @@ export function ItemCard({
   const state = boxState(item);
   return (
     <article
-      className={`item-card${checked ? ' is-selected' : ''}${selecting ? ' is-selecting' : ''}`}
+      className={`item-card${checked ? ' is-selected' : ''}${selecting ? ' is-selecting' : ''}${inspected ? ' is-inspected' : ''}`}
       onClick={(event) => {
         if (event.target instanceof Element && !event.target.closest('input,button,label,a'))
           open();
