@@ -11,8 +11,7 @@ const { requireAuth } = require('firebase-tools/lib/requireAuth');
 const { Client } = require('firebase-tools/lib/apiv2');
 const options = { project: projectId, nonInteractive: true };
 const account = auth.getProjectDefaultAccount(process.cwd()) || auth.getGlobalDefaultAccount();
-if (!account) throw new Error('Sign in with the Firebase CLI before testing cloud rules.');
-auth.setActiveAccount(options, account);
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && account) auth.setActiveAccount(options, account);
 await requireAuth(options);
 
 const root = '/databases/(default)/documents/inventories/synthetic';

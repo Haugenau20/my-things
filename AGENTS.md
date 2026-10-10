@@ -20,8 +20,9 @@ owner approval.
 
 Blaze and US photo storage are accepted. The owner chose one production cloud project with existing
 Storage in `us-east1` and Firestore in `eur3`; local work/tests remain on `demo-inventory`. Runtime project
-IDs and Web configuration stay in ignored environment files. These choices do not authorize autonomous
-provisioning or deployment. App Check is deferred. No owner UID or currency has been provided.
+IDs and Web configuration stay in ignored environment files or the documented public GitHub variables.
+Production releases follow the pipeline-only policy below; provisioning still requires explicit owner
+authorization. App Check is deferred. No default currency has been selected.
 
 ## Non-negotiable safety rules
 
@@ -31,8 +32,10 @@ provisioning or deployment. App Check is deferred. No owner UID or currency has 
   first authenticated user, email address in a form, or local environment variable the security authority.
 - Local development/tests use `demo-inventory` and all required emulators. Validate configuration before
   SDK initialization. Missing emulator configuration must fail, not fall back to a live service.
-- Never deploy, run destructive maintenance, seed production, change billing/IAM, or migrate real data
-  unless explicitly instructed. An implementation request is not a deployment request.
+- Never deploy production from a local CLI, Firebase/Google console, or an agent session. Release Hosting,
+  Firestore rules/indexes and Storage rules only through the reviewed GitHub pipeline after merge to `main`.
+- Never run destructive maintenance, seed production, change billing/IAM, or migrate real data unless
+  explicitly instructed. Merge-triggered release authorization does not authorize these operations.
 - Never commit inventory records/photos, exports, authentication tokens, service-account keys, or logs
   containing personal data. Never paste real inventory data into external tools. Use synthetic fixtures.
 - Firebase web configuration is not an admin credential; nevertheless keep environment choices explicit.
@@ -66,6 +69,12 @@ skipped critical tests, broad `any`, placeholder success responses, or TODO-back
 
 ## Verification and reporting
 
+Every new or changed feature must have relevant automated coverage against the `demo-inventory` emulators
+before merge, including failure/recovery paths and positive/negative authorization where applicable.
+Keep domain validation in unit tests and backend/browser behavior in rules, SDK integration and browser
+tests. Tests must fail closed when required emulators are unavailable; never verify features using live
+inventory data or bypass failing checks to release.
+
 After scaffolding, run the relevant formatting/lint, typecheck, unit, rules, integration, browser, and
 build checks defined in the repository. Before that point, do not pretend those commands exist.
 
@@ -80,6 +89,20 @@ After each milestone, report:
 3. Anything not tested, remaining manual setup, or known limitations.
 
 Never describe an unrun test as passed. Never describe emulated data as a real backup/restore proof.
+
+## Production releases
+
+The owner authorized automatic releases through `.github/workflows/ci.yml` when reviewed changes merge
+into `main`. Run the repository checks locally, open/update the PR, and let GitHub rerun `npm run check`
+before its production job builds, validates the destination, evaluates synthetic cloud policy requests
+and deploys all tracked release components. A failure blocks deployment; fix it in a PR rather than
+deploying manually. New deployable components must join this reviewed pipeline and its verification.
+
+Do not merge a PR unless the owner has authorized that merge. Once merged, no separate deployment
+confirmation is needed. A pipeline retry on `main` uses GitHub Actions; rollback uses a reviewed revert
+PR and the same pipeline, never a console/CLI release. See [pipeline setup](docs/GITHUB_ACTIONS.md).
+Report the deployed commit and workflow result; a passed PR check, local build or merge alone does not
+prove the release is live. Keep separately required device/cloud checks explicit.
 
 ## Change control
 

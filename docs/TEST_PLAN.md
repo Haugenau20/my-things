@@ -11,8 +11,16 @@ emulator tests for SDK/rules integration, and browser tests for end-to-end workf
 test tooling supports synthetic authenticated and unauthenticated contexts; see
 [References S14](REFERENCES.md#s14). Select and pin runners during M0.
 
-Every test setup must assert the demo project ID and emulator connections. CI must not require production
-credentials. Use synthetic names, notes, serials, and generated image fixtures.
+Every automated feature test setup must assert the demo project ID and emulator connections. Every
+new or changed feature needs relevant coverage before merge, including failure/recovery and positive/
+negative authorization where applicable. The CI `Verify` job must not receive production credentials.
+Use synthetic names, notes, serials, and generated image fixtures. A separately authenticated deploy
+job evaluates synthetic cloud policy requests without reading/writing inventory data.
+
+Production releases run only through [GitHub Actions](GITHUB_ACTIONS.md) after merge to `main` and a
+successful complete `npm run check`. Never bypass failed checks with a local CLI or console release.
+Retry the workflow after a fix; roll back with a reviewed revert PR. Emulator verification does not
+replace the device/cloud acceptance scenarios below.
 
 ## 2. Authorization matrix - release blocking
 
@@ -134,6 +142,7 @@ interrupted uploads/reload/resume, collision refusal, changed imported records, 
 and actual Chromium JPEG reopening. Device acceptance and isolated cloud recovery proof remain pending.
 
 For each release, record commit ID, environments, device/browser versions, automated commands/results,
-manual scenarios run, export/restore outcome, known limitations, and who approved deployment. Separate
+manual scenarios run, export/restore outcome, known limitations, reviewed merge and deployment workflow
+URL/result. Separate
 passed, failed, and not-tested results. M0/M1 prototypes are not a production-ready inventory merely
 because a happy-path screenshot looks correct.

@@ -76,6 +76,9 @@ Earlier failed experimental larger photo counts are evidence for D10, not skippe
 
 ## Reviewable production release preparation
 
+Production releases now use only the [GitHub pipeline](GITHUB_ACTIONS.md) after merge to `main`.
+The local commands below remain optional preparation checks; they do not authorize local deployment.
+
 Run from the repository root. These commands do not connect browser SDKs to cloud services or deploy:
 
 ```powershell
@@ -90,12 +93,10 @@ in `dist/build-environment.json`, and the source rules. The generated config has
 regenerate it on another checkout. The root `firebase.json` remains local-only and the default CLI alias
 remains `demo-inventory`. Do not deploy a local build or use the root local CSP for a cloud release.
 
-Only after the owner explicitly authorizes deployment, run the pinned CLI with the reviewed project
-and generated configuration (replace placeholders; the authorized release used this command):
-
-```powershell
-mise exec -- node node_modules/firebase-tools/lib/bin/firebase.js deploy --only firestore:rules,firestore:indexes,storage,hosting --project PROJECT_ID --config .firebase/production.firebase.json
-```
+Open/update a reviewed PR with feature coverage against the demo emulators, then merge into `main`
+when authorized. GitHub reruns the complete checks and performs production build/preflight/preparation
+before publishing Hosting, Firestore rules/indexes and Storage rules. Never invoke Firebase deployment
+from a local CLI or console. Historical CLI releases in milestone evidence predate this policy.
 
 Storage rules use two Firestore documents: the trusted inventory root and the matching draft. The
 Firebase CLI/console may request permission to connect Storage rules to Firestore. This is an IAM

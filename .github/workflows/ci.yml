@@ -1,0 +1,76 @@
+name: Test and deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: my-things-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4
+        with:
+          version: 2026.9.18
+      - run: mise exec -- npm ci
+      - run: mise exec -- node scripts/prepare-ci.mjs local
+      - run: mise exec -- node node_modules/@playwright/test/cli.js install --with-deps chromium
+      - run: mise exec -- npm run check
+
+  deploy:
+    name: Deploy production
+    needs: verify
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://my-things-c7305.firebaseapp.com
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: firebase-production
+      cancel-in-progress: false
+    env:
+      APP_PRODUCTION_PROJECT_ID: my-things-c7305
+      FIREBASE_CLI_DISABLE_UPDATE_CHECK: 'true'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4
+        with:
+          version: 2026.9.18
+      - run: mise exec -- npm ci
+      - name: Prepare public Web configuration
+        run: mise exec -- node scripts/prepare-ci.mjs production
+        env:
+          FIREBASE_WEB_CONFIG: ${{ vars.FIREBASE_WEB_CONFIG }}
+      - run: mise exec -- npm run build:prod
+      - run: mise exec -- npm run deploy:check -- production my-things-c7305 main
+      - run: mise exec -- npm run release:prepare
+      - name: Authenticate through GitHub OIDC
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: my-things-c7305
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - name: Check cloud Storage policy with synthetic requests
+        run: mise exec -- npm run test:rules:cloud -- --project my-things-c7305
+      - name: Deploy Firestore rules and indexes, Storage rules, and Hosting
+        run: mise exec -- node node_modules/firebase-tools/lib/bin/firebase.js deploy --only firestore:rules,firestore:indexes,storage,hosting --project my-things-c7305 --config .firebase/production.firebase.json --non-interactive
