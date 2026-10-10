@@ -10,9 +10,9 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | --- | --- | --- |
 | A01 | Photo-first personal inventory for an international move | Optimize capture and later visual recall |
 | A02 | Individual entries by default, some groups | Quantity exists but one entry has one location/outcome |
-| A03 | Phone capture, optional immediate detail entry, desktop organization | Capture must not require a large form |
+| A03 | Phone shoot/name capture; optional desktop details and organization | Capture must not require a large form |
 | A04 | Name required; photos may be added later; quantity/value/serial optional | Photo-free entries are saved items, not drafts |
-| A05 | Rooms now; flat numbered boxes when packing | Retain original room separately from current location |
+| A05 | Rooms now; flat numbered boxes when packing | Retain a nullable room tag independently of the packing box |
 | A06 | Simple store/take/sell/give-away workflow | No marketplace, buyer, or pickup-management system |
 | A07 | No offline capture requirement | Do not add a persistent local photo-sync system |
 | A08 | One owner initially; all inventory data behind login | Public login shell accepted; backend data/photo authorization required |
@@ -33,7 +33,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | D03 | Local demo project and one production cloud project | Owner chose no second project; automated tests remain emulator-only |
 | D04 | Owner UID stored in trusted inventory root; Storage rules consult it | Change only with a reviewed policy and negative tests |
 | D05 | Google sign-in with session-scoped Auth persistence initially | Test phone usability; persistence is not offline data storage |
-| D06 | First-room association retained; current-location union | Correct original room explicitly, never silently on packing |
+| D06 | Independent nullable roomId and boxId; Gone clears box and retains room | Correct the room tag explicitly, never silently on packing |
 | D07 | Value is total entry value in integer minor units | Never reinterpret existing amounts through default changes |
 | D08 | No currency selected; null default permitted | Choose at first value entry or in settings |
 | D09 | JPEG detail 2,000 px / thumbnail 400 px; no cloud originals | Validate readability and real device formats before mass use |
@@ -41,7 +41,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | D11 | Embedded bounded photo metadata, item revisions, staged recovery | Avoid a new backend merely to obtain cross-service transactions |
 | D12 | In-memory metadata search; 250-document reads; 5,000-item test target | Measure before adding server search/pagination complexity |
 | D13 | Simple category plus notes; no tag/custom-field engine | Add only after a repeated real need appears |
-| D14 | Archive disposed entries; clear their current location | Do not leave sold objects in current box contents |
+| D14 | Archive disposed entries as Gone; clear box and retain room | Do not leave sold objects in current box contents |
 | D15 | Empty-destination restore; no merge; optional multipart export | Keep the exit path reliable and memory-bounded |
 | D16 | npm, pinned tools, pipeline-only production release | Update the reviewed workflow and verification together for new deployable components |
 
@@ -255,3 +255,7 @@ The approved ≤850px layout replaces the interim top menu with Things/Review/Mo
 ### 2026-10-11 — Phone camera and bounded capture queue
 
 PR-09 uses the approved native camera/file-input alternative rather than a live preview. The queue limit is three captures (one active and two waiting), providing backpressure while preserving the next typed draft. It is sequential and memory-only, with no private offline persistence; only an active room-ID preference is stored per owner/project/inventory/device. Native 2nd-photo selection retains the existing two-photo limit. Acknowledged toast lasts five seconds; Undo is an explicit recoverable Trash action with the saved revision. Preparation-only corrections and confirmed partial-upload cleanup remain explicit. Actual iPhone camera/HEIC/keyboard/Home Screen acceptance is still required before large-scale capture.
+
+### 2026-10-11 — Overview counts and navigation
+
+The approved archived-room reconciliation applies to the Room × Box matrix. Totals include Gone and exclude Trash/unfinished records; room-only links preserve the owned Things default, stated beside the totals. Individual cells use the shared Things filter. Many boxes scroll within the desktop card with Room sticky; phone uses a room list with the same cell links. Navigation resets search, secondary filters, selection and explicit grouping so each count opens its exact selection.

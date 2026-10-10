@@ -30,6 +30,8 @@ import type { Environment } from '../data/config';
 import { useNarrow } from './use-narrow';
 import { BottomSheet } from './BottomSheet';
 import { PhoneCapture } from './PhoneCapture';
+import { Overview } from './Overview';
+import type { BrowseRequest } from '../domain/overview';
 
 export function InventoryWorkspace({
   services,
@@ -73,7 +75,7 @@ export function InventoryWorkspace({
   const [inspectRequest, setInspectRequest] = useState<{ sequence: number; id: string }>();
   const captureContainer = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [browseLocation, setBrowseLocation] = useState<string>();
+  const [browseLocation, setBrowseLocation] = useState<BrowseRequest>();
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(true);
@@ -220,7 +222,7 @@ export function InventoryWorkspace({
         </aside>
         <div className="workspace-main">
           <div className="workspace-toolbar">
-            {!['things', 'review', 'trash'].includes(view) && <h1>{titles[view]}</h1>}
+            {!['things', 'review', 'trash', 'overview'].includes(view) && <h1>{titles[view]}</h1>}
             <button className="text-button" disabled={busy} onClick={() => void reload()}>
               Refresh inventory
             </button>
@@ -377,37 +379,30 @@ export function InventoryWorkspace({
                     inventoryId={inventoryId}
                     reload={reload}
                     browse={(key) => {
-                      setBrowseLocation(key);
+                      const [facet, id] = key.split(':');
+                      setBrowseLocation((current) => ({
+                        sequence: (current?.sequence ?? 0) + 1,
+                        room: facet === 'room' ? (id ?? '') : '',
+                        box: facet === 'box' ? (id ?? '') : '',
+                      }));
                       navigate('things');
                     }}
                   />
                 )}
                 {view === 'overview' && (
-                  <section aria-label="Inventory overview">
-                    <p>
-                      {owned.length} owned things in{' '}
-                      {rooms.filter((room) => room.archivedAt === null).length} active rooms.
-                    </p>
-                    {rooms
-                      .filter(
-                        (room) =>
-                          room.archivedAt === null ||
-                          items.some((item) => item.roomId === room.id && item.deletedAt === null),
-                      )
-                      .map((room) => (
-                        <button
-                          className="text-button"
-                          key={room.id}
-                          onClick={() => {
-                            setBrowseLocation('room:' + room.id);
-                            navigate('things');
-                          }}
-                        >
-                          {room.name}
-                          {room.archivedAt ? ' (archived)' : ''}
-                        </button>
-                      ))}
-                  </section>
+                  <Overview
+                    items={items}
+                    rooms={rooms}
+                    boxes={boxes}
+                    browse={(room, box) => {
+                      setBrowseLocation((current) => ({
+                        sequence: (current?.sequence ?? 0) + 1,
+                        room,
+                        box,
+                      }));
+                      navigate('things');
+                    }}
+                  />
                 )}
                 <div hidden={!['things', 'review', 'trash'].includes(view)}>
                   {' '}

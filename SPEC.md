@@ -217,3 +217,7 @@ destination is separate from the main inventory in the same project.
 
 Do not classify optional polish as a dependency for starting real inventory work. Do not classify
 security, backup recovery, or reliable photo storage as optional polish.
+
+### OVW-01: Where everything is
+
+Overview displays active rooms, referenced archived rooms labeled “(archived)”, and No room when referenced. Columns are Not packed, each active box, Gone, and a noninteractive Total. Every Room × Box count uses the same ready/nontrashed Things filter. Gone counts completed sell/give-away entries. Totals include Gone; a room-only link retains Things' owned default. Clicking a count sets both facets; room/column labels set only their facet and reset search, secondary filters, grouping choice and selection. Repeated clicks apply a fresh navigation request. Empty counts remain reachable. The desktop matrix scrolls within its card and keeps Room visible; phone presents the same counts in a room list.
