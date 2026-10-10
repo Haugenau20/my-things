@@ -1,3 +1,4 @@
+import { useMutationState } from './mutation-activity';
 import { useState } from 'react';
 import type { Item, Room } from '../domain/item';
 import { DECISIONS, PROGRESS } from '../domain/organize';
@@ -29,7 +30,7 @@ export function BulkEditor({
   const [location, setLocation] = useState('unassigned');
   const [decision, setDecision] = useState<Item['decision']>('undecided');
   const [progress, setProgress] = useState<Item['progress']>('not_started');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useMutationState();
   const [confirm, setConfirm] = useState(false);
   const [results, setResults] = useState<BulkResult[]>([]);
   const command: ItemCommand =

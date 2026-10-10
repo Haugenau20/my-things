@@ -1,3 +1,4 @@
+import { useMutationState } from './mutation-activity';
 import { useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Item } from '../domain/item';
@@ -34,7 +35,7 @@ export function PhotoAttachment({
     };
   }, [sessionSignal, controller]);
   const [files, setFiles] = useState<File[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useMutationState();
   const [locked, setLocked] = useState(false);
   const [error, setError] = useState<string>();
   const [status, setStatus] = useState('');
@@ -94,7 +95,7 @@ export function PhotoAttachment({
         if (attempt.current) await onAttempt(item.id);
       }
     } finally {
-      if (!signal.aborted) setBusy(false);
+      setBusy(false);
     }
   }
   return (

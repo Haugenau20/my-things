@@ -4,9 +4,9 @@ Work in small, verifiable slices. No time estimates or automatic deployments are
 were initially **not implemented**. M0 is now implemented locally; see [M0 evidence](M0_FOUNDATION.md).
 M1 capture is deployed; its actual-device gate remains pending. M2 organization is verified and deployed
 under the owner's explicit instruction to proceed while away; see [M2 evidence](M2_ORGANIZE.md).
-M3 has started with permanent-deletion recovery and read-only orphan inspection; export/restore remains
-unimplemented. Its complete gate establishes usable V1; M4 is optional convenience work. See
-[M3 recovery evidence](M3_RECOVERY.md), [M1 evidence](M1_CAPTURE.md) and
+M3 has started with permanent-deletion recovery, read-only orphan inspection, and full photo export;
+restore remains unimplemented. Its complete gate establishes usable V1; M4 is optional convenience work.
+See [M3 export evidence](M3_EXPORT.md), [M3 recovery evidence](M3_RECOVERY.md), [M1 evidence](M1_CAPTURE.md) and
 [deployment evidence](M1_RELEASE.md).
 
 ## M0 - Safe foundation

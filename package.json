@@ -28,6 +28,7 @@
     "check": "npm run lint && npm run typecheck && npm run test && npm run test:rules && npm run test:integration && npm run test:e2e && npm run build"
   },
   "dependencies": {
+    "fflate": "0.8.3",
     "firebase": "13.0.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -55,5 +56,10 @@
     "protobufjs": false,
     "re2": false,
     "google-logging-utils": false
+  },
+  "overrides": {
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "1.14.6"
+    }
   }
 }

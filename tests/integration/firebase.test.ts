@@ -27,6 +27,8 @@ import * as deletion from '../../src/media/permanent-deletion';
 import { inspectOrphans } from '../../src/media/orphan-inspection';
 import { photoObjects } from '../../src/media/cleanup';
 import { runBounded } from '../../src/media/processing';
+import { createExport } from '../../src/backup/export-repository';
+import { unzipSync } from 'fflate';
 
 let environment: RulesTestEnvironment;
 const env = {
@@ -702,6 +704,130 @@ describe('real client SDK and trusted synthetic seed', () => {
       remaining.push(object.fullPath);
     expect(remaining).toEqual([]);
   }, 30000);
+  it('exports current SDK records and authenticated bytes with archive/trash history and rejects missing bytes or foreign access', async () => {
+    const services = await owner('export-sdk');
+    const inventory = 'export-sdk';
+    const signal = new AbortController().signal;
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`inventories/${inventory}`).set({
+        schemaVersion: 1,
+        ownerUid: LOCAL_ACCOUNTS.owner.uid,
+        displayName: 'Synthetic export inventory',
+        defaultCurrency: null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    });
+    const room = await createRoom(services.db, inventory, 'Synthetic export room', 0);
+    const oldRoom = await createRoom(services.db, inventory, 'Synthetic archived room', 1);
+    const box = await organizeRepository.createBox(
+      services.db,
+      inventory,
+      'Synthetic mixed box',
+      0,
+    );
+    const plan = await attempt('export-photo');
+    const photo = {
+      ...plan.input.photos[0]!,
+      detail: {
+        ...plan.input.photos[0]!.detail,
+        storagePath: photoPath(inventory, plan.id, 'photo-one', 'detail'),
+      },
+      thumbnail: {
+        ...plan.input.photos[0]!.thumbnail,
+        storagePath: photoPath(inventory, plan.id, 'photo-one', 'thumb'),
+      },
+    };
+    await saveAttempt(
+      services,
+      inventory,
+      {
+        ...plan,
+        input: { ...plan.input, roomId: room.id, photos: [photo] },
+        prepared: [{ ...plan.prepared[0]!, photo }],
+      },
+      signal,
+      () => {},
+    );
+    const grouped = await ensureDraft(services.db, inventory, 'export-grouped', {
+      name: '=Synthetic grouped item',
+      roomId: room.id,
+      photos: [],
+      reviewStatus: 'reviewed',
+    });
+    const valued = await organizeRepository.editItem(services.db, inventory, grouped, {
+      kind: 'metadata',
+      patch: {
+        quantity: 7,
+        serialNumber: '00042',
+        notes: 'Synthetic multiline\næ',
+        estimatedValue: { amountMinor: 0, currency: 'JPY' },
+      },
+    });
+    await organizeRepository.editItem(services.db, inventory, valued, {
+      kind: 'move',
+      location: { kind: 'box', boxId: box.id },
+    });
+    const sold = await ensureDraft(services.db, inventory, 'export-sold', {
+      name: 'Synthetic sold item',
+      roomId: oldRoom.id,
+      photos: [],
+      reviewStatus: 'needs_review',
+    });
+    const decision = await organizeRepository.editItem(services.db, inventory, sold, {
+      kind: 'decision',
+      decision: 'sell',
+    });
+    await organizeRepository.editItem(services.db, inventory, decision, {
+      kind: 'progress',
+      progress: 'completed',
+    });
+    await organizeRepository.archiveLocation(services.db, inventory, 'room', oldRoom.id);
+    const trash = await ensureDraft(services.db, inventory, 'export-trash', {
+      name: 'Synthetic trash',
+      roomId: room.id,
+      photos: [],
+      reviewStatus: 'needs_review',
+    });
+    await organizeRepository.editItem(services.db, inventory, trash, { kind: 'trash' });
+    const iterator = createExport(services, inventory, signal, () => {});
+    const part = (await iterator.next()).value!;
+    expect(part.final).toBe(true);
+    const payload = unzipSync(new Uint8Array(await part.blob.arrayBuffer()));
+    const manifest = JSON.parse(new TextDecoder().decode(payload['manifest.json']));
+    expect(manifest.counts).toEqual({ items: 4, rooms: 2, boxes: 1, photos: 1, photoFiles: 2 });
+    const records = JSON.parse(new TextDecoder().decode(payload['items.json'])) as {
+      id: string;
+      originalRoomId: string | null;
+      currentLocation: { kind: string };
+      quantity: number;
+      deletedAt: unknown;
+      completedAt: unknown;
+    }[];
+    expect(records.find((item) => item.id === grouped.id)).toMatchObject({
+      quantity: 7,
+      originalRoomId: room.id,
+      currentLocation: { kind: 'box' },
+    });
+    expect(records.find((item) => item.id === sold.id)?.completedAt).not.toBeNull();
+    expect(records.find((item) => item.id === trash.id)?.deletedAt).not.toBeNull();
+    expect(payload['photos/export-photo/photo-one/detail.jpg']).toEqual(bytesForFixture());
+    await iterator.return(undefined);
+    const foreign = await owner('export-foreign');
+    await signInWithEmailAndPassword(
+      foreign.auth,
+      LOCAL_ACCOUNTS.unrelated.email,
+      LOCAL_ACCOUNTS.unrelated.password,
+    );
+    await expect(createExport(foreign, inventory, signal, () => {}).next()).rejects.toThrow();
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .storage('gs://demo-inventory.firebasestorage.app')
+        .ref(photo.detail.storagePath)
+        .delete();
+    });
+    await expect(createExport(services, inventory, signal, () => {}).next()).rejects.toThrow();
+  });
   it('does not overwrite an existing different owner binding', async () => {
     await environment.withSecurityRulesDisabled(async (context) => {
       await context

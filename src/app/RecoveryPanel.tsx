@@ -1,3 +1,4 @@
+import { useMutationState } from './mutation-activity';
 import { useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Item, PhotoFile } from '../domain/item';
@@ -26,7 +27,7 @@ function RecoveryItem({
   reload: () => Promise<void>;
 }) {
   const [files, setFiles] = useState<File[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useMutationState();
   const [confirmation, setConfirmation] = useState(false);
   const [error, setError] = useState<string>();
   const [status, setStatus] = useState('');
@@ -83,7 +84,7 @@ function RecoveryItem({
         );
       }
     } finally {
-      if (!signal.aborted) setBusy(false);
+      setBusy(false);
     }
   }
   return (

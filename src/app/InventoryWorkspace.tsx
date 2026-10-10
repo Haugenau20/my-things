@@ -14,6 +14,8 @@ import { LocationManager } from './LocationManager';
 import { InventorySettings } from './InventorySettings';
 import { DeletionDialog, DeletionRecovery } from './DeletionDialog';
 import { OrphanInspection } from './OrphanInspection';
+import { ExportPanel } from './ExportPanel';
+import { MutationActivity } from './mutation-activity';
 
 export function InventoryWorkspace({
   services,
@@ -28,6 +30,14 @@ export function InventoryWorkspace({
   const [rooms, setRooms] = useState<Room[]>([]);
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [settings, setSettings] = useState(inventory);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [mutating, setMutating] = useState(0);
+  const mutations = useRef(new Set<symbol>());
+  const reportMutation = useCallback((id: symbol, busy: boolean) => {
+    if (busy) mutations.current.add(id);
+    else mutations.current.delete(id);
+    setMutating(mutations.current.size);
+  }, []);
   const [activeAttempt, setActiveAttempt] = useState<string>();
   const [deletionRequested, setDeletionRequested] = useState<Item>();
   const [notice, setNotice] = useState('');
@@ -75,153 +85,167 @@ export function InventoryWorkspace({
     };
   }, [reload, controller, session]);
   return (
-    <main className="workspace">
-      <div className="workspace-heading">
-        <div>
-          <p className="eyebrow">Your private inventory</p>
-          <h1>{settings.displayName}</h1>
-          <p className="access-badge">✓ Owner access verified</p>
-        </div>
-        <div className="save-actions">
-          <button className="text-button" onClick={() => void reload()}>
-            Refresh inventory
-          </button>
-          <button
-            className="text-button"
-            aria-expanded={manage}
-            onClick={() => setManage((value) => !value)}
-          >
-            Manage locations
-          </button>
-        </div>
-      </div>
-      {error && (
-        <p role="alert" className="error-message">
-          Could not refresh inventory. Records may be out of date or invalid. Check your connection
-          and refresh before continuing.
-        </p>
-      )}
-      {notice && (
-        <p role="status" className="save-status">
-          {notice}
-        </p>
-      )}
-      {deletionRequested && (
-        <DeletionDialog
-          item={deletionRequested}
-          services={services}
-          inventoryId={inventoryId}
-          signal={controller.signal}
-          reload={reload}
-          closed={() => {
-            setDeletionRequested(undefined);
-            void reload();
-          }}
-          completed={async () => {
-            setNotice(`Permanently deleted ${deletionRequested.name}.`);
-            setDeletionRequested(undefined);
-            await reload();
-          }}
-        />
-      )}
-      {loading ? (
-        <p role="status">Loading saved items and rooms…</p>
-      ) : (
-        <>
-          <RecoveryPanel
-            items={items.filter(
-              (item) =>
-                item.id !== activeAttempt &&
-                item.deletedAt === null &&
-                ((item.recordState !== 'ready' && item.coverPhotoId === null) ||
-                  (item.recordState === 'ready' &&
-                    item.photos.some((photo) => photo.state !== 'ready'))),
-            )}
+    <MutationActivity.Provider value={reportMutation}>
+      <main className="workspace">
+        <details className="inventory-settings">
+          <summary>Backup export</summary>
+          <ExportPanel
             services={services}
             inventoryId={inventoryId}
             signal={controller.signal}
-            reload={reload}
+            disabled={loading || refreshing || error || mutating > 0 || !!deletionRequested}
+            pause={setExportBusy}
           />
-          <DeletionRecovery
-            items={items.filter(
-              (item) => item.recordState === 'deleting' && item.deletedAt !== null,
-            )}
-            open={setDeletionRequested}
-          />
-          {manage && (
-            <LocationManager
-              rooms={rooms}
-              boxes={boxes}
-              items={items}
+        </details>
+        <fieldset className="inventory-actions" disabled={exportBusy} inert={exportBusy}>
+          <div className="workspace-heading">
+            <div>
+              <p className="eyebrow">Your private inventory</p>
+              <h1>{settings.displayName}</h1>
+              <p className="access-badge">✓ Owner access verified</p>
+            </div>
+            <div className="save-actions">
+              <button className="text-button" onClick={() => void reload()}>
+                Refresh inventory
+              </button>
+              <button
+                className="text-button"
+                aria-expanded={manage}
+                onClick={() => setManage((value) => !value)}
+              >
+                Manage locations
+              </button>
+            </div>
+          </div>
+          {error && (
+            <p role="alert" className="error-message">
+              Could not refresh inventory. Records may be out of date or invalid. Check your
+              connection and refresh before continuing.
+            </p>
+          )}
+          {notice && (
+            <p role="status" className="save-status">
+              {notice}
+            </p>
+          )}
+          {deletionRequested && (
+            <DeletionDialog
+              item={deletionRequested}
               services={services}
               inventoryId={inventoryId}
+              signal={controller.signal}
               reload={reload}
-              browse={(key) => setBrowseLocation(key === browseLocation ? undefined : key)}
+              closed={() => {
+                setDeletionRequested(undefined);
+                void reload();
+              }}
+              completed={async () => {
+                setNotice(`Permanently deleted ${deletionRequested.name}.`);
+                setDeletionRequested(undefined);
+                await reload();
+              }}
             />
           )}
-          <details
-            className="inventory-settings"
-            onToggle={(event) => setSettingsOpen(event.currentTarget.open)}
-          >
-            <summary>Inventory settings</summary>
-            {settingsOpen && (
-              <InventorySettings
-                inventory={settings}
+          {loading ? (
+            <p role="status">Loading saved items and rooms…</p>
+          ) : (
+            <>
+              <RecoveryPanel
+                items={items.filter(
+                  (item) =>
+                    item.id !== activeAttempt &&
+                    item.deletedAt === null &&
+                    ((item.recordState !== 'ready' && item.coverPhotoId === null) ||
+                      (item.recordState === 'ready' &&
+                        item.photos.some((photo) => photo.state !== 'ready'))),
+                )}
                 services={services}
                 inventoryId={inventoryId}
+                signal={controller.signal}
                 reload={reload}
               />
-            )}
-          </details>
-          <details className="inventory-settings">
-            <summary>Photo maintenance</summary>
-            <OrphanInspection
-              services={services}
-              inventoryId={inventoryId}
-              signal={controller.signal}
-            />
-          </details>
-          <div className="inventory-layout">
-            <CaptureForm
-              services={services}
-              inventoryId={inventoryId}
-              rooms={rooms}
-              signal={controller.signal}
-              onRoom={(room) => setRooms((values) => [...values, room])}
-              onSaved={async () => {
-                setActiveAttempt(undefined);
-                await reload();
-              }}
-              onAttempt={async (id) => {
-                setActiveAttempt(id);
-                await reload();
-              }}
-            />
-            <InventoryBrowser
-              items={items}
-              rooms={rooms}
-              boxes={boxes}
-              services={services}
-              inventoryId={inventoryId}
-              session={session}
-              signal={controller.signal}
-              activeAttempt={activeAttempt}
-              setActiveAttempt={setActiveAttempt}
-              reload={reload}
-              defaultCurrency={settings.defaultCurrency}
-              metadataReady={!refreshing && !error}
-              browseLocation={browseLocation}
-              setDefaultCurrency={async (currency) => {
-                await updateSettings(services.db, inventoryId, settings, {
-                  defaultCurrency: currency,
-                });
-                await reload();
-              }}
-              requestDeletion={setDeletionRequested}
-            />
-          </div>
-        </>
-      )}
-    </main>
+              <DeletionRecovery
+                items={items.filter(
+                  (item) => item.recordState === 'deleting' && item.deletedAt !== null,
+                )}
+                open={setDeletionRequested}
+              />
+              {manage && (
+                <LocationManager
+                  rooms={rooms}
+                  boxes={boxes}
+                  items={items}
+                  services={services}
+                  inventoryId={inventoryId}
+                  reload={reload}
+                  browse={(key) => setBrowseLocation(key === browseLocation ? undefined : key)}
+                />
+              )}
+              <details
+                className="inventory-settings"
+                onToggle={(event) => setSettingsOpen(event.currentTarget.open)}
+              >
+                <summary>Inventory settings</summary>
+                {settingsOpen && (
+                  <InventorySettings
+                    inventory={settings}
+                    services={services}
+                    inventoryId={inventoryId}
+                    reload={reload}
+                  />
+                )}
+              </details>
+              <details className="inventory-settings">
+                <summary>Photo maintenance</summary>
+                <OrphanInspection
+                  services={services}
+                  inventoryId={inventoryId}
+                  signal={controller.signal}
+                />
+              </details>
+              <div className="inventory-layout">
+                <CaptureForm
+                  services={services}
+                  inventoryId={inventoryId}
+                  rooms={rooms}
+                  signal={controller.signal}
+                  onRoom={(room) => setRooms((values) => [...values, room])}
+                  onSaved={async () => {
+                    setActiveAttempt(undefined);
+                    await reload();
+                  }}
+                  onAttempt={async (id) => {
+                    setActiveAttempt(id);
+                    await reload();
+                  }}
+                />
+                <InventoryBrowser
+                  items={items}
+                  rooms={rooms}
+                  boxes={boxes}
+                  services={services}
+                  inventoryId={inventoryId}
+                  session={session}
+                  signal={controller.signal}
+                  activeAttempt={activeAttempt}
+                  setActiveAttempt={setActiveAttempt}
+                  reload={reload}
+                  defaultCurrency={settings.defaultCurrency}
+                  metadataReady={!refreshing && !error}
+                  browseLocation={browseLocation}
+                  setDefaultCurrency={async (currency) => {
+                    await updateSettings(services.db, inventoryId, settings, {
+                      defaultCurrency: currency,
+                    });
+                    await reload();
+                  }}
+                  requestDeletion={setDeletionRequested}
+                />
+              </div>
+            </>
+          )}
+        </fieldset>
+      </main>
+    </MutationActivity.Provider>
   );
 }

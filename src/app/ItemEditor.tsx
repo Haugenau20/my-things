@@ -1,3 +1,4 @@
+import { useMutationState } from './mutation-activity';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { FirebaseServices } from '../data/firebase';
@@ -57,7 +58,7 @@ export function ItemEditor({
   const [original, setOriginal] = useState(item.originalRoomId ?? '');
   const [decision, setDecision] = useState(item.decision);
   const [progress, setProgress] = useState(item.progress);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useMutationState();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [confirmation, setConfirmation] = useState<{
