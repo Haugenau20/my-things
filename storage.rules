@@ -1,0 +1,38 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function owns(inventoryId) {
+      return request.auth != null
+        && inventoryId.matches('[A-Za-z0-9_-]{1,128}')
+        && firestore.exists(/databases/(default)/documents/inventories/$(inventoryId))
+        && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.keys().hasAll(['schemaVersion', 'ownerUid'])
+        && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.schemaVersion == 1
+        && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /inventories/{inventoryId}/items/{path=**} {
+      allow list: if owns(inventoryId);
+    }
+
+    match /inventories/{inventoryId}/items/{itemId}/photos/{photoId}/{variant} {
+      function validPath() {
+        return itemId.matches('[A-Za-z0-9_-]{1,128}')
+          && photoId.matches('[A-Za-z0-9_-]{1,128}')
+          && variant in ['detail.jpg', 'thumb.jpg'];
+      }
+      allow get: if owns(inventoryId) && validPath();
+      allow create: if owns(inventoryId) && validPath()
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.size > 0
+        && request.resource.size <= (variant == 'detail.jpg' ? 8388608 : 524288)
+        && request.resource.metadata.keys().hasOnly([]);
+      // M0 uploads are immutable; replacement uses a new photo ID.
+      allow update: if false;
+      // Deletes have no incoming resource to validate.
+      allow delete: if owns(inventoryId) && validPath();
+    }
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

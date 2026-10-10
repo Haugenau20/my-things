@@ -1,0 +1,50 @@
+# Dependencies and build/test output
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Local Firebase/emulator state and logs
+.firebase/
+.firebase-emulators/
+/emulator-data/
+/local-data/
+*.log
+firebase.test.generated.json
+mise.local.toml
+mise.*.local.toml
+
+# Local configuration; examples are safe to commit
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Personal inventory records, exports, and original images
+/private/
+/inventory-data/
+/photos/
+/exports/
+/backups/
+
+# Private/admin credentials - never ship or commit these
+**/service-account*.json
+**/serviceAccount*.json
+**/*-adminsdk-*.json
+**/credentials*.json
+*.pem
+*.key
+
+# OS/editor local files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Deliberately NOT ignored: firebase.json, .firebaserc, rules/index files,
+# package-lock.json, and synthetic test fixtures. Review them before committing.

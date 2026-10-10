@@ -1,0 +1,18 @@
+node_modules/
+.firebase-emulators/
+.firebase/
+firebase.test.generated.json
+dist/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+mise.lock
+firebase-debug.log
+firestore-debug.log
+# Preserve the owner's starter prose; format new source and configuration only.
+README.md
+SPEC.md
+AGENTS.md
+LICENSE
+docs/*.md

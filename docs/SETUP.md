@@ -1,0 +1,201 @@
+# Repository, Firebase, and development setup
+
+This is a setup guide, not a record of completed cloud provisioning. M0 adds a local application,
+toolchain configuration, emulator tooling, and authorization tests. Cloud and device setup remain manual.
+
+## 1. First commit
+
+Create the GitHub repository, clone it, and extract this pack into its root. Do not put the pack inside
+an extra nested application directory. Review the files, then from Windows PowerShell:
+
+```powershell
+git status
+git add .
+git diff --cached --stat
+git commit -m "docs: define inventory app scope and implementation plan"
+```
+
+Push using the branch/remote you actually created; none is assumed here. The repository includes the
+owner's MIT LICENSE. A private repository is a reasonable starting preference, not an app access
+control: the application must remain secure even if its source becomes public.
+
+## 2. Decide and record environment values
+
+| Value | Initial choice / action |
+| --- | --- |
+| Local project ID | `demo-inventory` - synthetic emulator-only configuration |
+| Cloud workflow | Owner chose one production project; normal development/tests use local emulators |
+| Production project | Owner supplied actual configuration in ignored `.env.production.local` |
+| Inventory ID | Proposed default `main` in each environment |
+| Firestore | Existing Standard edition, `(default)` database, European multi-region `eur3` |
+| Storage | Existing default bucket in regional `us-east1` |
+| Owner UID | Obtain independently from Firebase Authentication in each cloud project |
+| Display name | Suggested `My inventory`; editable |
+| Default currency | Initially null; choose when first entering a value or in settings |
+
+Blaze billing and US photo storage are accepted. New Firebase Storage buckets require Blaze; the chosen
+region is eligible for the documented US no-cost Storage allowance. This is not a guarantee that all
+storage, operations, downloads, or other services will cost zero. Do not assume two projects multiply
+all billing-account-level free allowances. [References S01](REFERENCES.md#s01).
+
+Select database/bucket locations carefully before creating resources. The Firestore database location
+cannot be changed in place. [References S12](REFERENCES.md#s12).
+
+## 3. Owner's single production cloud project
+
+The owner created the cloud resources. See [M1 setup](M1_SETUP.md) for read-only verification and pending
+checks. The sequence below describes required setup, not permission to recreate existing resources.
+Use the Firebase console for remaining administrative setup; no privileged provisioning automation is required.
+
+1. Verify the existing project and owner-reported Blaze plan. Do not enable optional Analytics or
+   extensions by default. Any billing change requires explicit authorization.
+2. Create an alerts-only billing budget at an amount you choose. Alerts do not automatically pause
+   Firestore/Storage. Review actual usage after device testing and initial uploads.
+   [References S02](REFERENCES.md#s02).
+3. Verify the registered Web app and copy its exact web configuration into the ignored `.env.production.local`
+   environment file. Copy the actual bucket name from the console, never infer it from an old tutorial.
+4. Enable Google as the initial sign-in provider. Configure the app/support information requested by the
+   console. Do not enable anonymous, phone, or password sign-in without a requirement.
+5. Keep existing Firestore Standard `(default)` in `eur3` and Storage in `us-east1`. Review their actual
+   rules for default-deny access. Do not switch to temporary public/test-mode access or recreate resources.
+6. Review existing **Firebase Hosting** configuration for the static Vite build directory (`dist`) and SPA routing. No
+   automatic production deployment in M0. The standard Hosting initialization flow is documented in
+   [References S03](REFERENCES.md#s03).
+7. Deploy the minimal sign-in shell only when explicitly requested. Complete the owner bootstrap in
+   [Security](SECURITY.md): authenticate, obtain the UID, and seed the inventory root as administrator.
+8. Deploy reviewed owner rules. Confirm the Storage-to-Firestore permission setup when prompted. Configure
+   bucket CORS for the actual Hosting origin and test authenticated blob downloads, including denial for
+   another account. No public bucket access.
+
+A first cloud origin on the project's `firebaseapp.com` domain with a matching Auth domain keeps the
+initial sign-in setup simple. Verify Firebase authorized domains and OAuth redirect configuration for
+every served origin. Add localhost only if testing real OAuth from localhost is necessary; normal local
+work uses the Auth emulator. Do not assume a Hosting preview automatically works with OAuth or isolates
+the backend. Use the official redirect guidance for Safari. [References S08](REFERENCES.md#s08).
+
+Inspect the bucket's soft-delete, retention, and versioning policies, and record the actual choice in an
+ignored local operations note. Retained deleted objects may incur storage charges. Do not create lifecycle
+rules that expire ordinary inventory photos. [References S18](REFERENCES.md#s18).
+
+## 4. Local Windows toolchain
+
+M0 uses mise with exact Node.js `24.21.0` and Temurin Java
+`temurin-21.0.12+8.0.LTS` pins. npm `11.19.0` ships with that pinned Node release;
+`packageManager` and strict npm engines record/enforce the matching version. The Firebase CLI
+is pinned in `devDependencies`, never assumed globally. TypeScript 6.0.3 is selected because the
+current typescript-eslint release supports TypeScript below 6.1; package versions are exact.
+
+From PowerShell, after reviewing and trusting `mise.toml`:
+
+```powershell
+mise trust
+mise install
+mise exec -- npm ci
+Copy-Item .env.example .env.local
+mise exec -- node node_modules/@playwright/test/cli.js install chromium
+mise exec -- npm run emulators
+```
+
+Keep the emulators running. In a second PowerShell terminal:
+
+```powershell
+mise exec -- npm run seed:local
+mise exec -- npm run dev
+```
+
+Open `http://127.0.0.1:5173`. Local-only buttons sign in as the synthetic owner or an
+unrelated synthetic account. Password sign-in is an emulator fixture, not a cloud sign-in provider.
+Seeding creates only synthetic users and a trusted inventory policy; it does not claim an inventory
+from the browser or overwrite an existing different owner. Seed input rejects cloud configurations.
+
+The normal service ports remain 9099/8080/9199. Automated rules, integration, and browser tests start
+their own suite on 19099/18080/19199, hub 14400, logging 14500, and Firestore websocket 19150. Tests
+never reuse a running suite. If a port is occupied, the command fails; do not seed an unrelated suite.
+Emulator binaries use ignored `.firebase-emulators/` so CLI upgrades cannot replace another project's
+running Java files. First startup downloads them. Run suites sequentially, not concurrently.
+
+Normal application data stays in memory; Auth persists only in the browser tab's session. Sign-out is
+broadcast to other same-origin app tabs. Capture, data editing, and cloud Google sign-in remain M1+.
+
+M0 loads `.env.local` for local commands and dedicated `.env.development.local` or
+`.env.production.local` files for cloud builds. These do not inherit local emulator values. Process
+`VITE_`/`APP_` values can override file values but still pass the same validation. Missing files or
+values are hard failures. Cloud examples intentionally contain blank project/configuration values.
+Production builds require `APP_PRODUCTION_PROJECT_ID` to match the actual Web configuration; no cloud
+development project is required. Optional development builds require both explicit, distinct IDs if a
+second project is ever authorized. M0 cloud builds are static shells only: cloud SDK initialization and
+Google sign-in are deferred to M1. The default CLI alias remains `demo-inventory`; cloud commands must
+select the intended project explicitly.
+
+When updating the toolchain, select a currently supported Node.js LTS release compatible with the chosen Vite and
+Firebase CLI versions. Pin it in repository toolchain configuration and `package.json` engines. Commit
+the npm lockfile and use a pinned project-local Firebase CLI through npm scripts. Install a Java runtime
+compatible with the selected Firestore emulator; the official emulator guide currently calls out Java
+21 or later for the upcoming requirement. Recheck when installing. [References S07](REFERENCES.md#s07).
+
+Use Windows-compatible Node scripts rather than requiring Bash, WSL, or macOS. Add a small preflight that
+checks environment mode, project ID, emulator flags/ports, and expected tool availability.
+
+After the application exists, copy `.env.example` to `.env.local`. Its values are fake, local-only IDs.
+Connect Auth, Firestore, and Storage emulators before any service call. Ports in the example are 9099,
+8080, and 9199. Seed a synthetic owner/root and synthetic inventory through emulator-only tooling.
+That seed must reject non-demo projects. Do not use a downloaded service-account key for normal local work.
+
+For real iPhone camera/OAuth tests, use an explicitly authorized HTTPS cloud build with disposable samples. A phone's
+`localhost` is not your Windows computer; LAN/emulator networking is not an initial requirement.
+
+## 5. Implemented M0 command contract
+
+These commands now exist. Scripts never deploy implicitly. Run them through `mise exec --` when mise
+is not activated in your shell.
+
+| Command | Required behavior after implementation |
+| --- | --- |
+| `npm ci` | Install exact dependencies from the committed lockfile |
+| `npm run dev` | Start Vite in validated local/emulator mode |
+| `npm run emulators` | Start required emulators with the explicit demo project |
+| `npm run seed:local` | Create deterministic synthetic data; reject cloud projects |
+| `npm run lint` | Check lint and formatting conventions |
+| `npm run typecheck` | Run strict TypeScript checks |
+| `npm run test` | Noninteractive unit/component tests |
+| `npm run test:rules` | Start/use demo emulators and run positive/negative rules tests |
+| `npm run test:integration` | Start isolated demo emulators and verify real SDK/seed integration |
+| `npm run test:e2e` | Browser flows against emulators only |
+| `npm run build` | Compile a local validation build; never deploy |
+| `npm run build:dev` | Optional separate cloud-development build; unavailable in the owner's single-project workflow |
+| `npm run build:prod` | Build with explicit production config; reject demo/development IDs |
+| `npm run deploy:check -- production PROJECT_ID main` | Validate baked-in environment/project/inventory against an explicit destination; does not deploy |
+| `npm run check` | Run lint, typecheck, unit, rules, integration, browser, and local build sequentially |
+
+A build writes `dist/build-environment.json`. Deployment preflight rejects local builds and mismatched
+environment/project/inventory values. No deployment command is provided in M0; a manual Firebase CLI
+invocation can bypass this check, so the approved release workflow must run it before deploying.
+The Hosting CSP is deliberately local-only in M0. M1 must review actual OAuth/API domains and extend
+the header policy before any authorized cloud deployment. The CORS template under `docs/templates/`
+is not applied automatically and requires the actual origin.
+
+## 6. Commit configuration, not secrets
+
+During implementation, commit `firebase.json`, `.firebaserc` aliases as deliberately configured, Firestore
+and Storage rule files, required Firestore index definitions, and documented CORS/header templates.
+Do not commit admin credentials, personal records, cloud exports, emulator data, or real test photos.
+The supplied `.gitignore` is a starting safeguard, not a secret scanner.
+
+Every `VITE_` value becomes browser configuration, not a private server environment variable. Do not put
+service-account keys or arbitrary secret API tokens there. [References S17](REFERENCES.md#s17).
+
+## 7. Production release and operating routine
+
+Use the existing production project and complete its verified bootstrap/configuration. Before release, pass the
+[test plan](TEST_PLAN.md), inspect the project/bucket IDs in the built config, review rules and indexes,
+and explicitly select the deployment project. Deploy only reviewed components. A Hosting deployment by
+itself does not deploy Firestore/Storage rules or indexes. [References S03](REFERENCES.md#s03).
+
+Test owner login and one unauthorized account after deployment. Verify direct photo access is denied
+without credentials, room/box behavior is correct, and no synthetic emulator records were seeded into cloud data. Record the release
+commit and manual checks. Do not enter irreplaceable inventory data before export/restore works.
+
+After substantial inventory sessions and before migrations, export an independent copy. Periodically
+review usage, billing notifications, broken-photo reports, and unfinished operations. A previous frontend
+release can be redeployed, but that does not automatically undo database changes; migrations need their
+own recovery plan. No paid automated backup service is assumed in V1.
