@@ -4,7 +4,7 @@ A private, photo-first inventory for preparing an international move and finding
 Capture individual items on an iPhone, organize them on a Windows computer, decide what to store, take,
 sell, or give away, and browse the things you still own while abroad.
 
-**Repository status: M1 capture deployed; M2 organization locally verified.** Name with optional photo
+**Repository status: M2 organization verified and deployed; actual-device acceptance pending.** Name with optional photo
 capture, a sticky room, optimized private photos, gallery/detail views, and interrupted-capture recovery
 are present. Hosting, Firestore indexes/rules, and Storage rules are deployed. Required cross-service
 IAM and exact-origin CORS are applied; the signed-out page and Google redirect start are verified.

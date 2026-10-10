@@ -1,6 +1,6 @@
 # M2 — Organization evidence
 
-Status: locally verified. M2 proceeds under the owner's explicit instruction to
+Status: verified and deployed. M2 proceeds under the owner's explicit instruction to
 continue while away. The outstanding M1 actual-device gate remains open.
 
 ## Behavior
@@ -65,6 +65,21 @@ destination revision initially succeeded, then was denied by the paired-write po
 initially failed on absent controls; subsequent selector/key issues were corrected during verification.
 
 ## Manual gates and future work
+
+## Production release
+
+Source commit `4318c7b` has the exact tree that passed the full suite (rebased onto the merged optional-photo
+PR without file changes). Production build, explicit destination preflight, and ignored release
+preparation passed. Firebase CLI deployed Firestore rules and Hosting successfully on 2026-10-10 under
+the owner's earlier explicit deployment authorization. Storage rules, IAM, CORS, Auth signup policy,
+and infrastructure were unchanged; no inventory records/photos were read, written, migrated, or deleted.
+
+An isolated signed-out Chromium session showed the Google button and reached `accounts.google.com`
+without console/page errors. Anonymous live requests to the inventory root, item collection, and Storage
+item-prefix listing all returned 403. These are negative/live-shell checks, not an authenticated M2 cloud
+workflow. Refresh previously open application tabs before testing the new destination revision policy.
+
+## Outstanding gates
 
 Actual iPhone camera/HEIC/readability and Windows cross-device capture remain pending. The real twenty-item
 acceptance scenario is not replaced by emulator fixtures. Full export/restore, interrupted permanent
