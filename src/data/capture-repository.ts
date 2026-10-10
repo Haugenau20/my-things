@@ -97,6 +97,11 @@ function identity(item: ReturnType<typeof captureDraft>) {
     roomId: item.roomId,
     boxId: item.boxId,
     reviewStatus: item.reviewStatus,
+    quantity: item.quantity,
+    estimatedValue: item.estimatedValue,
+    serialNumber: item.serialNumber,
+    notes: item.notes,
+    category: item.category,
     photos: item.photos.map(({ id, detail, thumbnail }) => ({
       id,
       detail: file(detail),

@@ -63,6 +63,9 @@ export function InventoryWorkspace({
   const [view, setView] = useState<View>(hashView);
   const [browserView, setBrowserView] = useState<'things' | 'review' | 'trash'>('things');
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [captureRoom, setCaptureRoom] = useState('');
+  const [captureRequest, setCaptureRequest] = useState({ sequence: 0, room: 'sticky' });
+  const [inspectRequest, setInspectRequest] = useState<{ sequence: number; id: string }>();
   const captureContainer = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [browseLocation, setBrowseLocation] = useState<string>();
@@ -129,10 +132,16 @@ export function InventoryWorkspace({
     if (ordinaryLocked || loading || error) return;
     navigate('things');
     setCaptureOpen(true);
+    setCaptureRequest((current) => ({
+      sequence: current.sequence + 1,
+      room: captureRoom || 'sticky',
+    }));
     requestAnimationFrame(() =>
-      captureContainer.current?.querySelector<HTMLInputElement>('input')?.focus(),
+      captureContainer.current
+        ?.querySelector<HTMLInputElement>('input[aria-label="Item name"]')
+        ?.focus(),
     );
-  }, [navigate, ordinaryLocked, loading, error]);
+  }, [navigate, ordinaryLocked, loading, error, captureRoom]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (
@@ -395,30 +404,6 @@ export function InventoryWorkspace({
                       ))}
                   </section>
                 )}
-                <div
-                  hidden={!captureOpen || view !== 'things'}
-                  ref={captureContainer}
-                  className="workspace-capture"
-                >
-                  <button className="text-button" onClick={() => setCaptureOpen(false)}>
-                    Close capture
-                  </button>{' '}
-                  <CaptureForm
-                    services={services}
-                    inventoryId={inventoryId}
-                    rooms={rooms}
-                    signal={controller.signal}
-                    onRoom={(room) => setRooms((values) => [...values, room])}
-                    onSaved={async () => {
-                      setActiveAttempt(undefined);
-                      await reload();
-                    }}
-                    onAttempt={async (id) => {
-                      setActiveAttempt(id);
-                      await reload();
-                    }}
-                  />
-                </div>
                 <div hidden={!['things', 'review', 'trash'].includes(view)}>
                   {' '}
                   <InventoryBrowser
@@ -442,6 +427,47 @@ export function InventoryWorkspace({
                       });
                       await reload();
                     }}
+                    captureOpen={captureOpen && view === 'things'}
+                    onInspect={() => setCaptureOpen(false)}
+                    inspectRequest={inspectRequest}
+                    onRoomFilter={setCaptureRoom}
+                    capturePanel={
+                      <section
+                        aria-label="Desktop capture"
+                        hidden={!captureOpen || view !== 'things'}
+                        ref={captureContainer}
+                        className="workspace-capture"
+                      >
+                        <button className="text-button" onClick={() => setCaptureOpen(false)}>
+                          Close capture
+                        </button>{' '}
+                        <CaptureForm
+                          services={services}
+                          inventoryId={inventoryId}
+                          rooms={rooms}
+                          signal={controller.signal}
+                          roomRequest={captureRequest}
+                          defaultCurrency={settings.defaultCurrency}
+                          session={session}
+                          onOpen={(id) => {
+                            setCaptureOpen(false);
+                            setInspectRequest((current) => ({
+                              sequence: (current?.sequence ?? 0) + 1,
+                              id,
+                            }));
+                          }}
+                          onRoom={(room) => setRooms((values) => [...values, room])}
+                          onSaved={async () => {
+                            setActiveAttempt(undefined);
+                            await reload();
+                          }}
+                          onAttempt={async (id) => {
+                            setActiveAttempt(id);
+                            await reload();
+                          }}
+                        />
+                      </section>
+                    }
                     requestDeletion={setDeletionRequested}
                   />
                 </div>

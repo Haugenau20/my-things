@@ -243,3 +243,7 @@ See SETUP for the cutover. Record actual wipe evidence after execution, never pr
 
 Security, private photo bytes, revision checks, recovery and pipeline-only release remain unchanged.
 The schema cutover must be coordinated with the reviewed pipeline because v2 rules reject the v1 root.
+
+### 2026-10-11 — Desktop capture details
+
+The approved PR-07 handoff permits optional details during desktop capture. Creation now validates existing metadata fields using the same limits as edits; stable retries compare those fields to prevent a changed payload reusing an item ID. No schema bump or further production maintenance is needed. The mounted shared panel retains drafts while closed, defaults to the selected active Room facet or last session room, and keeps the existing locked upload/recovery process.

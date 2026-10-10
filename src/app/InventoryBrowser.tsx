@@ -35,6 +35,11 @@ export function InventoryBrowser({
   browseLocation,
   setDefaultCurrency,
   requestDeletion,
+  capturePanel,
+  captureOpen,
+  onInspect,
+  inspectRequest,
+  onRoomFilter,
 }: {
   items: Item[];
   workspaceView: 'things' | 'review' | 'trash';
@@ -52,6 +57,11 @@ export function InventoryBrowser({
   browseLocation: string | undefined;
   setDefaultCurrency: (currency: string) => Promise<void>;
   requestDeletion: (item: Item) => void;
+  capturePanel: React.ReactNode;
+  captureOpen: boolean;
+  onInspect: () => void;
+  inspectRequest: { sequence: number; id: string } | undefined;
+  onRoomFilter: (room: string) => void;
 }) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [grid, setGrid] = useState(true);
@@ -60,6 +70,15 @@ export function InventoryBrowser({
   const [selected, setSelected] = useState<string>();
   const [fullView, setFullView] = useState(false);
   const narrow = useNarrow();
+  useEffect(() => {
+    onRoomFilter(filters.room);
+  }, [filters.room, onRoomFilter]);
+  useEffect(() => {
+    if (inspectRequest) {
+      setSelected(inspectRequest.id);
+      setFullView(false);
+    }
+  }, [inspectRequest]);
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [announcement, setAnnouncement] = useState('');
   const [groupBusy, setGroupBusy] = useMutationState();
@@ -139,6 +158,7 @@ export function InventoryBrowser({
     if (!shift || !order.includes(selectionAnchor.current ?? '')) selectionAnchor.current = id;
   }
   function open(id: string) {
+    onInspect();
     scroll.current = window.scrollY;
     setSelected(id);
     setFullView(false);
@@ -248,12 +268,19 @@ export function InventoryBrowser({
   return (
     <section
       ref={gallery}
-      className={detail && !fullView && !narrow ? 'gallery-panel has-inspector' : 'gallery-panel'}
+      className={
+        captureOpen && !narrow
+          ? 'gallery-panel has-capture'
+          : detail && !fullView && !narrow
+            ? 'gallery-panel has-inspector'
+            : 'gallery-panel'
+      }
       aria-label="Saved inventory"
       style={{ paddingBottom: bulkHeight ? bulkHeight + 48 : undefined }}
     >
       {announcement && <p role="status">{announcement}</p>}
-      <div className="browse-column" hidden={!!detail && (fullView || narrow)}>
+      {capturePanel}
+      <div className="browse-column" hidden={!captureOpen && !!detail && (fullView || narrow)}>
         {!metadataReady && (
           <p role="status">
             Loading the complete metadata index. Search and bulk actions are unavailable until every
@@ -506,7 +533,7 @@ export function InventoryBrowser({
           </div>
         )}
       </div>
-      {detail && (
+      {detail && !captureOpen && (
         <ItemDetail
           item={detail}
           compact={!fullView && !narrow}

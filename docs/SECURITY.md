@@ -191,3 +191,5 @@ Refresh old app tabs before import: rules block their writes, but older export c
 restore reports. Deploying the report collection does not migrate or rewrite existing records.
 
 The owner authorized the scoped v1 test-inventory reset on 2026-10-10. This maintenance preserves the trusted root owner binding and Auth identity, and changes only the root schema version after deleting the specified child data and photo prefix. See [cutover procedure](SETUP.md#8-approved-v1-reset-and-schema-v2-cutover). Authorization does not claim execution, authorize IAM changes, or grant PR merge permission.
+
+Desktop capture accepts validated optional metadata at initial creation, with the same bounds as owner metadata edits. Quantity/value/serial/notes/category are bound to the stable retry identity. Photo paths, owner binding, workflow defaults, active-room transaction pairing and all negative authorization checks remain constrained. This is a creation-validation change within schema v2, with synthetic rule and SDK tests.
