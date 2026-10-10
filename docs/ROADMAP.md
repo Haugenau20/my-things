@@ -2,8 +2,9 @@
 
 Work in small, verifiable slices. No time estimates or automatic deployments are implied. All milestones
 were initially **not implemented**. M0 is now implemented locally; see [M0 evidence](M0_FOUNDATION.md).
-M1 capture is deployed; its owner/device gate remains pending. M2-M3 remain unimplemented
-and establish usable V1; M4 is optional convenience work. See [M1 evidence](M1_CAPTURE.md) and
+M1 capture is deployed; its actual-device gate remains pending. M2 organization is implemented and locally
+verified under the owner's explicit instruction to proceed while away; see [M2 evidence](M2_ORGANIZE.md).
+M3 backup/cleanup remains unimplemented and establishes usable V1; M4 is optional convenience work. See [M1 evidence](M1_CAPTURE.md) and
 [deployment evidence](M1_RELEASE.md).
 
 ## M0 - Safe foundation

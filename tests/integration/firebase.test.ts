@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { deleteApp, getApps } from 'firebase/app';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDocFromServer } from 'firebase/firestore';
@@ -22,6 +22,7 @@ import { ensureFirstPhotos } from '../../src/data/photo-attachment-repository';
 import * as captureMedia from '../../src/media/capture';
 import { saveAttempt, recoverAttempt, discardAttempt } from '../../src/media/capture';
 import type { CaptureAttempt } from '../../src/media/capture';
+import * as organizeRepository from '../../src/data/organize-repository';
 
 let environment: RulesTestEnvironment;
 const env = {
@@ -385,6 +386,152 @@ describe('real client SDK and trusted synthetic seed', () => {
         () => {},
       ),
     ).rejects.toThrow();
+  });
+  it('organizes twenty items across rooms and a box, with conflicts and per-item bulk results', async () => {
+    const services = await owner('m2-workflow');
+    const room = await createRoom(services.db, 'main', 'Synthetic bedroom', 0);
+    const second = await createRoom(services.db, 'main', 'Synthetic living room', 1);
+    const box = await organizeRepository.createBox(services.db, 'main', 'B012', 0);
+    const records = [];
+    for (let index = 0; index < 20; index++)
+      records.push(
+        await ensureDraft(services.db, 'main', `organize-${index}`, {
+          name: `Synthetic thing ${index}`,
+          roomId: index < 10 ? room.id : second.id,
+          photos: [],
+          reviewStatus: 'needs_review',
+        }),
+      );
+    const patched = await organizeRepository.editItem(services.db, 'main', records[0]!, {
+      kind: 'metadata',
+      patch: {
+        quantity: 7,
+        serialNumber: '00007',
+        estimatedValue: { amountMinor: 0, currency: 'JPY' },
+        notes: '<script>plain text</script>',
+      },
+    });
+    await expect(
+      organizeRepository.editItem(services.db, 'main', records[0]!, {
+        kind: 'metadata',
+        patch: { category: 'stale' },
+      }),
+    ).rejects.toThrow(/changed/i);
+    const bulk = await organizeRepository.bulkEdit(
+      services.db,
+      'main',
+      [records[0]!, ...records.slice(1, 10)],
+      { kind: 'move', location: { kind: 'box', boxId: box.id } },
+    );
+    expect(bulk.filter((result) => result.status === 'saved')).toHaveLength(9);
+    expect(bulk[0]?.status).toBe('conflict');
+    expect((await captureRepository.loadItem(services.db, 'main', patched.id))?.notes).toBe(
+      '<script>plain text</script>',
+    );
+    await expect(
+      organizeRepository.archiveLocation(services.db, 'main', 'box', box.id),
+    ).rejects.toThrow(/Move/);
+    for (const [index, decision] of [
+      [1, 'sell'],
+      [2, 'give_away'],
+    ] as const) {
+      const current = (await captureRepository.loadItem(services.db, 'main', records[index]!.id))!;
+      const decided = await organizeRepository.editItem(services.db, 'main', current, {
+        kind: 'decision',
+        decision,
+      });
+      const completed = await organizeRepository.editItem(services.db, 'main', decided, {
+        kind: 'progress',
+        progress: 'completed',
+      });
+      expect(completed.currentLocation).toEqual({ kind: 'unassigned' });
+      expect(completed.originalRoomId).toBe(room.id);
+      const trashed = await organizeRepository.editItem(services.db, 'main', completed, {
+        kind: 'trash',
+      });
+      const restored = await organizeRepository.editItem(services.db, 'main', trashed, {
+        kind: 'restore',
+      });
+      expect(restored.progress).toBe('completed');
+      expect(restored.deletedAt).toBeNull();
+    }
+    const all = (await loadItems(services.db, 'main')).filter((record) =>
+      record.id.startsWith('organize-'),
+    );
+    expect(all).toHaveLength(20);
+    expect(all.filter((record) => record.currentLocation.kind === 'box')).toHaveLength(7);
+    expect(all.every((record) => record.reviewStatus === 'needs_review')).toBe(true);
+    const empty = await organizeRepository.createBox(services.db, 'main', 'Empty', 1);
+    await organizeRepository.archiveLocation(services.db, 'main', 'box', empty.id);
+    await expect(
+      organizeRepository.editItem(services.db, 'main', patched, {
+        kind: 'move',
+        location: { kind: 'box', boxId: empty.id },
+      }),
+    ).rejects.toThrow(/archived/);
+  });
+  it('detects a capture racing location archiving and preserves restored location history', async () => {
+    const services = await owner('archive-race');
+    const room = await createRoom(services.db, 'main', 'Synthetic race room', 2);
+    const originalLoad = captureRepository.loadItems;
+    const spy = vi.spyOn(captureRepository, 'loadItems').mockImplementationOnce(async (...args) => {
+      const snapshot = await originalLoad(...args);
+      await ensureDraft(services.db, 'main', 'archive-racer', {
+        name: 'Synthetic concurrent capture',
+        roomId: room.id,
+        photos: [],
+        reviewStatus: 'needs_review',
+      });
+      return snapshot;
+    });
+    try {
+      await expect(
+        organizeRepository.archiveLocation(services.db, 'main', 'room', room.id),
+      ).rejects.toThrow(/changed elsewhere/);
+    } finally {
+      spy.mockRestore();
+    }
+    const current = (await captureRepository.loadItem(services.db, 'main', 'archive-racer'))!;
+    const trashed = await organizeRepository.editItem(services.db, 'main', current, {
+      kind: 'trash',
+    });
+    await organizeRepository.archiveLocation(services.db, 'main', 'room', room.id);
+    await expect(
+      organizeRepository.editItem(services.db, 'main', trashed, { kind: 'restore' }),
+    ).rejects.toThrow(/Reactivate/);
+    await organizeRepository.reactivateLocation(services.db, 'main', 'room', room.id);
+    const restored = await organizeRepository.editItem(services.db, 'main', trashed, {
+      kind: 'restore',
+    });
+    expect(restored.currentLocation).toEqual({ kind: 'room', roomId: room.id });
+    expect(restored.originalRoomId).toBe(room.id);
+  });
+  it('loads and searches metadata beyond a 250-document server page', async () => {
+    const services = await owner('m2-paging');
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const batch = context.firestore().batch();
+      for (let index = 0; index < 260; index++) {
+        const id = `paging-${String(index).padStart(3, '0')}`;
+        batch.set(context.firestore().doc(`inventories/main/items/${id}`), {
+          ...captureDraft(
+            {
+              name: `Synthetic page ${index}`,
+              roomId: null,
+              photos: [],
+              reviewStatus: 'needs_review',
+            },
+            Timestamp.now(),
+          ),
+          notes: index === 259 ? 'Synthetic final page needle' : '',
+        });
+      }
+      await batch.commit();
+    });
+    const loaded = (await loadItems(services.db, 'main')).filter((item) =>
+      item.id.startsWith('paging-'),
+    );
+    expect(loaded).toHaveLength(260);
+    expect(loaded.find((item) => item.notes.includes('final page needle'))?.id).toBe('paging-259');
   });
   it('does not overwrite an existing different owner binding', async () => {
     await environment.withSecurityRulesDisabled(async (context) => {

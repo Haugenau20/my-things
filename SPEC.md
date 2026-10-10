@@ -92,6 +92,8 @@ box's room in V1.
 Archive unused rooms/boxes rather than remove labels referenced by history. Require current owned items
 to be moved out before archiving their room/box. Retained references from completed/trash records and
 original rooms remain readable. Warn about duplicate names/labels rather than relying on them as IDs.
+An owned item in trash may retain an archived location. Explicitly reactivate that room/box before
+restoring the item, so restore can preserve its exact location and workflow instead of guessing new data.
 
 ### MOV-01: Moving decisions and progress
 

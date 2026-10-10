@@ -11,6 +11,8 @@ import type { FirebaseStorage } from 'firebase/storage';
 import { assertLocalTarget } from '../../scripts/safety';
 import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { captureDraft, photoPath } from '../../src/domain/item';
+import { doc, updateDoc, setDoc, writeBatch } from 'firebase/firestore';
+import type { Firestore } from 'firebase/firestore';
 
 let environment: RulesTestEnvironment;
 const photo = 'inventories/main/items/synthetic-item/photos/synthetic-photo/detail.jpg';
@@ -24,6 +26,166 @@ const root = {
   updatedAt: timestamp,
 };
 const bytes = new Uint8Array([255, 216, 255, 217]);
+
+describe('M2 constrained owner organization', () => {
+  const db = (uid: string | null = 'synthetic-owner') =>
+    (uid
+      ? environment.authenticatedContext(uid)
+      : environment.unauthenticatedContext()
+    ).firestore() as unknown as Firestore;
+  async function record() {
+    const id = crypto.randomUUID();
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc(`inventories/main/items/${id}`)
+        .set(
+          captureDraft(
+            { name: 'Synthetic M2', roomId: null, photos: [], reviewStatus: 'needs_review' },
+            Timestamp.now(),
+          ),
+        );
+    });
+    return id;
+  }
+  const patch = (data: object) => ({ ...data, revision: 2, updatedAt: serverTimestamp() });
+  it('allows partial metadata patches and explicit review without changing photo fields', async () => {
+    const id = await record();
+    await assertSucceeds(
+      updateDoc(
+        doc(db(), 'inventories/main/items', id),
+        patch({
+          quantity: 7,
+          estimatedValue: { amountMinor: 0, currency: 'JPY' },
+          serialNumber: '0007',
+          notes: 'Plain text',
+          category: 'Kitchen',
+          reviewStatus: 'reviewed',
+        }),
+      ),
+    );
+  });
+  it.each([null, 'unrelated-user'])('denies valid-looking metadata edits from %s', async (uid) => {
+    const id = await record();
+    await assertFails(
+      updateDoc(doc(db(uid), 'inventories/main/items', id), patch({ quantity: 7 })),
+    );
+  });
+  it.each([
+    { quantity: 0 },
+    { quantity: 1.2 },
+    { name: '' },
+    { notes: 'x'.repeat(10001) },
+    { estimatedValue: { amountMinor: -1, currency: 'EUR' } },
+    { estimatedValue: { amountMinor: 1, currency: 'BAD' } },
+    { estimatedValue: { amountMinor: 1.1, currency: 'EUR' } },
+    { extra: true },
+    { schemaVersion: 2 },
+    { createdAt: Timestamp.now() },
+    { photos: [{ id: 'fake' }] },
+    { coverPhotoId: 'fake' },
+    { progress: 'completed', completedAt: serverTimestamp() },
+    { currentLocation: { kind: 'box', boxId: 'missing' } },
+    { originalRoomId: 'missing' },
+    { recordState: 'deleting' },
+    { revision: 10 },
+  ])('denies malformed organization patches %#', async (data) => {
+    const id = await record();
+    await assertFails(
+      updateDoc(doc(db(), 'inventories/main/items', id), { ...patch({}), ...data }),
+    );
+  });
+  it('requires workflow reset on decision change and unassigned disposal completion', async () => {
+    const id = await record();
+    const reference = doc(db(), 'inventories/main/items', id);
+    await assertSucceeds(updateDoc(reference, patch({ decision: 'sell' })));
+    await assertSucceeds(
+      updateDoc(reference, {
+        progress: 'completed',
+        completedAt: serverTimestamp(),
+        revision: 3,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    await assertFails(
+      updateDoc(reference, { decision: 'take', revision: 4, updatedAt: serverTimestamp() }),
+    );
+    await assertSucceeds(
+      updateDoc(reference, {
+        decision: 'take',
+        progress: 'not_started',
+        completedAt: null,
+        revision: 4,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+  it('requires an active destination revision in the same move transaction', async () => {
+    const id = await record();
+    const roomId = crypto.randomUUID();
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`inventories/main/rooms/${roomId}`).set({
+        schemaVersion: 1,
+        revision: 1,
+        name: 'Synthetic destination',
+        sortOrder: 0,
+        archivedAt: null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    });
+    const client = db();
+    const item = doc(client, 'inventories/main/items', id);
+    const room = doc(client, 'inventories/main/rooms', roomId);
+    const movement = patch({ currentLocation: { kind: 'room', roomId }, originalRoomId: roomId });
+    await assertFails(updateDoc(item, movement));
+    const batch = writeBatch(client);
+    batch.update(item, movement);
+    batch.update(room, { revision: 2, updatedAt: serverTimestamp() });
+    await assertSucceeds(batch.commit());
+    await assertFails(
+      updateDoc(item, {
+        currentLocation: { kind: 'unassigned' },
+        originalRoomId: 'missing',
+        revision: 3,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+  it('allows valid boxes but denies foreign creation, unknown fields, deletion, and invalid updates', async () => {
+    const id = crypto.randomUUID();
+    const value = {
+      schemaVersion: 1,
+      revision: 1,
+      label: 'B012',
+      notes: '',
+      sortOrder: 0,
+      archivedAt: null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    await assertSucceeds(setDoc(doc(db(), 'inventories/main/boxes', id), value));
+    await assertFails(
+      setDoc(doc(db('unrelated-user'), 'inventories/main/boxes/foreign-box'), value),
+    );
+    await assertFails(
+      setDoc(doc(db(), 'inventories/main/boxes/invalid-box'), { ...value, unexpected: true }),
+    );
+    await assertSucceeds(
+      updateDoc(
+        doc(db(), 'inventories/main/boxes', id),
+        patch({ label: 'Renamed', notes: 'Shelf contents' }),
+      ),
+    );
+    await assertFails(
+      updateDoc(doc(db(), 'inventories/main/boxes', id), {
+        label: '',
+        revision: 3,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+});
 
 // The test library returns compat handles; modular SDK functions unwrap them internally.
 function storage(context: RulesTestContext): FirebaseStorage {
@@ -200,7 +362,7 @@ describe('M1 capture authorization', () => {
       }),
     );
     await assertFails(record.delete());
-    await assertFails(
+    await assertSucceeds(
       record.update({ name: 'M2 edit', revision: 3, updatedAt: serverTimestamp() }),
     );
   });
@@ -438,11 +600,22 @@ describe('M1 capture authorization', () => {
       originalRoomId: roomId,
       currentLocation: { kind: 'room', roomId },
     });
-    await assertSucceeds(
-      owner()
-        .doc('inventories/main/items/room-capture')
-        .set(capture('room-capture', 'capture-room')),
+    const client = owner();
+    await assertFails(
+      client
+        .doc('inventories/main/items/room-without-revision')
+        .set(capture('room-without-revision', 'capture-room')),
     );
+    const batch = client.batch();
+    batch.set(
+      client.doc('inventories/main/items/room-capture'),
+      capture('room-capture', 'capture-room'),
+    );
+    batch.update(client.doc('inventories/main/rooms/capture-room'), {
+      revision: 2,
+      updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
     await assertFails(
       owner()
         .doc('inventories/main/items/missing-room')

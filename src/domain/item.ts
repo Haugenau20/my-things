@@ -1,6 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 import { z } from 'zod';
 import { ID_PATTERN } from '../data/config';
+import { CURRENCIES } from './currency';
 
 export const idSchema = z.string().regex(ID_PATTERN);
 // Keep full metadata validation within the Firestore rules expression budget (D10).
@@ -48,7 +49,7 @@ export const itemSchema = z
     estimatedValue: z
       .strictObject({
         amountMinor: integer,
-        currency: z.string().refine((value) => Intl.supportedValuesOf('currency').includes(value)),
+        currency: z.string().refine((value) => CURRENCIES.includes(value)),
       })
       .nullable(),
     serialNumber: z.string().max(200).nullable(),

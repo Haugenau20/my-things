@@ -128,10 +128,13 @@ export async function ensureDraft(
         throw new Error('Capture identity conflict. Reload unfinished captures.');
       return;
     }
+    let destination: { reference: ReturnType<typeof doc>; revision: number } | undefined;
     if (input.roomId) {
-      const room = await transaction.get(doc(db, 'inventories', inventory, 'rooms', input.roomId));
+      const reference = doc(db, 'inventories', inventory, 'rooms', input.roomId);
+      const room = await transaction.get(reference);
       if (!room.exists() || roomSchema.parse(room.data()).archivedAt !== null)
         throw new Error('Capture room is no longer available.');
+      destination = { reference, revision: roomSchema.parse(room.data()).revision };
     }
     signal?.throwIfAborted();
     transaction.set(reference, {
@@ -139,6 +142,11 @@ export async function ensureDraft(
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    if (destination)
+      transaction.update(destination.reference, {
+        revision: destination.revision + 1,
+        updatedAt: serverTimestamp(),
+      });
   });
   signal?.throwIfAborted();
   const result = await loadItem(db, inventory, id);

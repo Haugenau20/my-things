@@ -106,6 +106,8 @@ Names/labels can change; IDs cannot. Warn about duplicate labels, but never trea
 or promise cross-tab uniqueness without implementing it. Archived locations are not new assignment
 choices. Keep their labels available wherever existing references are displayed. A room/box cannot be
 archived through the application while currently assigned owned items remain there.
+Archived locations can be explicitly reactivated. Restore of an owned trashed item requires its retained
+physical room/box to be active first; item fields remain unchanged.
 
 ## 4. Invariants and transitions
 
@@ -186,6 +188,11 @@ Normal creates/updates use server timestamps for `createdAt`/`updatedAt`; a save
 acknowledgment. Item/room/box updates read the current revision in a transaction, compare it with the
 expected revision, apply an explicit patch, and increment it. Never do network uploads inside a retriable
 Firestore transaction callback.
+Capture, moves, and owned restores increment the destination location's existing revision in the same
+transaction. Rules require that paired write and an active destination. Archiving reads a location
+revision before inspecting every server item page, rejects current owned items and pending captures,
+then checks that revision in its transaction. Concurrent incoming assignments invalidate that inspection.
+Collection-wide emptiness is enforced by the application, not a query inside Security Rules.
 
 An import is a dedicated operation: preserve exported historical creation/completion/deletion times,
 set a new server `updatedAt`, and start the destination revision at 1. Rules must distinguish allowed

@@ -120,7 +120,8 @@ synthetic emulator-only checks, not evidence of cloud backup/recovery.
 
 Current M1 local command results, covered capture/security/failure scenarios, and remaining cloud/device
 gates are recorded in [M1 capture evidence](M1_CAPTURE.md). Chromium at phone width is not an actual
-iPhone test. M2/M3 workflows and cloud backup/restore remain unimplemented and untested.
+iPhone test. M2 organization evidence is recorded in [M2 organization](M2_ORGANIZE.md); its synthetic
+workflow does not replace the real twenty-item test. M3 backup/cleanup and cloud restore remain future work.
 
 For each release, record commit ID, environments, device/browser versions, automated commands/results,
 manual scenarios run, export/restore outcome, known limitations, and who approved deployment. Separate
