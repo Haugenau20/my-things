@@ -41,3 +41,13 @@ Group Select all adds only that visible group to selection. Eligible unpacked gr
 The three new focused Chromium workflows passed after first demonstrating the absent card tags: visible-only packing, a two-tab revision conflict with separate outcomes, and new-box acknowledgment/duplicate warnings. Synthetic screenshots and layout assertions cover 1280, 1024 and 851px widths.
 
 `mise exec -- npm run check` passed: lint, types, 160 unit tests, 101 rules tests, 28 SDK integration tests, all 32 Chromium workflows and build. The build retains the existing backup-chunk warning. PR-03 merged at `eaace49a78af36b9245f8e84200c177d81890203`; its [production workflow](https://github.com/Haugenau20/my-things/actions/runs/38088813940) had passed Verify and was deploying when this entry was written.
+
+PR-03 subsequently completed both Verify and Deploy production successfully in that workflow, deploying commit `eaace49a78af36b9245f8e84200c177d81890203`. PR-04 passed GitHub verification and merged at `2d5958b1da435bbc421fe51e7034251db34e98d7` under the owner’s standing authorization.
+
+## PR-05: Contextual selection and bulk actions
+
+The bulk bar appears only during selection or an active save. It provides the existing review, room, pack/unpack, decision, progress, category and confirmed Trash commands; Trash selection provides Restore. Command inputs and warnings appear in a popover. Results show acknowledged per-item outcomes in an expandable list; failures stay selected and all-success results remain as a dismissible status after selection clears.
+
+Escape clears selection; Shift-click adds or removes a range in displayed order without losing other selections. A measured bar height reserves space below the grid, including when wrapped or showing results. New unit coverage verifies forward/reverse ranges and stale anchors. Focused Chromium coverage verifies contextual visibility, keyboard/range selection, Select all/Clear, last-row clearance, room changes, confirmed Trash/Restore and the existing two-tab conflict and moving-outcome workflows.
+
+`mise exec -- npm run check` passed: lint, types, 163 unit tests, 101 rules tests, 28 SDK tests, all 35 Chromium workflows and build, including category and pack/unpack controls. Synthetic screenshots were visually inspected. The existing backup-chunk warning remains. PR-04 deployed commit `2d5958b1da435bbc421fe51e7034251db34e98d7` with both Verify and Deploy production successful in [workflow 38089346677](https://github.com/Haugenau20/my-things/actions/runs/38089346677).

@@ -40,12 +40,18 @@ test('desktop review, metadata search, packing, archive, and trash preserve mean
   await expect(page.getByRole('cell', { name: '0000123', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'JPY 0', exact: true })).toBeVisible();
   await page.getByLabel('Select Synthetic organizing lamp').check();
-  await page.getByLabel('Bulk action').selectOption('decision');
+  await page
+    .getByRole('region', { name: 'Bulk editing' })
+    .getByRole('button', { name: 'Decision', exact: true })
+    .click();
   await page.getByLabel('Bulk decision').selectOption('sell');
   await page.getByRole('button', { name: 'Apply to 1 selected', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: '1 saved' })).toBeVisible();
   await page.getByLabel('Select Synthetic organizing lamp').check();
-  await page.getByLabel('Bulk action').selectOption('progress');
+  await page
+    .getByRole('region', { name: 'Bulk editing' })
+    .getByRole('button', { name: 'Progress', exact: true })
+    .click();
   await page.getByLabel('Bulk progress').selectOption('completed');
   await page.getByRole('button', { name: 'Apply to 1 selected', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm bulk change', exact: true }).click();
@@ -153,8 +159,13 @@ test('two-tab bulk conflicts report each outcome without overwriting the newer d
   await expect(second.getByRole('status').filter({ hasText: 'Details saved' })).toBeVisible();
   await page.getByLabel('Select Synthetic conflicted item', { exact: true }).check();
   await page.getByLabel('Select Synthetic successful item', { exact: true }).check();
+  await page
+    .getByRole('region', { name: 'Bulk editing' })
+    .getByRole('button', { name: 'Mark reviewed', exact: true })
+    .click();
   await page.getByRole('button', { name: 'Apply to 2 selected', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: '1 saved · 1 not saved' })).toBeVisible();
+  await page.getByText('Per-item results', { exact: true }).click();
   await expect(
     page.getByText(/Synthetic conflicted item: This record changed elsewhere/),
   ).toBeVisible();

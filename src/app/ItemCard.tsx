@@ -27,7 +27,7 @@ export function ItemCard({
   selecting: boolean;
   disabled: boolean;
   open: () => void;
-  toggle: (checked: boolean) => void;
+  toggle: (checked: boolean, shift: boolean) => void;
 }) {
   const cover = item.photos.find(
     (photo) => photo.id === item.coverPhotoId && photo.state === 'ready',
@@ -54,7 +54,12 @@ export function ItemCard({
           aria-label={`Select ${item.name}`}
           disabled={disabled}
           checked={checked}
-          onChange={(event) => toggle(event.target.checked)}
+          onChange={(event) =>
+            toggle(
+              event.target.checked,
+              event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey,
+            )
+          }
         />
       </label>
       <div className="item-card-body">
