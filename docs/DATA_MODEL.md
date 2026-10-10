@@ -1,6 +1,7 @@
 # Data model
 
-Schema version: 1. These are implementation contracts, not existing collections.
+Schema version: 1. Root/item/location contracts are implemented. Restore reports are an additional
+optional operational collection; this addition does not rewrite existing inventory records.
 
 ## 1. Paths and ownership
 
@@ -9,6 +10,8 @@ Schema version: 1. These are implementation contracts, not existing collections.
 /inventories/{inventoryId}/rooms/{roomId}
 /inventories/{inventoryId}/boxes/{boxId}
 /inventories/{inventoryId}/items/{itemId}
+/inventories/{inventoryId}/restores/active
+/inventories/{inventoryId}/restores/active/records/{kind}_{recordId}
 
 Storage:
 inventories/{inventoryId}/items/{itemId}/photos/{photoId}/detail.jpg
@@ -201,9 +204,34 @@ and an empty-prefix check. Photo-free trash follows the same marker protocol. Se
 markers have `deletedAt: null`; permanent-deletion markers retain their trash timestamp.
 
 An import is a dedicated operation: preserve exported historical creation/completion/deletion times,
-set a new server `updatedAt`, and start the destination revision at 1. Rules must distinguish allowed
+set a new server `updatedAt`, and start the destination revision at 1. Photo/finalization transactions
+then increment it normally. Imported precision must be representable by Firestore (nanoseconds divisible
+by 1,000). Rules must distinguish allowed
 creation of historical timestamps from ordinary immutable `createdAt` updates; do not relax ownership
 checks for imports. The already provisioned inventory root retains its destination owner.
+
+The owner-only active report has `schemaVersion: 1`, positive `revision`, opaque `operationId`, `exportId`,
+exact `manifestSha256`, state `restoring | interrupted | completed`, expected counts
+`items/rooms/boxes/photos/photoFiles`, `claimedRecords`, `completedRecords`, and server creation/update
+timestamps. Limits are 5,000 per record collection, two photos per item and two files per photo. Counters
+satisfy `0 <= completedRecords <= claimedRecords <= items + rooms + boxes`; completion requires both
+equal the total. Immutable identity binds resumption to the same validated archive.
+
+Each claim has schema/revision, operation ID, kind `item | room | box`, record ID, canonical source-record
+SHA-256, state `pending | verified`, original `deletedAt` and `coverPhotoId` (null for locations), and server
+timestamps. Claims and initial records are created together only when the target is absent. Locations
+preserve historical archive times and start verified. Items initially have ready scalar records, no
+photos, null cover/trash timestamp and a pending claim. The active report makes the whole import
+unfinished, including staged photo-free items. Historical archived-location references do not change
+location revision/history; normal capture/move rules continue to require active destinations.
+
+Photos use the existing pending-first-attachment protocol with destination-derived paths. After exact
+private-byte verification, a narrow transaction applies original cover/trash history, verifies the claim
+and increments the completed counter. Final inspection checks every record, reference, count and file
+hash before report completion. Ordinary record/settings writes and full export pause until completion.
+Completed reports remain as provenance; a different archive requires another authorized empty destination.
+Reports/claims are excluded from portable exports. An unused interrupted report with zero claims may be
+explicitly removed without deleting inventory data. No automatic cleanup or data migration is performed.
 
 Rules enforce ownership and feasible field/type/transition restrictions. Application/import validation
 also enforces cross-record references and photo integrity. Do not claim Firestore rules can prove Storage

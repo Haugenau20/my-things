@@ -16,21 +16,29 @@ import { DeletionDialog, DeletionRecovery } from './DeletionDialog';
 import { OrphanInspection } from './OrphanInspection';
 import { ExportPanel } from './ExportPanel';
 import { MutationActivity } from './mutation-activity';
+import { RestorePanel } from './RestorePanel';
+import { loadRestoreReport } from '../backup/restore-repository';
+import type { RestoreReport } from '../backup/restore-state';
+import type { Environment } from '../data/config';
 
 export function InventoryWorkspace({
   services,
   inventoryId,
   inventory,
+  environment,
 }: {
   services: FirebaseServices;
   inventoryId: string;
   inventory: Inventory;
+  environment: Environment;
 }) {
   const [items, setItems] = useState<Item[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [settings, setSettings] = useState(inventory);
   const [exportBusy, setExportBusy] = useState(false);
+  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [restore, setRestore] = useState<RestoreReport | null>(null);
   const [mutating, setMutating] = useState(0);
   const mutations = useRef(new Set<symbol>());
   const reportMutation = useCallback((id: symbol, busy: boolean) => {
@@ -54,17 +62,19 @@ export function InventoryWorkspace({
     const request = ++version.current;
     setRefreshing(true);
     try {
-      const [nextItems, nextRooms, nextBoxes, nextSettings] = await Promise.all([
+      const [nextItems, nextRooms, nextBoxes, nextSettings, nextRestore] = await Promise.all([
         loadItems(services.db, inventoryId),
         loadRooms(services.db, inventoryId),
         loadBoxes(services.db, inventoryId),
         loadInventory(services.db, inventoryId, inventory.ownerUid),
+        loadRestoreReport(services.db, inventoryId),
       ]);
       if (!controller.signal.aborted && version.current === request) {
         setItems(nextItems);
         setRooms(nextRooms);
         setBoxes(nextBoxes);
         setSettings(nextSettings);
+        setRestore(nextRestore);
         setError(false);
       }
     } catch {
@@ -93,11 +103,53 @@ export function InventoryWorkspace({
             services={services}
             inventoryId={inventoryId}
             signal={controller.signal}
-            disabled={loading || refreshing || error || mutating > 0 || !!deletionRequested}
+            disabled={
+              loading ||
+              refreshing ||
+              error ||
+              mutating > 0 ||
+              !!deletionRequested ||
+              restoreBusy ||
+              (!!restore && restore.state !== 'completed')
+            }
             pause={setExportBusy}
           />
         </details>
-        <fieldset className="inventory-actions" disabled={exportBusy} inert={exportBusy}>
+        <details className="inventory-settings">
+          <summary>Restore backup</summary>
+          <RestorePanel
+            services={services}
+            inventoryId={inventoryId}
+            environment={environment}
+            signal={controller.signal}
+            disabled={
+              loading || refreshing || error || mutating > 0 || !!deletionRequested || exportBusy
+            }
+            pause={setRestoreBusy}
+            reload={reload}
+            session={session}
+          />
+        </details>
+        {restore && restore.state !== 'completed' && (
+          <p role="alert" className="error-message">
+            An import is unfinished ({restore.completedRecords} records verified). Ordinary changes
+            and full export are paused. Open Restore backup and select every part of the original
+            archive to resume.
+            <button
+              type="button"
+              className="text-button"
+              disabled={restoreBusy || exportBusy || refreshing}
+              onClick={() => void reload()}
+            >
+              Refresh recovery report
+            </button>
+          </p>
+        )}
+        <fieldset
+          className="inventory-actions"
+          disabled={exportBusy || restoreBusy || (!!restore && restore.state !== 'completed')}
+          inert={exportBusy || restoreBusy || (!!restore && restore.state !== 'completed')}
+        >
           <div className="workspace-heading">
             <div>
               <p className="eyebrow">Your private inventory</p>
@@ -153,6 +205,7 @@ export function InventoryWorkspace({
               <RecoveryPanel
                 items={items.filter(
                   (item) =>
+                    !(restore && restore.state !== 'completed') &&
                     item.id !== activeAttempt &&
                     item.deletedAt === null &&
                     ((item.recordState !== 'ready' && item.coverPhotoId === null) ||

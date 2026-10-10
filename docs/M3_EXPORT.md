@@ -62,7 +62,7 @@ does not replace an authenticated personal export or restore test.
 
 ## Remaining gates
 
-Strict archive validation and restore into an empty already-authorized destination remain unimplemented.
+Strict validation and resumable restore are implemented in the next [M3 restore slice](M3_RESTORE.md).
 The actual iPhone/Windows acceptance scenario, large desktop-browser downloads, filesystem persistence,
 and a real isolated cloud restore with matching relationships/hashes remain manual gates. The inventory
 must not be described as fully dependable V1 until those recovery checks pass.

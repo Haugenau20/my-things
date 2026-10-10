@@ -59,9 +59,9 @@ unchanged. These checks do not establish authenticated cloud deletion or actual-
 
 ## Outstanding M3 work
 
-Full export with verified photo bytes is implemented in the [next M3 slice](M3_EXPORT.md).
-Strict import validation, restore to an empty authorized
-destination, interrupted-import handling, a synthetic round trip, bounded large-backup proof, and the
-real acceptance scenario remain required. Actual iPhone camera/HEIC/readability and the real Windows
+Full export and synthetic large-backup splitting are implemented in [M3 export](M3_EXPORT.md).
+Strict validation, empty-destination restore, interrupted-import handling and synthetic round trips
+are implemented in [M3 restore](M3_RESTORE.md). The real acceptance and isolated cloud recovery scenarios
+remain required. Actual iPhone camera/HEIC/readability and the real Windows
 workflow are still manual gates. This slice does not establish that the application is ready to be the
 main inventory record.
