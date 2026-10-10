@@ -61,9 +61,11 @@ service cloud.firestore {
         && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
         && data.quantity == 1 && data.estimatedValue == null && data.serialNumber == null && data.notes == '' && data.category == null
         && data.reviewStatus in ['needs_review','reviewed'] && data.decision == 'undecided' && data.progress == 'not_started'
-        && data.completedAt == null && data.deletedAt == null && data.recordState == 'draft' && data.coverPhotoId == null
+        && data.completedAt == null && data.deletedAt == null && data.coverPhotoId == null
         && data.createdAt == request.time && data.updatedAt == request.time
-        && location(data,inventoryId) && photos(data.photos,inventoryId,itemId,'pending');
+        && location(data,inventoryId)
+        && ((data.recordState == 'draft' && photos(data.photos,inventoryId,itemId,'pending'))
+          || (data.recordState == 'ready' && data.photos == []));
     }
     function unchangedPhoto(before, after) {
       return before.id == after.id && before.detail == after.detail && before.thumbnail == after.thumbnail;
@@ -79,6 +81,21 @@ service cloud.firestore {
     function discard(data) {
       return resource.data.recordState == 'draft' && data.recordState == 'deleting'
         && data.diff(resource.data).affectedKeys().hasOnly(['revision','updatedAt','recordState']);
+    }
+    function firstPhotos(data, inventoryId, itemId) {
+      let before = resource.data;
+      return before.recordState == 'ready' && before.deletedAt == null && before.coverPhotoId == null
+        && data.diff(before).affectedKeys().hasOnly(['revision','updatedAt','photos','coverPhotoId'])
+        && ((before.photos == [] && data.coverPhotoId == null && photos(data.photos,inventoryId,itemId,'pending'))
+          || (before.photos.size() > 0 && data.photos.size() == before.photos.size()
+            && before.photos[0].state == 'pending'
+            && (before.photos.size() == 1 || before.photos[1].state == 'pending')
+            && sameSlot(before.photos,data.photos,0) && sameSlot(before.photos,data.photos,1)
+            && ((data.coverPhotoId == before.photos[0].id && photos(data.photos,inventoryId,itemId,'ready'))
+              || (data.coverPhotoId == null && photos(data.photos,inventoryId,itemId,'deleting'))))
+          || (before.photos.size() > 0 && before.photos[0].state == 'deleting'
+            && (before.photos.size() == 1 || before.photos[1].state == 'deleting')
+            && data.photos == [] && data.coverPhotoId == null));
     }
     function newRoom(data, roomId) {
       return id(roomId) && data.keys().hasOnly(['schemaVersion','name','sortOrder','revision','createdAt','updatedAt','archivedAt'])
@@ -96,7 +113,8 @@ service cloud.firestore {
         allow create: if owns(inventoryId) && newCapture(request.resource.data,inventoryId,itemId);
         allow update: if owns(inventoryId) && request.resource.data.revision == resource.data.revision + 1
           && request.resource.data.updatedAt == request.time
-          && (completion(request.resource.data,inventoryId,itemId) || discard(request.resource.data));
+          && (completion(request.resource.data,inventoryId,itemId) || discard(request.resource.data)
+            || firstPhotos(request.resource.data,inventoryId,itemId));
         allow delete: if owns(inventoryId) && resource.data.recordState == 'deleting'
           && resource.data.coverPhotoId == null && resource.data.deletedAt == null;
       }

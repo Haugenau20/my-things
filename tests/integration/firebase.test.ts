@@ -17,6 +17,9 @@ import { Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
 import { sha256 } from '../../src/media/processing';
 import { ensureDraft, loadItems, createRoom } from '../../src/data/capture-repository';
+import * as captureRepository from '../../src/data/capture-repository';
+import { ensureFirstPhotos } from '../../src/data/photo-attachment-repository';
+import * as captureMedia from '../../src/media/capture';
 import { saveAttempt, recoverAttempt, discardAttempt } from '../../src/media/capture';
 import type { CaptureAttempt } from '../../src/media/capture';
 
@@ -150,6 +153,171 @@ describe('real client SDK and trusted synthetic seed', () => {
     expect(
       (await loadItems(services.db, 'main')).filter((item) => item.id === plan.id),
     ).toHaveLength(1);
+  });
+  it('saves photo-free items with stable identity and attaches verified photos without changing metadata', async () => {
+    const services = await owner('photo-free-attachment');
+    const plan = await attempt('sdk-photo-free');
+    const signal = new AbortController().signal;
+    const empty = {
+      ...plan,
+      prepared: [],
+      input: { ...plan.input, photos: [], reviewStatus: 'reviewed' as const },
+    };
+    const original = await saveAttempt(services, 'main', empty, signal, () => {});
+    expect(original).toMatchObject({
+      recordState: 'ready',
+      coverPhotoId: null,
+      photos: [],
+      reviewStatus: 'reviewed',
+    });
+    expect((await saveAttempt(services, 'main', empty, signal, () => {})).id).toBe(original.id);
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc(`inventories/main/items/${original.id}`)
+        .update({ quantity: 7, notes: 'Synthetic existing note', revision: 2 });
+    });
+    const current = (await captureRepository.loadItem(services.db, 'main', original.id))!;
+    const attached = await captureMedia.attachFirstPhotos(
+      services,
+      'main',
+      current,
+      plan.prepared,
+      signal,
+      () => {},
+    );
+    expect(attached).toMatchObject({
+      id: original.id,
+      name: original.name,
+      quantity: 7,
+      notes: 'Synthetic existing note',
+      reviewStatus: 'reviewed',
+      recordState: 'ready',
+      coverPhotoId: plan.input.photos[0]!.id,
+    });
+    expect(attached.createdAt.isEqual(original.createdAt)).toBe(true);
+    expect(attached.photos.every((photo) => photo.state === 'ready')).toBe(true);
+    expect(
+      (
+        await captureMedia.attachFirstPhotos(
+          services,
+          'main',
+          current,
+          plan.prepared,
+          signal,
+          () => {},
+        )
+      ).revision,
+    ).toBe(attached.revision);
+    expect(
+      (await loadItems(services.db, 'main')).filter((item) => item.id === original.id),
+    ).toHaveLength(1);
+  });
+  it('recovers interrupted first-photo uploads and preserves the photo-free item on explicit cancellation', async () => {
+    const services = await owner('attachment-recovery');
+    const plan = await attempt('sdk-attachment-recovery');
+    const signal = new AbortController().signal;
+    const original = await saveAttempt(
+      services,
+      'main',
+      { ...plan, prepared: [], input: { ...plan.input, photos: [] } },
+      signal,
+      () => {},
+    );
+    const registered = await ensureFirstPhotos(
+      services.db,
+      'main',
+      original,
+      plan.input.photos,
+      signal,
+    );
+    const source = plan.prepared[0]!;
+    await uploadBytes(
+      ref(services.storage, source.photo.detail.storagePath),
+      new Uint8Array(await source.detail.arrayBuffer()),
+      { contentType: 'image/jpeg', cacheControl: 'private, no-store, max-age=0' },
+    );
+    await expect(recoverAttempt(services, 'main', registered, signal, () => {})).rejects.toThrow();
+    expect((await captureRepository.loadItem(services.db, 'main', original.id))?.recordState).toBe(
+      'ready',
+    );
+    await recoverAttempt(services, 'main', registered, signal, () => {}, plan.prepared);
+    const cancelPlan = await attempt('sdk-attachment-cancel');
+    const cancelOriginal = await saveAttempt(
+      services,
+      'main',
+      { ...cancelPlan, prepared: [], input: { ...cancelPlan.input, photos: [] } },
+      signal,
+      () => {},
+    );
+    const cancelRegistered = await ensureFirstPhotos(
+      services.db,
+      'main',
+      cancelOriginal,
+      cancelPlan.input.photos,
+      signal,
+    );
+    await uploadBytes(
+      ref(services.storage, cancelPlan.prepared[0]!.photo.detail.storagePath),
+      new Uint8Array(await cancelPlan.prepared[0]!.detail.arrayBuffer()),
+      { contentType: 'image/jpeg', cacheControl: 'private, no-store, max-age=0' },
+    );
+    await discardAttempt(services, 'main', cancelRegistered, signal);
+    expect(await captureRepository.loadItem(services.db, 'main', cancelOriginal.id)).toMatchObject({
+      id: cancelOriginal.id,
+      name: cancelOriginal.name,
+      recordState: 'ready',
+      coverPhotoId: null,
+      photos: [],
+    });
+    await expect(
+      recoverAttempt(services, 'main', cancelRegistered, signal, () => {}, cancelPlan.prepared),
+    ).rejects.toThrow();
+  });
+  it('rejects contested attachment identity and unrelated attachment writes', async () => {
+    const services = await owner('attachment-conflicts');
+    const plan = await attempt('sdk-attachment-conflict');
+    const signal = new AbortController().signal;
+    const original = await saveAttempt(
+      services,
+      'main',
+      { ...plan, prepared: [], input: { ...plan.input, photos: [] } },
+      signal,
+      () => {},
+    );
+    await expect(
+      ensureFirstPhotos(
+        services.db,
+        'main',
+        { ...original, revision: original.revision + 1 },
+        plan.input.photos,
+        signal,
+      ),
+    ).rejects.toThrow(/revision/i);
+    await ensureFirstPhotos(services.db, 'main', original, plan.input.photos, signal);
+    const foreignPhotos = plan.input.photos.map((photo) => ({
+      ...photo,
+      id: 'different-photo',
+      detail: {
+        ...photo.detail,
+        storagePath: photoPath('main', original.id, 'different-photo', 'detail'),
+      },
+      thumbnail: {
+        ...photo.thumbnail,
+        storagePath: photoPath('main', original.id, 'different-photo', 'thumb'),
+      },
+    }));
+    await expect(
+      ensureFirstPhotos(services.db, 'main', original, foreignPhotos, signal),
+    ).rejects.toThrow();
+    await signInWithEmailAndPassword(
+      services.auth,
+      LOCAL_ACCOUNTS.unrelated.email,
+      LOCAL_ACCOUNTS.unrelated.password,
+    );
+    await expect(
+      ensureFirstPhotos(services.db, 'main', original, plan.input.photos, signal),
+    ).rejects.toThrow();
   });
   it('keeps an interrupted capture visible and finishes verified uploads after reload', async () => {
     const services = await owner('capture-recovery');

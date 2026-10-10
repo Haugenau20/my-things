@@ -65,9 +65,33 @@ describe('capture schema and defaults', () => {
   it.each(['', '  ', 'x'.repeat(201)])('rejects an invalid capture name', (name) => {
     expect(() => captureDraft({ ...input, name }, time)).toThrow();
   });
-  it('rejects duplicate photo IDs and missing photos', () => {
+  it('rejects duplicate photo IDs', () => {
     expect(() => captureDraft({ ...input, photos: [photo, photo] }, time)).toThrow();
-    expect(() => captureDraft({ ...input, photos: [] }, time)).toThrow();
+  });
+  it('creates a saved photo-free item with explicit empty photos and no cover', () => {
+    const item = captureDraft({ ...input, photos: [] }, time);
+    expect(item).toMatchObject({ recordState: 'ready', photos: [], coverPhotoId: null });
+    expect(parseItem(item, 'main', 'item-one')).toEqual(item);
+  });
+  it('keeps an existing saved item valid while its first photos are pending or deleting', () => {
+    const draft = captureDraft(input, time);
+    expect(parseItem({ ...draft, recordState: 'ready' }, 'main', 'item-one').photos).toHaveLength(
+      1,
+    );
+    expect(
+      parseItem(
+        { ...draft, recordState: 'ready', photos: [{ ...photo, state: 'deleting' }] },
+        'main',
+        'item-one',
+      ).coverPhotoId,
+    ).toBeNull();
+    expect(() =>
+      parseItem(
+        { ...draft, recordState: 'ready', photos: [], coverPhotoId: photo.id },
+        'main',
+        'item-one',
+      ),
+    ).toThrow();
   });
   it('rejects unexpected fields and unsupported schema versions', () => {
     const draft = captureDraft(input, time);

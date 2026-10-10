@@ -8,8 +8,11 @@ M2 organization and M3 backup remain future work.
 
 ## Implemented behavior
 
-- Name plus one or two photos; camera hint and existing-file selection; sticky room within the mounted
+- Name with optional one or two photos; camera hint and existing-file selection; sticky room within the mounted
   capture session; minimal room creation; needs-review default and explicit reviewed save.
+- Photo-free saves have an empty photo list and null cover. First photos may be attached later to the
+  same saved item; pending upload/cancellation preserves the item and its metadata. See
+  [optional-photo evidence](M1_OPTIONAL_PHOTOS.md) for the follow-up change and checks.
 - Stable item/photo IDs, strict versioned runtime validation, explicit field defaults, and matching
   original/current room. Server-acknowledged draft precedes all uploads. Both derivatives are verified
   by metadata, size, and SHA-256 before revision-checked finalization. Only then does Save & next reset.

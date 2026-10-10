@@ -21,7 +21,8 @@ the local foundation. Report any unimplemented manual cloud setup explicitly.
 
 Implement Google sign-in and bootstrap in the owner's single production cloud project when deployment
 is explicitly authorized. Normal development and all automated tests remain on `demo-inventory` emulators.
-Build name + photo capture, sticky capture room, derivative generation, stable IDs, acknowledged saves,
+Build name + optional-photo capture, later attachment to photo-free items, sticky capture room,
+derivative generation, stable IDs, acknowledged saves,
 and a minimal private gallery/detail view. Test real iPhone input and Windows output. Implement recovery
 for interrupted new captures from the start, not after production use.
 

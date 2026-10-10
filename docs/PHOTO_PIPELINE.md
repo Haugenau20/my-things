@@ -39,7 +39,8 @@ same IDs; do not overwrite a ready photo in place with a different image.
 
 ## 2. New-item save lifecycle
 
-1. Validate name/details and prepare derivatives with stable item/photo IDs.
+1. Validate name/details. If no photos were selected, create a ready item with an empty photo list and
+   null cover, await server acknowledgment, and finish. Otherwise prepare derivatives with stable IDs.
 2. Write an item with `recordState: draft`, pending photo metadata, and a null cover. Await acknowledgment.
 3. Upload the derivatives at their planned paths with image/jpeg and private cache metadata. Show progress.
 4. Mark each photo ready only after both files are confirmed. When all selected photos are ready, set the
@@ -56,7 +57,7 @@ finishing the changed attempt. Never silently drop selected photos and call the 
 
 | Interruption | Expected behavior |
 | --- | --- |
-| Decode/resize fails | Keep form/source selection when possible; explain failure; no ready item |
+| Decode/resize fails | Keep selection and explain failure; do not save a new capture; preserve an existing saved item |
 | Draft write fails | No upload unless draft existence is verified; retry with same attempt ID |
 | One derivative upload fails | Keep draft/pending photo; retry missing or unverified file |
 | Upload finishes but final record write fails | Verify expected objects; retry metadata finalization |
@@ -78,7 +79,12 @@ recovery panel. There is no persistent local offline photo queue in V1.
 Adding a photo to a ready item records a pending entry while existing ready photos remain visible. Finish
 only when both variants and metadata are acknowledged. Change cover only to a ready photo.
 
-To remove a photo, ensure another ready photo remains, change cover if needed, mark that photo deleting,
+Photo-free ready items can receive their first photos from detail without becoming capture drafts.
+Register pending metadata through a revision-checked partial patch; keep the saved item visible.
+Retry verifies matching IDs/paths/hashes. Explicit attachment cancellation marks its photos deleting,
+deletes only their exact file paths, and clears metadata last without deleting the saved item.
+
+To remove a photo, change cover if needed (null when no ready photo remains), mark that photo deleting,
 delete both objects, then remove its metadata. Keep the deleting entry when cleanup fails so retry paths
 are not lost. At the photo-count limit, finish cleanup before accepting more entries.
 
