@@ -28,9 +28,9 @@ must be covered by relevant automated tests against `demo-inventory` before merg
 
 ## The first version
 
-- Fast capture: a name, optional photos now or later, optional details, and a sticky capture room.
+- Phone capture: photo/name/next with acknowledged saves; desktop capture adds optional details.
 - A desktop review inbox, photo gallery, compact table, search, filters, and bulk editing.
-- Rooms before packing; numbered boxes during packing; original room retained after an item moves.
+- Rooms before packing; numbered boxes during packing; room tags retained independently of packing.
 - Simple moving decisions and progress, with completed sales/donations kept in an archive.
 - Owner-only access to records and photos, plus export/restore and recoverable deletion.
 
@@ -95,9 +95,9 @@ supplies those values. The owner's existing MIT license is preserved.
 
 Create 20 items in two rooms, including photo-free entries on Windows that receive photos later on the
 iPhone. Review and bulk-edit them on Windows. Pack some into a
-numbered box without losing their original room. Find them through the gallery. Export all records and
+numbered box without losing their room tag. Find them through the gallery. Export all records and
 photos, and restore them into an empty, isolated, administrator-authorized verification inventory.
 Separately, prove that another account
 cannot access either records or photos.
 
-The approved [UI refactor](docs/UI_REFACTOR.md) starts with schema-v2 independent room tags and packing boxes. Production test data was reset under explicit owner authorization; the reviewed release pipeline remains the only deployment path.
+The approved ten-stage [UI refactor](docs/UI_REFACTOR.md) is implemented and verified in emulators: independent Room/Box facets, contextual bulk actions, inspector/capture panels, phone capture and the overview matrix. Production workflow evidence and remaining device/cloud gates are recorded there. Production test data was reset under explicit owner authorization; the reviewed release pipeline remains the only deployment path.

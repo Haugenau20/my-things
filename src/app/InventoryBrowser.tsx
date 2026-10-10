@@ -10,6 +10,7 @@ import { BulkEditor } from './BulkEditor';
 import { BrowseFilters } from './BrowseFilters';
 import { defaultGrouping, selectionTitle, groupVisibleItems } from '../domain/browse';
 import type { Grouping } from '../domain/browse';
+import type { BrowseRequest } from '../domain/overview';
 import { ItemCard } from './ItemCard';
 import { GroupActions } from './GroupActions';
 import type { ItemGroup } from '../domain/browse';
@@ -54,7 +55,7 @@ export function InventoryBrowser({
   reload: () => Promise<void>;
   defaultCurrency: string | null;
   metadataReady: boolean;
-  browseLocation: string | undefined;
+  browseLocation: BrowseRequest | undefined;
   setDefaultCurrency: (currency: string) => Promise<void>;
   requestDeletion: (item: Item) => void;
   capturePanel: React.ReactNode;
@@ -119,11 +120,12 @@ export function InventoryBrowser({
   // A location navigation request resets scope/filter choices, but ordinary reloads do not.
   if (browseLocation !== lastBrowse) {
     setLastBrowse(browseLocation);
-    const [facet, id] = (browseLocation ?? '').split(':');
     setFilters({
       ...DEFAULT_FILTERS,
-      ...(facet === 'room' ? { room: id ?? '' } : { box: id ?? '' }),
+      room: browseLocation?.room ?? '',
+      box: browseLocation?.box ?? '',
     });
+    setGroupingChoice(undefined);
     setSelection(new Set());
     setSelected(undefined);
     setGrid(true);

@@ -40,7 +40,7 @@ Record whether HEIC conversion needs a client dependency and whether image limit
 ## M2 - Organize and pack
 
 Implement the review inbox, optional fields/value handling, rooms, boxes, gallery/table, complete metadata
-search, filters, bulk actions, original-room semantics, moving decisions/progress, and completed archive.
+search, filters, bulk actions, independent room-tag/box semantics, moving decisions/progress, and completed archive.
 Add revision conflicts and clear per-item bulk results. Keep categories simple and notes plain text.
 
 **Gate:** The two-room/20-item workflow can be completed except the backup step. Domain tests cover the

@@ -1992,3 +1992,156 @@ input[type='checkbox'] {
 .phone-saved-toast strong {
   text-align: left;
 }
+
+.overview-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.overview-heading h1 {
+  font-family: Georgia, serif;
+  font-size: 46px;
+  font-weight: 400;
+  margin: 8px 0 0;
+}
+.overview-heading > p {
+  color: #5d685e;
+  font-size: 14px;
+}
+.overview-matrix-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #d8dbce;
+  border-radius: 12px;
+  background: #fffefa;
+}
+.overview table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 100%;
+  width: max-content;
+}
+.overview th,
+.overview td {
+  padding: 10px 12px;
+  text-align: center;
+  min-width: 110px;
+  border-bottom: 1px solid #e9e9df;
+}
+.overview th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fffefa;
+  text-align: left;
+  min-width: 190px;
+  max-width: 240px;
+  box-shadow: 1px 0 #e9e9df;
+}
+.overview th button {
+  white-space: normal;
+  text-align: inherit;
+}
+.overview .box-heading {
+  font-family: monospace;
+  color: #84613f;
+}
+.overview-count {
+  width: 100%;
+  height: 46px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #263c32;
+  font-weight: 600;
+  background: var(--tile-tint);
+}
+.overview-count:hover,
+.overview-count:focus-visible {
+  border-color: #365a3d;
+}
+.overview-count.empty {
+  color: #778075;
+}
+.overview-total,
+.overview tfoot {
+  color: #5d685e;
+  font-weight: 600;
+}
+.overview-legend {
+  color: #5d685e;
+  font-size: 13px;
+  margin-top: 20px;
+}
+.unpacked-key {
+  color: #365a3d;
+}
+.packed-key {
+  color: #84613f;
+}
+.gone-key {
+  color: #626b60;
+}
+.overview-room-list {
+  display: grid;
+  gap: 16px;
+}
+.overview-room-list article {
+  border: 1px solid #d8dbce;
+  border-radius: 12px;
+  background: #fffefa;
+  padding: 16px;
+}
+.overview-room-list header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.overview-room-list header > button {
+  font-family: Georgia, serif;
+  font-size: 22px;
+  text-align: left;
+}
+.overview-room-list header > span {
+  color: #5d685e;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.overview-room-list dl {
+  margin: 12px 0 0;
+}
+.overview-room-list dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 12px;
+}
+.overview-room-list dd {
+  margin: 0;
+}
+.overview-room-list dt button {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 850px) {
+  .overview-heading {
+    display: block;
+  }
+  .overview-heading h1 {
+    font-size: 36px;
+  }
+  .overview-heading > p {
+    line-height: 1.7;
+  }
+}
+
+.overview .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
