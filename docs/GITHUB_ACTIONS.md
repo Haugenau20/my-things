@@ -66,7 +66,9 @@ and grants these product-specific roles:
 
 The repository principal receives `roles/iam.workloadIdentityUser` on that service account. Trust
 requires immutable repository ID `1413109191`, owner ID `106525925`, `refs/heads/main`, this exact
-workflow path, the `production` environment subject, and a push or manual-dispatch event. Forks, PRs,
+workflow path, the `production` environment subject, and a push or manual-dispatch event. The subject is
+`repo:Haugenau20@106525925/my-things@1413109191:environment:production`, matching the repository's
+GitHub OIDC settings (`use_default: true`, `use_immutable_subject: true`). Forks, PRs,
 other repositories, environments and branches are excluded. No private key is created. There is no
 grant of project Owner/Editor, Auth administration, inventory document access, photo object access,
 billing administration or IAM administration to the deployment account. Rules deployment itself is
@@ -77,6 +79,11 @@ confirmed the provider is active with the exact trust condition above, the servi
 contains only the repository's Workload Identity User binding, and the account has exactly the five
 reviewed project roles. All four setup APIs are enabled and no user-managed service-account keys exist.
 An earlier automatic approval rejection was resolved by that explicit approval before execution.
+The initial setup used the legacy name-only subject. A read of the repository's OIDC settings exposed
+that mismatch, and the provider condition was corrected to the exact immutable subject above on the
+same day. All other trust restrictions and role grants were retained; the legacy subject would have
+rejected deployment, rather than admitting a different repository. GitHub documents this default for
+[new repositories](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims).
 Do not rerun the create commands on the existing resources. For future setup changes, inspect the
 resources and apply only approved missing steps. The workflow does not configure IAM, seed data, alter CORS/Auth/billing,
 run restore/cleanup, or provision a database/bucket. The account has no database-creation permission.
