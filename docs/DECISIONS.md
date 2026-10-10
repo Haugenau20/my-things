@@ -21,6 +21,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | A11 | Native iOS deferred; IAP and YubiKey explicitly out of scope | Do not implement them as hidden prerequisites |
 | A12 | Export actual photos, test restore, and keep trash | Reliability before dependence on the application |
 | A13 | Agentic coding on Windows | Clear specifications, repeatable tests, cross-platform scripts |
+| A14 | Only the owner may authenticate to the production app | Close public signup after trusted owner bootstrap; keep only the owner Auth account |
 
 ## Concrete defaults supplied by this pack
 
@@ -46,10 +47,21 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 ## Runtime details still to fill in
 
 Actual project/Web configuration is now supplied in ignored local files; selected tools are pinned in M0.
-Remaining details include owner UID; approved origin/CORS/IAM configuration; billing alert amount; default
+Owner UID is verified and bound; origin/CORS/IAM are applied. Remaining details include billing alert amount; default
 currency when desired; actual room names; and results of camera/HEIC/session tests. These are setup choices,
 not blockers for writing M0. The single-project choice and existing regions are recorded below.
 No precise move date or item count has been supplied.
+
+### 2026-10-10 — Owner-only sign-in
+
+The owner rejected allowing unrelated Google accounts to authenticate even when inventory access is
+denied. Keep Google and the existing verified owner account, disable end-user signup/deletion through
+managed Firebase Auth configuration, and retain the singleton production Auth user set. Setting read-back
+succeeded with subtype `FIREBASE_AUTH`; no Identity Platform upgrade, Cloud Function, or magic-link
+provider is required. No email/frontend allowlist becomes the inventory security authority. Keep
+unrelated-UID emulator authorization tests as defense against an administratively created account.
+The owner verified reauthentication reaches Capture and a separate account cannot finish Firebase
+sign-in. A subsequent administrative read confirmed only the owner Auth account still exists.
 
 ## Decisions deliberately not made
 

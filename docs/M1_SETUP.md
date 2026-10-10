@@ -1,8 +1,11 @@
 # M1 setup checkpoint
 
 Date: 2026-10-10. M1 capture, cloud SDK initialization, and Google redirect sign-in are now implemented
-locally. Cloud/device acceptance remains pending; see [M1 evidence and release steps](M1_CAPTURE.md).
-No deployment, administrative owner seed, IAM change, or resource creation has been performed by the agent.
+and deployed after owner authorization. Owner/device acceptance remains pending; see
+[deployment evidence](M1_RELEASE.md) and [M1 evidence and release steps](M1_CAPTURE.md).
+Hosting/rules/indexes are deployed, required IAM/CORS are applied, and the trusted inventory root is
+bound to the owner-supplied verified Auth UID. End-user signup/deletion are disabled with only the owner
+Auth account present. No production items/photos, billing change, or additional cloud service was created.
 
 ## Owner decisions and supplied settings
 
@@ -60,17 +63,17 @@ rerun for this build-guard-only change; their original M0 evidence remains in
 
 ## Remaining manual and implementation work
 
-- Capture/gallery/recovery and feature-specific owner rules are implemented locally; run the recorded
-  checks before release and complete the actual device gate.
-- Cloud SDK/Google sign-in integration and production CSP/CORS generation are implemented. Review the
-  generated configuration before an explicitly authorized
-  release. Configure actual OAuth domains, exact-origin photo CORS, and Storage-to-Firestore permissions;
-  test owner access and unrelated/unauthenticated denial in the cloud.
-- The read-only IAM check identified the specific missing connection: grant
-  `roles/firebaserules.firestoreServiceAgent` to the existing Firebase Storage service agent only after
-  explicit authorization. Applying exact-origin CORS also requires authorization. See [release steps](M1_CAPTURE.md).
-- Bootstrap the owner UID through a trusted administrative action after first sign-in. No owner UID
-  has been supplied or inferred. Browser clients remain unable to create or claim an inventory root.
+- Capture/gallery/recovery and feature-specific owner rules are deployed; complete the actual device gate.
+- Google provider and canonical authorized domain are verified. Signed-out Google redirect reaches
+  Google's account page without observed browser errors; completed sign-in still requires the owner.
+- Exact-origin CORS and `roles/firebaserules.firestoreServiceAgent` for the existing Firebase Storage
+  service agent are applied and verified. Anonymous cloud read/list probes returned 403. Owner and
+  unrelated signed-in account checks remain pending. See [deployment evidence](M1_RELEASE.md).
+- Trusted owner bootstrap completed after first sign-in and owner-supplied verified UID. Auth lookup
+  and root read-back verified the binding. Browser clients remain unable to create or claim a root.
+- End-user signup/deletion restrictions are applied without changing the provider or upgrading Auth.
+  The owner verified reauthentication reaches Capture and a separate Google account is rejected.
+  A subsequent Auth user-list read confirmed only the owner account exists.
 - Verify the actual cloud rules, bucket policies, billing alerts, and device behavior. The differently
   located services require real cloud access/latency checks; emulator results do not establish those.
 - Obtain the actual iPhone/iOS and Windows browser details, then run camera/library, readability, reload,

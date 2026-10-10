@@ -165,6 +165,11 @@ The detailed schema and editable size limits are in [Data model](docs/DATA_MODEL
 
 ## 5. Nonfunctional requirements
 
+**Sign-in:** Only the existing, administratively verified owner account may sign in to the production
+application. Disable end-user account creation after owner bootstrap; reject other Google accounts
+during Firebase Authentication. Keep the production Auth user set limited to the owner. A public login
+page is acceptable. Changing to magic links would still require the same closed account policy.
+
 **Privacy:** Only the configured owner can access records, filenames, photo bytes, exports, or storage
 listings. A public login page is acceptable. No inventory content in public Hosting assets, telemetry,
 URLs, or source-controlled fixtures. Do not use permanent bearer-style photo download links in the UI.

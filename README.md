@@ -4,12 +4,14 @@ A private, photo-first inventory for preparing an international move and finding
 Capture individual items on an iPhone, organize them on a Windows computer, decide what to store, take,
 sell, or give away, and browse the things you still own while abroad.
 
-**Repository status: M1 capture implemented locally; cloud/device acceptance pending.** Name + photo
+**Repository status: M1 capture deployed; owner/device acceptance pending.** Name + photo
 capture, a sticky room, optimized private photos, gallery/detail views, and interrupted-capture recovery
-are present. Google redirect sign-in and production release preparation are implemented but have not
-been deployed or tested against the cloud project. Organization and backup remain M2-M3 work.
-No cloud resources have been provisioned or deployed by this implementation. See [M1 evidence and
-release steps](docs/M1_CAPTURE.md) and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
+are present. Hosting, Firestore indexes/rules, and Storage rules are deployed. Required cross-service
+IAM and exact-origin CORS are applied; the signed-out page and Google redirect start are verified.
+Trusted owner bootstrap is complete and public signup is disabled. The owner verified reauthentication
+and another account's rejection; actual iPhone/Windows capture checks remain pending. Organization and backup
+remain M2-M3 work. See [deployment evidence](docs/M1_RELEASE.md), [M1 evidence and release
+steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
 
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
 
