@@ -44,13 +44,16 @@ Do not add these without an explicit scope decision. Basic notes are the escape 
    within that capture session, with the selected room always visible.
 2. Enter a short name. Photos are optional: take one, select existing photos, or save the item without
    photos and attach them later from its detail view on the phone. A nonblank name is required.
-3. Optional details are collapsed by default: quantity, estimated value/currency, serial number, notes,
-   category, location, and moving decision/progress.
+3. Desktop capture provides collapsed quantity, estimated value/currency, serial number, notes and
+   category fields. Room comes from the visible sticky picker. New items start unpacked with an
+   undecided/not-started workflow; moving choices are made during review. The approved phone flow
+   has no Details form.
 4. Choose **Save & next**. Show processing/upload progress and do not claim success before the server
    acknowledges the completed record and every selected photo file. An intentional photo-free save
    completes after record acknowledgment; a failed selected photo is never silently omitted.
 5. Reset the item form but retain the capture room. The item goes to the review inbox by default.
-   **Save as reviewed** is an explicit alternative.
+   Desktop **Save as reviewed** (Cmd/Ctrl+Enter) is an explicit alternative; phone captures always
+   enter the review inbox. Desktop Enter saves and focuses the cleared name field.
 
 Photo-free items are saved inventory entries with a "No photo yet" placeholder, not upload drafts.
 The detail view allows adding first photos to that same item without losing its metadata. Interrupted

@@ -24,6 +24,31 @@ const input = {
   photos: [photo],
 };
 describe('capture schema and defaults', () => {
+  it('validates optional capture details without inventing value or changing review', () => {
+    const details = {
+      quantity: 7,
+      estimatedValue: { amountMinor: 0, currency: 'JPY' },
+      serialNumber: '0000123',
+      notes: 'Synthetic notes',
+      category: 'Fragile',
+    };
+    expect(captureDraft({ ...input, ...details }, time)).toMatchObject({
+      ...details,
+      reviewStatus: 'needs_review',
+      boxId: null,
+    });
+  });
+  it.each([
+    { quantity: 0 },
+    { quantity: 100001 },
+    { estimatedValue: { amountMinor: -1, currency: 'EUR' } },
+    { estimatedValue: { amountMinor: 1, currency: 'XXX' } },
+    { notes: 'x'.repeat(10001) },
+    { category: 'x'.repeat(101) },
+  ])('rejects invalid optional capture details', (details) => {
+    expect(() => captureDraft({ ...input, ...details }, time)).toThrow();
+  });
+
   it('rejects more than two photo entries', () => {
     expect(() =>
       captureDraft(

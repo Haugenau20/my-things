@@ -449,6 +449,50 @@ describe('M1 capture authorization', () => {
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+
+  it.each([0, 2])('allows bounded owner capture details with %i photos', async (count) => {
+    const id = `capture-details-${count}`;
+    const data = {
+      ...draft(id, count),
+      quantity: 7,
+      estimatedValue: { amountMinor: 0, currency: 'JPY' },
+      serialNumber: '0000123',
+      notes: 'Synthetic optional details',
+      category: 'Fragile',
+    };
+    await assertSucceeds(owner().doc(`inventories/main/items/${id}`).set(data));
+  });
+  it.each([null, 'unrelated-user'])('denies detailed capture for %s', async (uid) => {
+    const id = `foreign-details-${uid ?? 'anonymous'}`;
+    const data = {
+      ...draft(id, 0),
+      quantity: 7,
+      estimatedValue: { amountMinor: 0, currency: 'JPY' },
+      serialNumber: '0000123',
+      notes: 'Synthetic details',
+      category: 'Fragile',
+    };
+    const context =
+      uid === null ? environment.unauthenticatedContext() : environment.authenticatedContext(uid);
+    await assertFails(context.firestore().doc(`inventories/main/items/${id}`).set(data));
+  });
+  it.each([
+    { quantity: 100001 },
+    { quantity: 1.5 },
+    { estimatedValue: { amountMinor: -1, currency: 'EUR' } },
+    { estimatedValue: { amountMinor: 1, currency: 'XXX' } },
+    { notes: 'x'.repeat(10001) },
+    { serialNumber: 'x'.repeat(201) },
+    { category: 'x'.repeat(101) },
+  ])('rejects out-of-bounds capture metadata', async (patch) => {
+    const id = 'invalid-capture-details';
+    await assertFails(
+      owner()
+        .doc(`inventories/main/items/${id}`)
+        .set({ ...draft(id, 0), ...patch }),
+    );
+  });
+
   it.each([1, 2])('allows owner draft and exact completion with %i photos', async (count) => {
     const id = `valid-capture-${count}`;
     const data = draft(id, count);

@@ -24,10 +24,10 @@ test('desktop review, metadata search, packing, archive, and trash preserve mean
   ).toBeVisible();
   await page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }).click();
   await openFullView(page);
-  await page.getByLabel('Serial number').fill('0000123');
+  await page.getByLabel('Serial number', { exact: true }).fill('0000123');
   await page.getByLabel('Notes', { exact: true }).fill('<script>synthetic search needle</script>');
   await page.getByLabel('Quantity', { exact: true }).fill('7');
-  await page.getByLabel('Total estimated value').fill('0');
+  await page.getByLabel('Total estimated value', { exact: true }).fill('0');
   await page.getByLabel('Value currency', { exact: true }).selectOption('JPY');
   await page.getByRole('button', { name: 'Save details', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Details saved' })).toBeVisible();
@@ -103,6 +103,10 @@ test('location labels use stable references, occupancy blocks archive, and filte
   await expect(management.getByRole('button', { name: 'Browse B098' })).toBeVisible();
   await page.getByRole('button', { name: /^Things/ }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
+  await page
+    .locator('summary')
+    .filter({ hasText: /^Change room$/ })
+    .click();
   await page
     .getByLabel('Capture room', { exact: true })
     .selectOption({ label: 'Synthetic M2 room' });
@@ -197,7 +201,7 @@ test('phone-width editing and currency defaults preserve existing amounts', asyn
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await page.getByRole('button', { name: 'Open Synthetic currency item', exact: true }).click();
   await openFullView(page);
-  await page.getByLabel('Total estimated value').fill('12.345');
+  await page.getByLabel('Total estimated value', { exact: true }).fill('12.345');
   await page.getByLabel('Value currency', { exact: true }).selectOption('EUR');
   await page.getByRole('button', { name: 'Save details', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('at most 2 decimal places');
@@ -223,6 +227,6 @@ test('phone-width editing and currency defaults preserve existing amounts', asyn
   await page.getByRole('button', { name: /^Things/ }).click();
   await page.getByRole('button', { name: 'Open Synthetic currency item', exact: true }).click();
   await openFullView(page);
-  await expect(page.getByLabel('Total estimated value')).toHaveValue('12.345');
+  await expect(page.getByLabel('Total estimated value', { exact: true })).toHaveValue('12.345');
   await expect(page.getByLabel('Value currency', { exact: true })).toHaveValue('KWD');
 });

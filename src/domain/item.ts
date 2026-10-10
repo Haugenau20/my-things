@@ -106,6 +106,11 @@ export const captureInputSchema = z.strictObject({
   roomId: idSchema.nullable(),
   reviewStatus: z.enum(['needs_review', 'reviewed']),
   photos: z.array(photoSchema).max(MAX_PHOTOS),
+  quantity: itemSchema.shape.quantity.optional(),
+  estimatedValue: itemSchema.shape.estimatedValue.optional(),
+  serialNumber: itemSchema.shape.serialNumber.optional(),
+  notes: itemSchema.shape.notes.optional(),
+  category: itemSchema.shape.category.optional(),
 });
 export type CaptureInput = z.infer<typeof captureInputSchema>;
 export function photoPath(
@@ -125,11 +130,11 @@ export function captureDraft(input: CaptureInput, timestamp: Timestamp): ItemDoc
     schemaVersion: 2,
     revision: 1,
     name: value.name,
-    quantity: 1,
-    estimatedValue: null,
-    serialNumber: null,
-    notes: '',
-    category: null,
+    quantity: value.quantity ?? 1,
+    estimatedValue: value.estimatedValue ?? null,
+    serialNumber: value.serialNumber ?? null,
+    notes: value.notes ?? '',
+    category: value.category ?? null,
     roomId: value.roomId,
     boxId: null,
     reviewStatus: value.reviewStatus,

@@ -237,3 +237,7 @@ future fields during an older client's write.
 The 2026-10 schema-v2 change is the owner-approved clean-reset exception. V1 is rejected; no migration
 or legacy archive reader is implemented. Preserve authorization and update the root version through a
 trusted administrative cutover, never a client write. Production reset has not been executed.
+
+## Capture details and retry identity
+
+Desktop capture may provide the existing quantity, estimatedValue, serialNumber, notes and category fields at creation. They use the same runtime/rules bounds as metadata edits. Omitted fields retain quantity 1, null value/serial/category and empty notes. Room is active or null, Box remains null, and workflow remains undecided/not_started. No stored schema or archive format changes. Stable capture retry identity includes these details as well as name, room, review state and photo metadata; a different payload cannot reuse an acknowledged attempt ID.

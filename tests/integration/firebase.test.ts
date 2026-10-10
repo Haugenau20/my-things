@@ -149,6 +149,48 @@ describe('real client SDK and trusted synthetic seed', () => {
       ],
     };
   }
+
+  it('acknowledges optional details with photos and binds retry identity to those details', async () => {
+    const services = await owner('detailed-capture-owner');
+    const plan = await attempt('sdk-detailed-capture');
+    const details = {
+      quantity: 7,
+      estimatedValue: { amountMinor: 0, currency: 'JPY' },
+      serialNumber: '0000123',
+      notes: 'Synthetic details',
+      category: 'Fragile',
+    };
+    plan.input = { ...plan.input, ...details };
+    const signal = new AbortController().signal;
+    const saved = await saveAttempt(services, 'main', plan, signal, () => {});
+    expect(saved).toMatchObject({
+      ...details,
+      recordState: 'ready',
+      reviewStatus: 'needs_review',
+      roomId: null,
+      boxId: null,
+    });
+    expect((await saveAttempt(services, 'main', plan, signal, () => {})).id).toBe(saved.id);
+    await expect(
+      saveAttempt(
+        services,
+        'main',
+        { ...plan, input: { ...plan.input, quantity: 8 } },
+        signal,
+        () => {},
+      ),
+    ).rejects.toThrow('identity conflict');
+    expect((await captureRepository.loadItem(services.db, 'main', saved.id))?.quantity).toBe(7);
+    await signInWithEmailAndPassword(
+      services.auth,
+      LOCAL_ACCOUNTS.unrelated.email,
+      LOCAL_ACCOUNTS.unrelated.password,
+    );
+    const foreign = await attempt('sdk-foreign-detailed');
+    foreign.input = { ...foreign.input, ...details };
+    await expect(saveAttempt(services, 'main', foreign, signal, () => {})).rejects.toThrow();
+  });
+
   it('saves acknowledged capture bytes and retries without duplicate records', async () => {
     const services = await owner('capture-owner');
     const plan = await attempt('sdk-capture');

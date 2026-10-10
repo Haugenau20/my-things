@@ -1,8 +1,13 @@
 import { useMutationState } from './mutation-activity';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import { createRoom } from '../data/capture-repository';
-import type { Room } from '../domain/item';
+import { captureInputSchema } from '../domain/item';
+import { CURRENCIES, parseMoney } from '../domain/organize';
+import type { Item, Room } from '../domain/item';
+import { PhotoSlots } from './PhotoSlots';
+import { PrivatePhoto } from './PrivatePhoto';
+import type { PhotoSession } from '../media/photo-session';
 import { MAX_PHOTOS, preparePhoto } from '../media/processing';
 import type { CaptureAttempt } from '../media/capture';
 import { saveAttempt } from '../media/capture';
@@ -17,14 +22,22 @@ export function CaptureForm({
   onRoom,
   onSaved,
   onAttempt,
+  roomRequest,
+  defaultCurrency,
+  session,
+  onOpen,
 }: {
   services: FirebaseServices;
   inventoryId: string;
   rooms: Room[];
   signal: AbortSignal;
   onRoom: (room: Room) => void;
-  onSaved: () => Promise<void>;
+  onSaved: (item: Item) => Promise<void>;
   onAttempt: (id: string) => Promise<void>;
+  roomRequest: { sequence: number; room: string };
+  defaultCurrency: string | null;
+  session: PhotoSession;
+  onOpen: (id: string) => void;
 }) {
   const [name, setName] = useState('');
   const [room, setRoom] = useState('');
@@ -37,6 +50,24 @@ export function CaptureForm({
   const attempt = useRef<CaptureAttempt | undefined>(undefined);
   const nameField = useRef<HTMLInputElement>(null);
   const [roomBusy, setRoomBusy] = useMutationState();
+  const [quantity, setQuantity] = useState('1');
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState(defaultCurrency ?? '');
+  const [serialNumber, setSerialNumber] = useState('');
+  const [category, setCategory] = useState('');
+  const [notes, setNotes] = useState('');
+  const [recent, setRecent] = useState<Item[]>([]);
+  const consumedRequest = useRef(-1);
+  useEffect(() => {
+    if (consumedRequest.current === roomRequest.sequence) return;
+    consumedRequest.current = roomRequest.sequence;
+    if (!busy && !locked && roomRequest.room !== 'sticky') {
+      const available = rooms.some(
+        (value) => value.id === roomRequest.room && value.archivedAt === null,
+      );
+      if (roomRequest.room === 'none' || available) setRoom(available ? roomRequest.room : '');
+    }
+  }, [roomRequest, rooms, busy, locked]);
   function select(selected: File[], append = false) {
     setError(undefined);
     setStatus('');
@@ -85,6 +116,7 @@ export function CaptureForm({
     }
   }
   async function save(reviewed: boolean) {
+    let acknowledged = false;
     setError(undefined);
     setStatus('');
     if (!name.trim() || name.trim().length > 200) {
@@ -98,6 +130,17 @@ export function CaptureForm({
     setBusy(true);
     try {
       if (!attempt.current) {
+        const input = captureInputSchema.parse({
+          name: name.trim(),
+          roomId: room || null,
+          reviewStatus: reviewed ? 'reviewed' : 'needs_review',
+          quantity: Number(quantity),
+          estimatedValue: parseMoney(amount, currency),
+          serialNumber: serialNumber.trim() || null,
+          category: category.trim() || null,
+          notes,
+          photos: [],
+        });
         const id = crypto.randomUUID();
         const prepared = [];
         for (const file of files) {
@@ -109,9 +152,7 @@ export function CaptureForm({
           id,
           prepared,
           input: {
-            name: name.trim(),
-            roomId: room || null,
-            reviewStatus: reviewed ? 'reviewed' : 'needs_review',
+            ...input,
             photos: prepared.map((entry) => entry.photo),
           },
         };
@@ -121,12 +162,20 @@ export function CaptureForm({
         if (!signal.aborted) setStatus(text);
       });
       signal.throwIfAborted();
+      acknowledged = true;
       attempt.current = undefined;
       setLocked(false);
       setName('');
       setFiles([]);
+      setQuantity('1');
+      setAmount('');
+      setCurrency(defaultCurrency ?? '');
+      setSerialNumber('');
+      setCategory('');
+      setNotes('');
+      setRecent((values) => [saved, ...values].slice(0, 5));
       setStatus(`Saved ${saved.name}. Ready for the next thing.`);
-      await onSaved();
+      await onSaved(saved);
       signal.throwIfAborted();
       nameField.current?.focus();
     } catch (failure) {
@@ -143,6 +192,7 @@ export function CaptureForm({
       }
     } finally {
       setBusy(false);
+      if (acknowledged && !signal.aborted) requestAnimationFrame(() => nameField.current?.focus());
     }
   }
   return (
@@ -154,58 +204,139 @@ export function CaptureForm({
         go.
       </p>
       <form
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !busy && !roomBusy) {
+            event.preventDefault();
+            void save(true);
+          }
+        }}
         onSubmit={(event) => {
           event.preventDefault();
           void save(false);
         }}
       >
         <fieldset disabled={busy || locked || roomBusy}>
+          <div className="capture-room-bar">
+            <p className="capture-room-heading">
+              Capturing in {rooms.find((value) => value.id === room)?.name ?? 'No room'}
+            </p>
+            <details className="capture-room-picker">
+              <summary>Change room</summary>
+              <label>
+                Capture room
+                <select
+                  aria-label="Capture room"
+                  value={room}
+                  onChange={(event) => setRoom(event.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {rooms
+                    .filter((value) => value.archivedAt === null)
+                    .map((value) => (
+                      <option key={value.id} value={value.id}>
+                        {value.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <div className="room-create">
+                <label>
+                  New room name
+                  <input
+                    value={roomName}
+                    maxLength={100}
+                    onChange={(event) => setRoomName(event.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={roomBusy}
+                  onClick={() => void addRoom()}
+                >
+                  {roomBusy ? 'Adding…' : 'Add room'}
+                </button>
+              </div>
+            </details>
+          </div>
           <label>
             Item name
             <input
               ref={nameField}
+              aria-label="Item name"
               value={name}
               maxLength={200}
               onChange={(event) => setName(event.target.value)}
               autoComplete="off"
             />
           </label>
-          <label>
-            Capture room
-            <select
-              aria-label="Capture room"
-              value={room}
-              onChange={(event) => setRoom(event.target.value)}
-            >
-              <option value="">Unassigned</option>
-              {rooms
-                .filter((value) => value.archivedAt === null)
-                .map((value) => (
-                  <option key={value.id} value={value.id}>
-                    {value.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <div className="room-create">
+          <PhotoSlots files={files} disabled={busy || locked || roomBusy} select={select} />
+          <PhotoInputs onSelect={select} disabled={busy || locked || roomBusy} />
+          <details className="capture-details">
+            <summary>Details</summary>
             <label>
-              New room name
+              Quantity
               <input
-                value={roomName}
-                maxLength={100}
-                onChange={(event) => setRoomName(event.target.value)}
+                aria-label="Capture quantity"
+                type="number"
+                min="1"
+                max="100000"
+                value={quantity}
+                onChange={(event) => setQuantity(event.target.value)}
               />
             </label>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={roomBusy}
-              onClick={() => void addRoom()}
-            >
-              {roomBusy ? 'Adding…' : 'Add room'}
-            </button>
-          </div>
-          <PhotoInputs onSelect={select} disabled={busy || locked || roomBusy} />
+            <label>
+              Total estimated value
+              <input
+                aria-label="Capture total estimated value"
+                inputMode="decimal"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+            </label>
+            <label>
+              Currency
+              <select
+                aria-label="Capture value currency"
+                value={currency}
+                onChange={(event) => setCurrency(event.target.value)}
+              >
+                <option value="">Choose currency</option>
+                {CURRENCIES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Serial number
+              <input
+                aria-label="Capture serial number"
+                maxLength={200}
+                value={serialNumber}
+                onChange={(event) => setSerialNumber(event.target.value)}
+              />
+            </label>
+            <label>
+              Category
+              <input
+                aria-label="Capture category"
+                maxLength={100}
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+              />
+            </label>
+            <label>
+              Notes
+              <textarea
+                aria-label="Capture notes"
+                maxLength={10000}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            </label>
+          </details>
         </fieldset>
         {files.length > 0 && (
           <>
@@ -257,6 +388,32 @@ export function CaptureForm({
           </p>
         )}
       </form>
+      {!!recent.length && (
+        <div className="capture-recent">
+          <h3>Recently added</h3>
+          {recent.map((item) => {
+            const cover = item.photos.find((photo) => photo.id === item.coverPhotoId);
+            return (
+              <button
+                type="button"
+                className="capture-recent-item"
+                key={item.id}
+                aria-label={`Open recently added ${item.name}`}
+                onClick={() => onOpen(item.id)}
+              >
+                {cover ? (
+                  <PrivatePhoto file={cover.thumbnail} session={session} alt={item.name} />
+                ) : (
+                  <span className="recent-placeholder" aria-hidden="true">
+                    ◌
+                  </span>
+                )}
+                <span>{item.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

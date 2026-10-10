@@ -121,3 +121,5 @@ Download thumbnails lazily through authenticated SDK access. Use a bounded in-me
 object URLs on eviction/sign-out. Load full detail photos only when opened. Never precache the full
 inventory through a service worker. Share the same authenticated download helper with export, but give
 exports separate bounded concurrency and progress/cancel handling.
+
+Desktop capture occupies the shared right panel and retains the name, optional details and selected source files when closed. Two drag-and-drop slots preview at most two local files using temporary object URLs, revoked on replacement/unmount. Camera/library selection still uses native file inputs; the existing two-photo limit, derivative preparation, locked retry identity and explicit unfinished-attempt recovery apply. Recent saves use authenticated thumbnail retrieval and appear only after record/photo acknowledgment.

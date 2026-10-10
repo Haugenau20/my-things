@@ -62,7 +62,7 @@ service cloud.firestore {
         'roomId','boxId','reviewStatus','decision','progress','completedAt','recordState','coverPhotoId','photos','createdAt','updatedAt','deletedAt'])
         && data.schemaVersion == 2 && data.revision == 1 && data.name is string
         && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
-        && data.quantity == 1 && data.estimatedValue == null && data.serialNumber == null && data.notes == '' && data.category == null
+        && metadataValues(data)
         && data.reviewStatus in ['needs_review','reviewed'] && data.decision == 'undecided' && data.progress == 'not_started'
         && data.completedAt == null && data.deletedAt == null && data.coverPhotoId == null
         && data.createdAt == request.time && data.updatedAt == request.time
@@ -136,15 +136,18 @@ service cloud.firestore {
         && (data.decision == before.decision || data.progress == 'not_started')
         && (!(data.decision in ['sell','give_away']) || data.progress != 'completed' || data.boxId == null);
     }
+    function metadataValues(data) {
+      return data.quantity is int && data.quantity >= 1 && data.quantity <= 100000 && money(data.estimatedValue)
+        && (data.serialNumber == null || (data.serialNumber is string && data.serialNumber.size() <= 200))
+        && data.notes is string && data.notes.size() <= 10000 && (data.category == null || (data.category is string && data.category.size() <= 100));
+    }
     function metadataEdit(data, inventoryId) {
       let before = resource.data;
       let changed = data.diff(before).affectedKeys();
       return before.recordState == 'ready' && readyPhotos(before) && data.schemaVersion == 2
         && changed.hasOnly(['revision','updatedAt','name','quantity','estimatedValue','serialNumber','notes','category','roomId','boxId','reviewStatus','decision','progress','completedAt','deletedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
-        && data.quantity is int && data.quantity >= 1 && data.quantity <= 100000 && money(data.estimatedValue)
-        && (data.serialNumber == null || (data.serialNumber is string && data.serialNumber.size() <= 200))
-        && data.notes is string && data.notes.size() <= 10000 && (data.category == null || (data.category is string && data.category.size() <= 100))
+        && metadataValues(data)
         && data.reviewStatus in ['needs_review','reviewed'] && editedLocation(data,inventoryId) && workflow(data)
         && (changed.hasAny(['deletedAt']) ? (changed.hasOnly(['revision','updatedAt','deletedAt'])
           && (before.deletedAt == null ? data.deletedAt == request.time : data.deletedAt == null)) : before.deletedAt == null);
