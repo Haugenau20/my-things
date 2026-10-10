@@ -10,6 +10,7 @@ import {
 import type { AppConfig } from '../data/config';
 import type { FirebaseServices } from '../data/firebase';
 import { loadInventory } from '../data/inventory-repository';
+import { googleSignInError } from '../data/auth-error';
 import { LOCAL_ACCOUNTS } from '../data/local-accounts';
 import type { Inventory } from '../domain/inventory';
 import { InventoryWorkspace } from './InventoryWorkspace';
@@ -47,8 +48,8 @@ export function App({
     );
     channel.current = broadcast;
     if (config.environment !== 'local') {
-      void getRedirectResult(services.auth).catch(() =>
-        setError('Google sign-in could not finish. Check the authorized domain and try again.'),
+      void getRedirectResult(services.auth).catch((failure: unknown) =>
+        setError(googleSignInError(failure, 'finish')),
       );
     }
     broadcast.onmessage = (event: MessageEvent<unknown>) => {
@@ -134,8 +135,8 @@ export function App({
     setPending(true);
     try {
       await signInWithRedirect(services.auth, new GoogleAuthProvider());
-    } catch {
-      setError('Could not start Google sign-in. Check your connection and authorized domain.');
+    } catch (failure: unknown) {
+      setError(googleSignInError(failure, 'start'));
       setPending(false);
     }
   }

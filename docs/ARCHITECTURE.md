@@ -1,9 +1,9 @@
 # Architecture
 
-Status: V1 implementation design with M0 foundation and M1 capture implemented locally. No cloud services have been provisioned
-by this implementation. Read-only checks of the owner's existing project and remaining setup are
-recorded in [M1 setup](M1_SETUP.md). Cloud SDK initialization and Google redirect are implemented;
-deployment and actual OAuth/CORS/device verification remain pending. See [M1 evidence](M1_CAPTURE.md).
+Status: V1 implementation design with M0 foundation and M1 capture deployed. Required IAM/CORS and
+trusted owner bootstrap are applied; production end-user signup/deletion are disabled. The owner verified
+their login and another account's rejection; actual device capture still needs manual evidence. See
+[M1 deployment evidence](M1_RELEASE.md) and [M1 setup](M1_SETUP.md).
 
 ## 1. Components
 
@@ -23,7 +23,8 @@ and Storage rules. There is no custom HTTP API, Cloud Function, server-side rend
 application server in V1. Firebase Hosting supports static single-page applications; see
 [References S03](REFERENCES.md#s03).
 
-Google sign-in establishes identity; it does not automatically authorize the user. The trusted inventory
+Google sign-in is restricted to the existing owner account through managed signup restrictions and
+the single-account Auth user set. Sign-in does not automatically authorize inventory operations. The trusted inventory
 root contains the owner UID. Both services consult that owner policy. Storage can consult Firestore in
 its rules; configuration/testing requirements are in [Security](SECURITY.md) and
 [References S05](REFERENCES.md#s05).

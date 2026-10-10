@@ -1,8 +1,10 @@
 # M1 capture implementation and release gate
 
-Date: 2026-10-10. Capture is implemented and tested locally. **M1's cloud and actual-device acceptance
-gate is pending.** No deployment, production inventory seed, IAM/CORS/billing change, or real-data
-maintenance has been performed. This milestone does not implement M2 organization or M3 backup.
+Date: 2026-10-10. Capture is implemented, tested locally, and deployed after owner authorization.
+**M1's owner and actual-device acceptance gate is pending.** See [deployment evidence](M1_RELEASE.md)
+for Hosting/rules/indexes, IAM/CORS, signed-out live checks, trusted owner bootstrap, and closed signup.
+No production item/photo seed, billing change, or real-data maintenance has been performed.
+M2 organization and M3 backup remain future work.
 
 ## Implemented behavior
 
@@ -62,7 +64,8 @@ Read-only cloud IAM/bucket checks found no existing Storage-agent `roles/firebas
 grant, no configured bucket CORS entry, and no public-principal bucket IAM binding. Public access
 prevention is inherited and uniform bucket-level access is disabled; object ACLs and token capabilities
 were not audited, so this is not proof of private cloud delivery. The existing soft-delete retention
-is 604,800 seconds (seven days). No setting was changed.
+is 604,800 seconds (seven days). These were pre-release checks; subsequent authorized IAM/CORS changes
+are recorded in [deployment evidence](M1_RELEASE.md).
 
 Tests deliberately failed before the domain/repository implementation and capture UI existed. The
 new pending-capture Storage regression also failed before the matching-draft restriction was added.
@@ -85,7 +88,7 @@ regenerate it on another checkout. The root `firebase.json` remains local-only a
 remains `demo-inventory`. Do not deploy a local build or use the root local CSP for a cloud release.
 
 Only after the owner explicitly authorizes deployment, run the pinned CLI with the reviewed project
-and generated configuration (replace placeholders; no command here has been run against the cloud):
+and generated configuration (replace placeholders; the authorized release used this command):
 
 ```powershell
 mise exec -- node node_modules/firebase-tools/lib/bin/firebase.js deploy --only firestore:rules,firestore:indexes,storage,hosting --project PROJECT_ID --config .firebase/production.firebase.json
@@ -126,6 +129,9 @@ requires an explicit authDomain/redirect-origin change and new CSP/CORS verifica
 
 4. Refresh/sign in again and verify owner access. Independently test another Google account and
    unauthenticated access: both must remain denied for records, photos, listing, and writes.
+5. Disable end-user signup/deletion after the owner account is verified; keep only that account in the
+   production Auth user set. Other Google accounts must be rejected during sign-in. The initial owner
+   binding and these restrictions are now applied; see [deployment evidence](M1_RELEASE.md).
 
 No production bootstrap script or private admin credential is shipped in the frontend. Existing local
 seed scripts reject cloud destinations. Never copy emulator users or records into production.

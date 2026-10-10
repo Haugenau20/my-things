@@ -63,6 +63,8 @@ Use the Firebase console for remaining administrative setup; no privileged provi
    [References S03](REFERENCES.md#s03).
 7. Deploy the minimal sign-in shell only when explicitly requested. Complete the owner bootstrap in
    [Security](SECURITY.md): authenticate, obtain the UID, and seed the inventory root as administrator.
+   Then disable end-user signup/deletion and verify the owner is the only production Auth user.
+   Existing owner sign-in must work; another Google account must be rejected during authentication.
 8. Deploy reviewed owner rules. Confirm the Storage-to-Firestore permission setup when prompted. Configure
    bucket CORS for the actual Hosting origin and test authenticated blob downloads, including denial for
    another account. No public bucket access.

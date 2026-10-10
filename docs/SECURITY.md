@@ -1,10 +1,11 @@
 # Security design and operating boundaries
 
-Status: authorization requirements with initial M0 emulator-tested rules, not a production audit.
-M0 allows owner reads, validated root settings updates, and constrained Storage operations. Child writes
-and Storage updates remain closed until feature-specific validation is implemented. Cloud IAM, CORS,
-OAuth, and token behavior have not been verified. IAP, YubiKey integration, and custom WebAuthn are
-explicitly excluded. This design does not require those systems to protect inventory data.
+Status: M1 owner-policy rules are emulator-tested and deployed; this is not a complete production audit.
+Validated capture drafts/finalization/discard and room creation are allowed for the bound owner. M2
+editing/boxes and Storage replacements remain closed. Required IAM/CORS and signed-out OAuth startup
+are verified; owner login and separate-account rejection are owner-verified. Device capture and actual
+photo-token behavior remain pending. See
+[deployment evidence](M1_RELEASE.md). IAP, YubiKey integration, and custom WebAuthn are explicitly excluded.
 
 ## 1. What is protected
 
@@ -21,7 +22,18 @@ No end-to-end encryption is claimed. Protect devices and independent backups sep
 ## 2. Authentication and owner bootstrap
 
 Enable Google sign-in only initially. The Google/Firebase user UID is the identity key, not an email
-string. An unrelated user may successfully authenticate but must receive no inventory authorization.
+string. The owner now requires rejection during authentication as well as inventory authorization.
+After verified owner bootstrap, keep only the owner in the production Auth user set and set
+`client.permissions.disabledUserSignup` and `disabledUserDeletion` to true. New Google users then
+cannot create an account; the existing owner can still sign in. Administrative account creation remains
+a trusted operation: do not add another active account without an owner-approved policy change.
+[Firebase user restrictions](https://firebase.google.com/docs/auth/users),
+[managed permission fields](https://cloud.google.com/identity-platform/docs/reference/rest/v2/Config#Permissions).
+The current project accepts these settings without an Identity Platform upgrade or blocking function.
+Verify owner reauthentication and an unrelated Google account on the actual deployed site.
+
+Backend rules must independently deny any unrelated authenticated UID, including administrator-created
+or synthetic test users. Disabling public signup does not replace owner-based Firestore/Storage rules.
 
 Bootstrap sequence:
 
@@ -30,9 +42,11 @@ Bootstrap sequence:
    the project's Authentication user list; do not infer it from a Google account ID.
 3. As project administrator, create `/inventories/main` in the Firebase console using the documented
    inventory-root fields and that UID. This is a trusted administrative action.
-4. Deploy the reviewed owner-based rules and verify both positive and negative access tests. A missing
+4. Close end-user signup/deletion once the verified owner account exists. Verify it is the only active
+   production Auth user; verify subsequent owner login and rejection of an unrelated Google account.
+5. Deploy the reviewed owner-based rules and verify both positive and negative access tests. A missing
    root, missing owner field, or incorrect UID must deny access, not trigger automatic ownership claiming.
-5. Verify the production project and UID explicitly. If another project is ever authorized, bootstrap
+6. Verify the production project and UID explicitly. If another project is ever authorized, bootstrap
    it independently; do not assume the same UID or reuse authorization from an export.
 
 Client creation/deletion of inventory roots is denied. Root updates are limited to display name,
