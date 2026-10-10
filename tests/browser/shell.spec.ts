@@ -7,7 +7,7 @@ test('signed-out shell exposes no inventory and the seeded owner can sign in and
   await expect(page.getByRole('heading', { name: 'Your things, together.' })).toBeVisible();
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
   await expect(page.getByRole('heading', { name: 'Synthetic inventory' })).toBeVisible();
-  await expect(page.getByText('Capture and organization are coming next.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Add a thing' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Synthetic inventory' })).toBeVisible();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();

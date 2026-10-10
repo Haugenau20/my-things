@@ -23,6 +23,69 @@ service cloud.firestore {
         && data.createdAt is timestamp && data.updatedAt == request.time;
     }
 
+    function id(value) { return value is string && value.matches('[A-Za-z0-9_-]{1,128}'); }
+    function file(data, path, edge, bytes) {
+      return data is map && data.keys().hasOnly(['storagePath','contentType','byteSize','width','height','sha256'])
+        && data.storagePath == path && data.contentType == 'image/jpeg'
+        && data.byteSize is int && data.byteSize > 0 && data.byteSize <= bytes
+        && data.width is int && data.width > 0 && data.width <= edge
+        && data.height is int && data.height > 0 && data.height <= edge
+        && data.sha256 is string && data.sha256.matches('[a-f0-9]{64}');
+    }
+    function photo(data, inventoryId, itemId, state) {
+      let prefix = 'inventories/' + inventoryId + '/items/' + itemId + '/photos/' + data.id + '/';
+      return data is map && data.keys().hasOnly(['id','state','detail','thumbnail']) && id(data.id)
+        && data.state == state && file(data.detail, prefix + 'detail.jpg', 2000, 8388608)
+        && file(data.thumbnail, prefix + 'thumb.jpg', 400, 524288);
+    }
+    function slot(photos, index, inventoryId, itemId, state) {
+      return photos.size() <= index || photo(photos[index], inventoryId, itemId, state);
+    }
+    function photoId(photos, index, missing) { return photos.size() > index ? photos[index].id : missing; }
+    function photos(data, inventoryId, itemId, state) {
+      return data is list && data.size() > 0 && data.size() <= 2
+        && [photoId(data,0,'!0'),photoId(data,1,'!1')].toSet().size() == 2
+        && slot(data,0,inventoryId,itemId,state) && slot(data,1,inventoryId,itemId,state);
+    }
+    function location(data, inventoryId) {
+      return data.currentLocation is map
+        && ((data.currentLocation.keys().hasOnly(['kind']) && data.currentLocation.kind == 'unassigned' && data.originalRoomId == null)
+          || (data.currentLocation.keys().hasOnly(['kind','roomId']) && data.currentLocation.kind == 'room'
+            && id(data.currentLocation.roomId) && data.originalRoomId == data.currentLocation.roomId
+            && get(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(data.currentLocation.roomId)).data.archivedAt == null));
+    }
+    function newCapture(data, inventoryId, itemId) {
+      return id(itemId) && data.keys().hasOnly(['schemaVersion','revision','name','quantity','estimatedValue','serialNumber','notes','category',
+        'originalRoomId','currentLocation','reviewStatus','decision','progress','completedAt','recordState','coverPhotoId','photos','createdAt','updatedAt','deletedAt'])
+        && data.schemaVersion == 1 && data.revision == 1 && data.name is string
+        && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
+        && data.quantity == 1 && data.estimatedValue == null && data.serialNumber == null && data.notes == '' && data.category == null
+        && data.reviewStatus in ['needs_review','reviewed'] && data.decision == 'undecided' && data.progress == 'not_started'
+        && data.completedAt == null && data.deletedAt == null && data.recordState == 'draft' && data.coverPhotoId == null
+        && data.createdAt == request.time && data.updatedAt == request.time
+        && location(data,inventoryId) && photos(data.photos,inventoryId,itemId,'pending');
+    }
+    function unchangedPhoto(before, after) {
+      return before.id == after.id && before.detail == after.detail && before.thumbnail == after.thumbnail;
+    }
+    function sameSlot(before, after, index) { return before.size() <= index || unchangedPhoto(before[index],after[index]); }
+    function completion(data, inventoryId, itemId) {
+      let before = resource.data;
+      return before.recordState == 'draft' && data.recordState == 'ready' && data.coverPhotoId == before.photos[0].id
+        && data.diff(before).affectedKeys().hasOnly(['revision','updatedAt','recordState','coverPhotoId','photos'])
+        && data.photos.size() == before.photos.size() && photos(data.photos,inventoryId,itemId,'ready')
+        && sameSlot(before.photos,data.photos,0) && sameSlot(before.photos,data.photos,1);
+    }
+    function discard(data) {
+      return resource.data.recordState == 'draft' && data.recordState == 'deleting'
+        && data.diff(resource.data).affectedKeys().hasOnly(['revision','updatedAt','recordState']);
+    }
+    function newRoom(data, roomId) {
+      return id(roomId) && data.keys().hasOnly(['schemaVersion','name','sortOrder','revision','createdAt','updatedAt','archivedAt'])
+        && data.schemaVersion == 1 && data.name is string && data.name.size() > 0 && data.name.size() <= 100 && data.name.matches('.*[^\\s].*')
+        && data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 100000 && data.revision == 1
+        && data.createdAt == request.time && data.updatedAt == request.time && data.archivedAt == null;
+    }
     match /inventories/{inventoryId} {
       allow get: if owns(inventoryId);
       allow update: if owns(inventoryId) && validSettings();
@@ -30,12 +93,17 @@ service cloud.firestore {
 
       match /items/{itemId} {
         allow get, list: if owns(inventoryId);
-        // Feature-specific write validation is added with capture in M1.
-        allow write: if false;
+        allow create: if owns(inventoryId) && newCapture(request.resource.data,inventoryId,itemId);
+        allow update: if owns(inventoryId) && request.resource.data.revision == resource.data.revision + 1
+          && request.resource.data.updatedAt == request.time
+          && (completion(request.resource.data,inventoryId,itemId) || discard(request.resource.data));
+        allow delete: if owns(inventoryId) && resource.data.recordState == 'deleting'
+          && resource.data.coverPhotoId == null && resource.data.deletedAt == null;
       }
       match /rooms/{roomId} {
         allow get, list: if owns(inventoryId);
-        allow write: if false;
+        allow create: if owns(inventoryId) && newRoom(request.resource.data,roomId);
+        allow update, delete: if false;
       }
       match /boxes/{boxId} {
         allow get, list: if owns(inventoryId);

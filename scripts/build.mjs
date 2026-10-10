@@ -1,6 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { loadEnvironment } from './environment.mjs';
 import { runNode } from './process.mjs';
+import { configFingerprint } from './release.ts';
 
 const environment = process.argv[2];
 if (!['local', 'development', 'production'].includes(environment))
@@ -23,3 +24,4 @@ await writeFile(
     2,
   ) + '\n',
 );
+await writeFile('dist/build-config.sha256', configFingerprint(config) + '\n');

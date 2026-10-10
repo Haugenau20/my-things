@@ -165,7 +165,7 @@ Proposed limits, adjustable with tests before real use:
 | Notes | At most 10,000 characters; plain text |
 | Category | Nullable string, at most 100 characters |
 | Room name / box label | 1-100 characters after trimming |
-| Photos per item | At most 10 total metadata entries, including unfinished operations |
+| Photos per item | At most 2 total metadata entries, including unfinished operations; see decision D10 |
 | Money | Nonnegative safe integer in a supported currency |
 | Revision | Positive integer, incremented on every item/room/box update |
 

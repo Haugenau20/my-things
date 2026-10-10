@@ -1,8 +1,9 @@
 # Architecture
 
-Status: V1 implementation design with an M0 local foundation. No cloud services have been provisioned
+Status: V1 implementation design with M0 foundation and M1 capture implemented locally. No cloud services have been provisioned
 by this implementation. Read-only checks of the owner's existing project and remaining setup are
-recorded in [M1 setup](M1_SETUP.md); cloud SDK initialization remains unimplemented.
+recorded in [M1 setup](M1_SETUP.md). Cloud SDK initialization and Google redirect are implemented;
+deployment and actual OAuth/CORS/device verification remain pending. See [M1 evidence](M1_CAPTURE.md).
 
 ## 1. Components
 

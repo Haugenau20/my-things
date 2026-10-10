@@ -16,10 +16,11 @@ Process one source image at a time. Decode, normalize orientation, resize, and e
 | Detail | Longest edge at most 2,000 px; never upscale; starting quality about 0.85 | 8 MiB |
 | Thumbnail | Longest edge at most 400 px; preserve whole image; crop only visually in gallery | 512 KiB |
 
-Starting input guardrails: at most 40 MiB and 50 megapixels per source; at most 10 photo entries per item.
+Starting input guardrails: at most 40 MiB and 50 megapixels per source; at most 2 photo entries per item.
 These numbers are editable guardrails, not performance promises. Catch decode/allocation failures and
-give a smaller-file/retry path. Release decoded buffers between images instead of holding ten large
-canvases at once. Bound upload concurrency to two files initially.
+give a smaller-file/retry path. Release decoded buffers between images instead of holding multiple large
+canvases at once. Bound upload concurrency to two files initially. D10 was reduced from ten entries
+after complete embedded-metadata validation exceeded the Firestore rules expression budget in M1.
 
 Do not copy EXIF, location, or camera metadata into derivatives. Verify this with a metadata-containing
 fixture. Do not simply rename HEIC to JPEG. Test actual camera capture, existing HEIC, JPEG, PNG,

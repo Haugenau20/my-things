@@ -1,6 +1,7 @@
 # M1 setup checkpoint
 
-Date: 2026-10-10. M1 capture, cloud SDK initialization, and Google sign-in remain unimplemented.
+Date: 2026-10-10. M1 capture, cloud SDK initialization, and Google redirect sign-in are now implemented
+locally. Cloud/device acceptance remains pending; see [M1 evidence and release steps](M1_CAPTURE.md).
 No deployment, administrative owner seed, IAM change, or resource creation has been performed by the agent.
 
 ## Owner decisions and supplied settings
@@ -24,11 +25,15 @@ No deployment, administrative owner seed, IAM change, or resource creation has b
   Standard edition, Native mode, database `(default)`, and European multi-region `eur3`.
 - `gcloud storage buckets describe gs://<owner-bucket> --project=<owner-project>` with selected JSON
   fields: the existing bucket is in `US-EAST1`. It is retained; no region migration is requested.
+- Subsequent read-only project IAM and bucket policy checks found the Storage-to-Firestore rules
+  service-agent grant absent, no configured CORS entry, seven-day soft-delete retention, inherited
+  public access prevention, and uniform bucket-level access disabled. No bucket IAM binding included
+  `allUsers` or `allAuthenticatedUsers`; object ACLs and token capabilities were not audited.
 
 Production project IDs, bucket names, and Web configuration are deliberately absent from this tracked
 checkpoint. CLI output/logs and local environment files remain ignored.
 
-## Production-only build guard
+## Historical M0 production-only build guard check
 
 The owner decision supersedes the initial two-cloud-project default. A production build needs its
 explicit matching production destination without a development ID. A configured development ID must
@@ -55,10 +60,15 @@ rerun for this build-guard-only change; their original M0 evidence remains in
 
 ## Remaining manual and implementation work
 
-- Implement M1's capture/gallery/photo recovery flows and feature-specific owner rules locally.
-- Complete cloud SDK/Google sign-in integration and review Hosting CSP before an explicitly authorized
+- Capture/gallery/recovery and feature-specific owner rules are implemented locally; run the recorded
+  checks before release and complete the actual device gate.
+- Cloud SDK/Google sign-in integration and production CSP/CORS generation are implemented. Review the
+  generated configuration before an explicitly authorized
   release. Configure actual OAuth domains, exact-origin photo CORS, and Storage-to-Firestore permissions;
   test owner access and unrelated/unauthenticated denial in the cloud.
+- The read-only IAM check identified the specific missing connection: grant
+  `roles/firebaserules.firestoreServiceAgent` to the existing Firebase Storage service agent only after
+  explicit authorization. Applying exact-origin CORS also requires authorization. See [release steps](M1_CAPTURE.md).
 - Bootstrap the owner UID through a trusted administrative action after first sign-in. No owner UID
   has been supplied or inferred. Browser clients remain unable to create or claim an inventory root.
 - Verify the actual cloud rules, bucket policies, billing alerts, and device behavior. The differently

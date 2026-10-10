@@ -20,13 +20,25 @@ service firebase.storage {
           && photoId.matches('[A-Za-z0-9_-]{1,128}')
           && variant in ['detail.jpg', 'thumb.jpg'];
       }
+      function pendingPhoto(photo) {
+        return photo.id == photoId && photo.state == 'pending'
+          && request.resource.size == (variant == 'detail.jpg' ? photo.detail.byteSize : photo.thumbnail.byteSize);
+      }
+      function pendingCapture() {
+        let item = firestore.get(/databases/(default)/documents/inventories/$(inventoryId)/items/$(itemId)).data;
+        return item.recordState == 'draft' && item.photos.size() > 0 && item.photos.size() <= 2
+          && (pendingPhoto(item.photos[0]) || (item.photos.size() == 2 && pendingPhoto(item.photos[1])));
+      }
       allow get: if owns(inventoryId) && validPath();
       allow create: if owns(inventoryId) && validPath()
+        && resource == null
+        && firestore.exists(/databases/(default)/documents/inventories/$(inventoryId)/items/$(itemId))
+        && pendingCapture()
         && request.resource.contentType == 'image/jpeg'
         && request.resource.size > 0
         && request.resource.size <= (variant == 'detail.jpg' ? 8388608 : 524288)
         && request.resource.metadata.keys().hasOnly([]);
-      // M0 uploads are immutable; replacement uses a new photo ID.
+      // Verified retries reuse existing bytes; replacements require a new photo ID.
       allow update: if false;
       // Deletes have no incoming resource to validate.
       allow delete: if owns(inventoryId) && validPath();
