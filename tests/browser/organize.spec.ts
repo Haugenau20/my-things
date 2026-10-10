@@ -15,6 +15,7 @@ test('desktop review, metadata search, packing, archive, and trash preserve mean
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   await page.getByLabel('Item name').fill('Synthetic organizing lamp');
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(
@@ -75,7 +76,8 @@ test('location labels use stable references, occupancy blocks archive, and filte
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
-  await page.getByRole('button', { name: 'Manage locations', exact: true }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
+  await page.getByRole('button', { name: 'Manage rooms & boxes', exact: true }).click();
   const management = page.getByRole('region', { name: 'Rooms and boxes' });
   await management.getByLabel('New room name').fill('Synthetic M2 room');
   await management.getByRole('button', { name: 'Create room', exact: true }).click();
@@ -83,6 +85,8 @@ test('location labels use stable references, occupancy blocks archive, and filte
   await management.getByLabel('New box label').fill('B098');
   await management.getByRole('button', { name: 'Create box', exact: true }).click();
   await expect(management.getByRole('button', { name: 'Browse B098' })).toBeVisible();
+  await page.getByRole('button', { name: /^Things/ }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   await page
     .getByLabel('Capture room', { exact: true })
     .selectOption({ label: 'Synthetic M2 room' });
@@ -94,6 +98,7 @@ test('location labels use stable references, occupancy blocks archive, and filte
   await expect(page.getByRole('status').filter({ hasText: 'Packing saved' })).toBeVisible();
   await expect(page.getByText(/Room: Synthetic M2 room/)).toBeVisible();
   await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
+  await page.getByRole('button', { name: 'Manage rooms & boxes', exact: true }).click();
   const box = management.getByRole('group', { name: 'Box B098' });
   const room = management.getByRole('group', { name: 'Room Synthetic M2 room', exact: true });
   await room.getByRole('button', { name: 'Load latest location', exact: true }).click();
@@ -119,6 +124,7 @@ test('two-tab bulk conflicts report each outcome without overwriting the newer d
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   for (const name of ['Synthetic conflicted item', 'Synthetic successful item']) {
     await page.getByLabel('Item name').fill(name);
     await page.getByRole('button', { name: 'Save & next', exact: true }).click();
@@ -153,6 +159,7 @@ test('phone-width editing and currency defaults preserve existing amounts', asyn
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   await page.getByLabel('Item name').fill('Synthetic currency item');
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await page.getByRole('button', { name: 'Open Synthetic currency item', exact: true }).click();
@@ -173,11 +180,13 @@ test('phone-width editing and currency defaults preserve existing amounts', asyn
     true,
   );
   await page.screenshot({ path: test.info().outputPath('organize-phone.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Inventory settings', { exact: true }).click();
   await page.getByLabel('Default value currency').selectOption('JPY');
   await page.getByRole('button', { name: 'Save settings', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Settings saved' })).toBeVisible();
   await page.reload();
+  await page.getByRole('button', { name: /^Things/ }).click();
   await page.getByRole('button', { name: 'Open Synthetic currency item', exact: true }).click();
   await expect(page.getByLabel('Total estimated value')).toHaveValue('12.345');
   await expect(page.getByLabel('Value currency', { exact: true })).toHaveValue('KWD');

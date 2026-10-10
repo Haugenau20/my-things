@@ -143,22 +143,26 @@ export function App({
 
   return (
     <>
-      <header className="site-header">
-        <a className="wordmark" href="/" aria-label="My things home">
-          <span className="brand-mark" aria-hidden="true">
-            m.
-          </span>{' '}
-          my things
-        </a>
-        <span className="environment-label">
-          {config.environment === 'local' ? 'Local preview · synthetic data' : 'Private inventory'}
-        </span>
-        {services?.auth.currentUser && (
-          <button className="text-button" disabled={pending} onClick={() => void leave()}>
-            Sign out
-          </button>
-        )}
-      </header>
+      {access.kind !== 'authorized' && (
+        <header className="site-header">
+          <a className="wordmark" href="/" aria-label="My things home">
+            <span className="brand-mark" aria-hidden="true">
+              m.
+            </span>{' '}
+            my things
+          </a>
+          <span className="environment-label">
+            {config.environment === 'local'
+              ? 'Local preview · synthetic data'
+              : 'Private inventory'}
+          </span>
+          {services?.auth.currentUser && (
+            <button className="text-button" disabled={pending} onClick={() => void leave()}>
+              Sign out
+            </button>
+          )}
+        </header>
+      )}
       {access.kind === 'authorized' && services ? (
         <InventoryWorkspace
           key={access.inventory.ownerUid}
@@ -166,6 +170,8 @@ export function App({
           inventoryId={config.inventoryId}
           services={services}
           environment={config.environment}
+          signOut={leave}
+          signOutPending={pending}
         />
       ) : (
         <main className="shell">
@@ -269,10 +275,12 @@ export function App({
           </aside>
         </main>
       )}
-      <footer className="site-footer">
-        <span>Private by design.</span>
-        <span>Made for the things that matter.</span>
-      </footer>
+      {access.kind !== 'authorized' && (
+        <footer className="site-footer">
+          <span>Private by design.</span>
+          <span>Made for the things that matter.</span>
+        </footer>
+      )}
     </>
   );
 }

@@ -18,6 +18,7 @@ import { BulkEditor } from './BulkEditor';
 
 export function InventoryBrowser({
   items,
+  workspaceView,
   rooms,
   boxes,
   services,
@@ -34,6 +35,7 @@ export function InventoryBrowser({
   requestDeletion,
 }: {
   items: Item[];
+  workspaceView: 'things' | 'review' | 'trash';
   rooms: Room[];
   boxes: Box[];
   services: FirebaseServices;
@@ -56,6 +58,18 @@ export function InventoryBrowser({
   const [announcement, setAnnouncement] = useState('');
   const [lastBrowse, setLastBrowse] = useState(browseLocation);
   const scroll = useRef(0);
+  const [lastView, setLastView] = useState(workspaceView);
+  if (lastView !== workspaceView) {
+    setLastView(workspaceView);
+    setFilters((current) => ({
+      ...current,
+      trash: workspaceView === 'trash',
+      reviewStatus: workspaceView === 'review' ? 'needs_review' : '',
+      ...(workspaceView === 'trash' ? { box: '' } : {}),
+    }));
+    setSelected(undefined);
+    setSelection(new Set());
+  }
   // A location navigation request resets scope/filter choices, but ordinary reloads do not.
   if (browseLocation !== lastBrowse) {
     setLastBrowse(browseLocation);

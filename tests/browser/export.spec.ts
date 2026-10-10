@@ -24,6 +24,7 @@ test('exports actual private photo bytes and photo-free records with independent
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   await page.getByLabel('Item name').fill('Synthetic export photo');
   await selectPhoto(page);
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
@@ -35,6 +36,7 @@ test('exports actual private photo bytes and photo-free records with independent
   await expect(
     page.getByRole('button', { name: 'Open Synthetic export without photo', exact: true }),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Backup export', { exact: true }).click();
   const panel = page.getByRole('region', { name: 'Full export' });
   await panel.getByRole('button', { name: 'Start full export', exact: true }).click();
@@ -79,6 +81,8 @@ test('cancellation releases export controls and sign-out clears the private down
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Backup export', { exact: true }).click();
   const panel = page.getByRole('region', { name: 'Full export' });
   await panel.getByRole('button', { name: 'Start full export', exact: true }).click();
@@ -96,6 +100,8 @@ test('cancellation releases export controls and sign-out clears the private down
 test('export waits for an acknowledged capture before pausing mutations', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Backup export', { exact: true }).click();
   const start = page.getByRole('button', { name: 'Start full export', exact: true });
   await expect(start).toBeEnabled();
@@ -107,14 +113,17 @@ test('export waits for an acknowledged capture before pausing mutations', async 
       });
     await route.continue();
   });
+  await page.getByRole('button', { name: /^Things/ }).click();
   await page.getByLabel('Item name').fill('Synthetic export capture barrier');
   await selectPhoto(page);
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await expect(start).toBeDisabled();
   await expect.poll(() => !!resume).toBe(true);
   resume!();
+  await expect(start).toBeEnabled();
+  await page.getByRole('button', { name: /^Things/ }).click();
   await expect(
     page.getByRole('button', { name: 'Open Synthetic export capture barrier', exact: true }),
   ).toBeVisible();
-  await expect(start).toBeEnabled();
 });

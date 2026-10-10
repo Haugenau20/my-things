@@ -4,6 +4,7 @@ import type { Page } from '@playwright/test';
 async function owner(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   await expect(page.getByRole('heading', { name: 'Add a thing' })).toBeVisible();
 }
 async function image(page: Page) {

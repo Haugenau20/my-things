@@ -9,7 +9,7 @@ with an `(archived)` label; they remain unavailable for new assignments and capt
 
 1. Schema v2: independent nullable room and box IDs, derived Gone state, v2-only export/restore,
    constrained rules, fixtures and documented reset. Preserve owner policy; production reset needs
-   separate explicit confirmation. No migration or v1 compatibility.
+   separate explicit authorization, granted on 2026-10-10 and now executed. No migration or v1 compatibility.
 2. Navigation shell and dedicated settings, location management and trash views.
 3. Shared Room × Box filtering, cross-filtered counts, grouping and session context.
 4. Cards, grouped grid and table, including group selection and packing.
@@ -22,7 +22,7 @@ with an `(archived)` label; they remain unavailable for new assignments and capt
 
 Each slice updates its domain/repository/UI boundaries and relevant unit, rules, SDK integration
 and browser coverage. Run the complete `npm run check` before proposing merge. Production releases
-remain pipeline-only; no merge or destructive production maintenance is authorized by implementation.
+remain pipeline-only; implementation alone does not authorize merges or production maintenance. The owner separately authorized the scoped wipe and the PR-01 merge.
 
 ## Reliability boundaries
 
