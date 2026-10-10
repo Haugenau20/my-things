@@ -31,3 +31,13 @@ Equal Room and Box chip rows combine their filters, with counts applying the oth
 New coverage verifies cross-counts, archived room visibility, default grouping, visible-only groups, secondary filters, Gone, keyboard focus, selection clearing and retained detail context. The initial regression run caught a missing explicit accessible name on secondary selects; it was corrected and both focused facet browser workflows passed before the final complete verification.
 
 Verification actually run: lint, typecheck, 160 unit tests, 101 rules tests, 28 SDK integration tests and all 29 Chromium workflows passed. The combined check stopped after 21 browser passes on a Chromium `ERR_NO_BUFFER_SPACE` loopback-resource error; the complete browser suite passed on a fresh emulator/browser run with console-error assertions unchanged. The local build passed with the existing backup-chunk size warning. Real iPhone and isolated cloud recovery acceptance remain pending.
+
+## PR-04: Item cards and visible-group actions
+
+Cards show independent room/box tags, a needs-review dot, moving decision/progress and 4:3 private thumbnails. Grouping removes redundant tags; selection checkboxes appear on hover/focus or while selecting, with a visible selected ring. The grid uses 180px minimum columns and 14px gaps, and wraps long names. Table Room and Box columns remain separate.
+
+Group Select all adds only that visible group to selection. Eligible unpacked groups can pack into an active box or create an acknowledged box first; duplicate labels require confirmation. Packing uses the existing partial revision-checked transactions, reports every item and retains failures in selection. Results remain visible even when successful items leave the filtered group. Created boxes are retained on a later packing failure. Box groups can open their Box filter.
+
+The three new focused Chromium workflows passed after first demonstrating the absent card tags: visible-only packing, a two-tab revision conflict with separate outcomes, and new-box acknowledgment/duplicate warnings. Synthetic screenshots and layout assertions cover 1280, 1024 and 851px widths.
+
+`mise exec -- npm run check` passed: lint, types, 160 unit tests, 101 rules tests, 28 SDK integration tests, all 32 Chromium workflows and build. The build retains the existing backup-chunk warning. PR-03 merged at `eaace49a78af36b9245f8e84200c177d81890203`; its [production workflow](https://github.com/Haugenau20/my-things/actions/runs/38088813940) had passed Verify and was deploying when this entry was written.

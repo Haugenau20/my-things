@@ -829,13 +829,102 @@ input::file-selector-button {
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 20px;
+  gap: 14px;
 }
 .item-card {
+  position: relative;
   border: 1px solid #deded2;
   border-radius: 10px;
   background: #fffefa;
   overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+}
+.item-card.is-selected {
+  box-shadow: 0 0 0 2px #263c32;
+}
+.item-card-body {
+  padding: 9px 11px 11px;
+}
+.card-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.review-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #84502e;
+}
+.card-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 7px 0;
+}
+.room-tag,
+.box-tag {
+  display: inline-block;
+  padding: 3px 6px;
+  font-size: 11px;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+.room-tag {
+  background: #e8eee4;
+  color: #365a3d;
+}
+.box-tag {
+  background: #f7f0df;
+  border: 1px solid #c6a77c;
+  color: #84613f;
+  font-family: ui-monospace, Menlo, monospace;
+}
+.packing-text {
+  color: #626b60;
+  font-size: 11px;
+}
+.group-heading {
+  flex-wrap: wrap;
+}
+.group-heading > span {
+  font-size: 12px;
+  color: #626b60;
+}
+.group-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 0 auto;
+  border: 0;
+  padding: 0;
+}
+.group-actions button {
+  font-size: 12px;
+}
+.group-pack {
+  position: relative;
+}
+.group-pack-popover {
+  position: absolute;
+  z-index: 6;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 250px;
+  max-width: calc(100vw - 32px);
+  padding: 14px;
+  border: 1px solid #deded2;
+  border-radius: 10px;
+  background: #fffefa;
+  box-shadow: 0 10px 24px #263c3226;
+}
+.group-pack-popover > button {
+  display: block;
+  width: 100%;
   text-align: left;
 }
 .item-card-name {
@@ -846,7 +935,9 @@ input::file-selector-button {
   background: transparent;
   font-weight: 600;
   color: #263c32;
-  padding: 16px 14px 6px;
+  padding: 0;
+  font-size: 14px;
+  min-height: 44px;
   overflow-wrap: anywhere;
 }
 .item-card-name:hover {
@@ -856,7 +947,7 @@ input::file-selector-button {
   display: block;
   font-size: 12px;
   color: #626b60;
-  padding: 0 14px 16px;
+  padding: 0;
   overflow-wrap: anywhere;
 }
 .private-photo {
@@ -961,7 +1052,28 @@ input[type='checkbox'] {
   accent-color: #365a3d;
 }
 .card-select {
-  margin: 14px 14px 0;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 5px;
+  background: #fffefaee;
+  margin: 0;
+  opacity: 0;
+}
+.item-card:hover .card-select,
+.item-card:focus-within .card-select,
+.item-card.is-selecting .card-select {
+  opacity: 1;
+}
+@media (hover: none) {
+  .card-select {
+    opacity: 1;
+  }
 }
 .bulk-results {
   max-height: 220px;
