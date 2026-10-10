@@ -226,3 +226,20 @@ Firestore truncates sub-microsecond timestamps; validation rejects unrepresentab
 before writing. No existing item/root schema, privacy policy or cloud service changes; deployment performs
 no migration. Rollback to an older client during an unfinished import is unsafe: retain report-aware
 client/rules until completion or an explicitly reviewed administrative recovery. See [M3 restore](M3_RESTORE.md).
+
+### 2026-10-10 — Approved schema v2 and workspace redesign
+
+The owner approved the full docs/UI_refactor handoff. Room is a persistent explicit tag; Box is the
+independent packing state, with Gone derived from completed sell/give-away. Room-move history is
+intentionally not kept. This supersedes A03/A05 and D06/D14 where they conflict. Phone capture has no
+details or save-as-reviewed; desktop retains them. Referenced archived rooms remain browseable and
+counted, with an archived label, but absent from new-assignment pickers. Room archiving and Trash
+restore preserve these tags; a retained archived box still requires reactivation.
+
+The owner approved a clean reset of v1 test inventory with no migration or legacy export compatibility.
+Items, rooms, boxes, restore reports/claims and item photo objects are reset; trusted ownership is kept.
+All root/location/item/restore schemas and archive format/data schema are v2. The owner explicitly authorized production maintenance on 2026-10-10. The scoped reset was executed: one item and one room were deleted from my-things-c7305/main; boxes/restores and the item-photo prefix were already empty. The trusted root was updated from v1 to v2, with every other field verified unchanged and Auth untouched. No deployment was performed. The old app/rules fail closed until the reviewed pipeline releases v2.
+See SETUP for the cutover. Record actual wipe evidence after execution, never predeclare it complete.
+
+Security, private photo bytes, revision checks, recovery and pipeline-only release remain unchanged.
+The schema cutover must be coordinated with the reviewed pipeline because v2 rules reject the v1 root.

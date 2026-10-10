@@ -30,7 +30,7 @@ beforeAll(async () => {
   });
   await environment.withSecurityRulesDisabled(async (context) => {
     await context.firestore().doc(`inventories/${inventory}`).set({
-      schemaVersion: 1,
+      schemaVersion: 2,
       ownerUid: uid,
       displayName: 'Synthetic restore policy',
       defaultCurrency: null,
@@ -54,7 +54,7 @@ async function reset() {
 }
 function marker() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: 1,
     operationId: crypto.randomUUID(),
     exportId: 'synthetic-export',
@@ -91,7 +91,7 @@ it('permits narrow owner restore claims/history, freezes ordinary edits, and fin
   const batch = writeBatch(db);
   batch.update(active(db), { claimedRecords: 1, revision: 2, updatedAt: serverTimestamp() });
   batch.set(report, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: 1,
     operationId: operation.operationId,
     kind: 'item',
@@ -139,7 +139,7 @@ it.each([null, 'synthetic-foreign-owner'])(
     await assertFails(setDoc(active(db), marker()));
     await assertFails(
       setDoc(doc(db, `inventories/${inventory}/restores/active/records/item_foreign`), {
-        schemaVersion: 1,
+        schemaVersion: 2,
         revision: 1,
         operationId: 'synthetic-op',
         kind: 'item',
@@ -177,7 +177,7 @@ it('rejects claiming an existing record and invalid counters/completion', async 
   );
   const claim = writeBatch(db);
   claim.set(doc(db, `inventories/${inventory}/restores/active/records/item_${id}`), {
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: 1,
     operationId: operation.operationId,
     kind: 'item',
@@ -206,7 +206,7 @@ it('registers two fully validated photos under an import claim without weakening
   const claim = writeBatch(db);
   claim.update(active(db), { claimedRecords: 1, revision: 2, updatedAt: serverTimestamp() });
   claim.set(report, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: 1,
     operationId: operation.operationId,
     kind: 'item',

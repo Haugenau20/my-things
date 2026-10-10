@@ -215,3 +215,64 @@ review usage, billing notifications, broken-photo reports, and unfinished operat
 release can be restored through a reviewed revert PR and pipeline deployment, but that does not
 automatically undo database changes; migrations need their
 own recovery plan. No paid automated backup service is assumed in V1.
+
+## 8. Approved v1 reset and schema-v2 cutover
+
+The owner approved replacing the initial test inventory without migration or v1 archive compatibility.
+The owner explicitly preapproved the scoped production wipe on 2026-10-10. This section documents the operation; it does not claim execution.
+V2 clients and both rule sets require a schema-v2 inventory root. Preserve its exact existing owner UID,
+settings, creation timestamp and Auth account; change only its schema version through a trusted
+administrative action. Do not delete the root, re-bootstrap ownership or allow a client to change it.
+
+### Local demo reset
+
+Local emulators are ephemeral: stop the `npm run emulators` process with Ctrl+C, then start it again
+with `mise exec -- npm run emulators`, without importing an old emulator snapshot. Run
+`mise exec -- npm run seed:local` in another terminal. The trusted synthetic owner/root is recreated
+under `demo-inventory/main` with schema v2, and deterministic example rooms, boxes and photo-free items
+are seeded. This is never a production credential or ownership source. Local examples include Gone,
+review, packed/unpacked and a referenced archived room. Existing nonempty local items are not overwritten
+by seed. Browser-test emulators deliberately seed Auth/root only; their tests create isolated examples.
+
+### Production: owner-approved maintenance
+
+Before executing anything, verify and report the exact project, inventory path, bucket prefix, observed collection
+counts and intended root-version change. The owner has already authorized this scoped reset; no repeated wipe confirmation is required. Do not log
+private records, photos or owner identifiers. The accepted reset discards v1 test content; exporting or
+migrating it is not required for this specific owner-approved reset. Preserve any backup the owner wants
+outside the repository. Refresh/close old app tabs and stop editing during the cutover.
+
+1. Read the existing root administratively and preserve its owner binding, settings and creation history.
+   Verify the independently configured production project, inventory ID and bucket. Never infer targets
+   from the CLI default alias, a backup, an email or an environment variable that claims ownership.
+2. Under the recorded owner authorization, delete **only** the target inventory's `items`, `rooms`, `boxes` and
+   `restores` child collections, including restore-report `records` subcollections. Do not delete
+   `/inventories/{inventoryId}`, other inventories, or Authentication users. In the Firestore console,
+   open that exact inventory document and use Delete collection separately on each named child.
+3. In Storage, open exactly `inventories/{inventoryId}/items/` in the independently verified bucket
+   and delete its item-photo objects and child folders. Do not delete the bucket or other prefixes.
+   Verify no objects remain there. Retention/soft-delete may retain billed historical copies; this is
+   not a claim of physical erasure. Do not change retention, billing or IAM for this reset.
+4. Verify the four child collections and nested restore claims are empty. On the preserved inventory
+   root, edit only `schemaVersion` from integer 1 to integer 2 as administrator. Re-read the root and
+   verify owner binding, settings and creation history remain identical. Never expose administrative
+   credentials to frontend configuration.
+5. Coordinate this maintenance with the owner-authorized merge of PR-01. Release Hosting, rules and
+   indexes exclusively through the reviewed GitHub pipeline. A root/client/rule version mismatch must
+   fail closed; expect a temporary unavailable state during cutover. Merge permission remains separate.
+6. After the pipeline succeeds, refresh the application, verify owner sign-in and the empty v2 inventory,
+   then perform separately authorized disposable device checks. Record actual maintenance and deployment
+   evidence in the decision log, including the deployed commit/workflow and any unperformed checks.
+
+Do not run these steps during ordinary implementation or as part of an automatic release. Rolling back
+to a v1 client/rules does not recover wiped test content and conflicts with the v2 root. Prefer a reviewed
+v2 fix or revert that retains v2 support. No migration, restore of ownership or automatic production seed
+is introduced by the refactor.
+
+### Executed production maintenance evidence
+
+The owner preapproved this reset in the implementation chat on 2026-10-10. Administrative preflight independently verified project `my-things-c7305` and bucket `my-things-c7305.firebasestorage.app` belong together. Scope: `/inventories/main`, its four named child collections, and Storage prefix `inventories/main/items/`. Counts were items=1, rooms=1, boxes=0, restores=0, objects=0, with no nested collections.
+
+The deployed Firestore rules were read and their v1 trusted-root/owner gate verified. A single administrative Firestore commit deleted the two observed documents using update-time preconditions and patched only the preserved root schemaVersion to 2 using its update-time precondition. The atomic operation also closed the old v1 client write gate. Root fields were re-read and verified identical except that version. All four collections (including missing parent documents) and the photo prefix were rechecked empty. Authentication was untouched. There was no Storage deletion because the scoped prefix was already empty. No credentials, owner UID, item content or private paths were logged in this evidence.
+
+Hosting, rules and indexes were not deployed. The v1 app is temporarily unavailable until an owner-authorized PR merge completes the reviewed release pipeline. Wiped content cannot be recovered by rolling back the app.

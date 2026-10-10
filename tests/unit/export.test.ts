@@ -11,7 +11,7 @@ import type { ExportSnapshot } from '../../src/backup/export';
 const snapshot = (): ExportSnapshot => ({
   inventoryId: 'main',
   inventory: {
-    schemaVersion: 1,
+    schemaVersion: 2,
     ownerUid: 'synthetic-owner',
     displayName: 'Synthetic inventory',
     defaultCurrency: null,
@@ -68,7 +68,7 @@ describe('portable full export', () => {
     input.items[0]!.recordState = 'deleting';
     expect(() => preflightExport(input)).toThrow(/unfinished/i);
     input.items[0]!.recordState = 'ready';
-    input.items[0]!.originalRoomId = 'missing-room';
+    input.items[0]!.roomId = 'missing-room';
     expect(() => preflightExport(input)).toThrow(/reference/i);
   });
   it('validates and serializes 5,000 synthetic metadata records and rejects duplicates or overflow', () => {
@@ -109,7 +109,7 @@ describe('portable full export', () => {
     const manifest = JSON.parse(new TextDecoder().decode(files['manifest.json']));
     expect(manifest).toMatchObject({
       format: 'home-inventory-export',
-      formatVersion: 1,
+      formatVersion: 2,
       complete: true,
       counts: { items: 1, rooms: 0, boxes: 0, photos: 0, photoFiles: 0 },
     });

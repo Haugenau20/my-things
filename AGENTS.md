@@ -5,9 +5,8 @@
 Read `README.md`, `SPEC.md`, and `docs/ROADMAP.md` before changing code. Then read the relevant schema,
 security, photo, and export documents. This is a personal, single-owner inventory, not a platform.
 
-This initial repository contains documents and configuration examples only. Do not claim existing code,
-tests, npm scripts, Firebase rules, or cloud resources. Implement the requested milestone, not the entire
-roadmap at once. Preserve these files when scaffolding; scaffold in a temporary directory and merge if a
+The repository now contains the implemented M0–M3 application and its tests. Verify actual files and
+checks before making implementation claims. Implement approved refactor slices in reviewable changes. Preserve these files when scaffolding; scaffold in a temporary directory and merge if a
 generator would overwrite them.
 
 ## Product boundaries
@@ -48,8 +47,8 @@ authorization. App Check is deferred. No default currency has been selected.
 ## Implementation conventions
 
 Use strict TypeScript. Validate external data, configuration, and imported archives at runtime. Model
-current location as a discriminated union; do not replace it with ambiguous free text. Keep value/currency
-semantics, original-room preservation, archive rules, and soft deletion exactly as documented.
+room tags and box packing as independent nullable references under schema v2. Keep value/currency
+semantics, Gone invariants, archived-reference readability and soft deletion exactly as documented.
 
 Keep React components focused on rendering and interaction. Put domain transitions in testable functions,
 Firebase operations in small repository modules, and photo/export work in dedicated modules. Do not build
@@ -114,3 +113,9 @@ Editable implementation defaults are listed in `docs/DECISIONS.md`. A dependency
 change with a documented rationale and tests. Scope, privacy, owner authorization, and data-loss behavior
 require an explicit owner decision. Before schema changes affecting real data, export, test a migration
 in development, version it, and document recovery. Update documentation in the same commit as the change.
+
+## Approved UI refactor
+
+The owner approved docs/UI_refactor and referenced archived-room visibility. Those decisions supersede
+the v1 current/original-location and archive presentation. No migration or v1 compatibility; production
+reset requires separate explicit confirmation, preserves the trusted owner root and never weakens rules.

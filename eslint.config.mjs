@@ -11,6 +11,7 @@ export default tseslint.config(
       '.firebase/**',
       'test-results/**',
       'playwright-report/**',
+      'docs/UI_refactor/support.js',
     ],
   },
   js.configs.recommended,

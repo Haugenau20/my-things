@@ -1,9 +1,9 @@
 import { Timestamp } from 'firebase/firestore';
 import { z } from 'zod';
-import { idSchema, itemSchema, locationSchema } from './item';
-import type { Item, ItemDocument } from './item';
-import { currencyDigits } from './currency';
-export { CURRENCIES, currencyDigits } from './currency';
+import { idSchema, itemSchema } from './item.ts';
+import type { Item, ItemDocument } from './item.ts';
+import { currencyDigits } from './currency.ts';
+export { CURRENCIES, currencyDigits } from './currency.ts';
 
 export const DECISIONS = ['undecided', 'store', 'take', 'sell', 'give_away'] as const;
 export const PROGRESS = ['not_started', 'in_progress', 'completed'] as const;
@@ -20,8 +20,8 @@ const metadataSchema = z
   .partial();
 export const commandSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('metadata'), patch: metadataSchema }),
-  z.strictObject({ kind: z.literal('move'), location: locationSchema }),
-  z.strictObject({ kind: z.literal('original'), roomId: idSchema.nullable() }),
+  z.strictObject({ kind: z.literal('setRoom'), roomId: idSchema.nullable() }),
+  z.strictObject({ kind: z.literal('pack'), boxId: idSchema.nullable() }),
   z.strictObject({ kind: z.literal('decision'), decision: z.enum(DECISIONS) }),
   z.strictObject({ kind: z.literal('progress'), progress: z.enum(PROGRESS) }),
   z.strictObject({ kind: z.literal('trash') }),
@@ -49,17 +49,11 @@ export function commandPatch(
       return Object.fromEntries(
         Object.entries(command.patch).filter(([, value]) => value !== undefined),
       );
-    case 'move':
-      if (isDisposed(item))
-        throw new Error('Reopen the completed outcome before assigning a location.');
-      return {
-        currentLocation: command.location,
-        ...(command.location.kind === 'room' && item.originalRoomId === null
-          ? { originalRoomId: command.location.roomId }
-          : {}),
-      };
-    case 'original':
-      return { originalRoomId: command.roomId };
+    case 'setRoom':
+      return { roomId: command.roomId };
+    case 'pack':
+      if (isDisposed(item)) throw new Error('Reopen first before packing this gone item.');
+      return { boxId: command.boxId };
     case 'decision':
       return command.decision === item.decision
         ? {}
@@ -70,7 +64,7 @@ export function commandPatch(
         progress: command.progress,
         completedAt: command.progress === 'completed' ? time : null,
         ...(command.progress === 'completed' && ['sell', 'give_away'].includes(item.decision)
-          ? { currentLocation: { kind: 'unassigned' as const } }
+          ? { boxId: null }
           : {}),
       };
     case 'trash':
@@ -113,9 +107,9 @@ export function formatMoney(value: ItemDocument['estimatedValue']): string {
 }
 export type Filters = {
   search: string;
-  scope: 'owned' | 'review' | 'archive' | 'trash';
-  currentLocation: string;
-  originalRoomId: string;
+  room: string;
+  box: string;
+  trash: boolean;
   decision: string;
   progress: string;
   reviewStatus: string;
@@ -123,39 +117,36 @@ export type Filters = {
 };
 export const DEFAULT_FILTERS: Filters = {
   search: '',
-  scope: 'owned',
-  currentLocation: '',
-  originalRoomId: '',
+  room: '',
+  box: '',
+  trash: false,
   decision: '',
   progress: '',
   reviewStatus: '',
   missingPhotos: false,
 };
-export function locationKey(location: ItemDocument['currentLocation']): string {
-  return location.kind === 'room'
-    ? `room:${location.roomId}`
-    : location.kind === 'box'
-      ? `box:${location.boxId}`
-      : 'unassigned';
+export function boxState(item: ItemDocument): 'unpacked' | 'gone' | { boxId: string } {
+  return isDisposed(item) ? 'gone' : item.boxId === null ? 'unpacked' : { boxId: item.boxId };
 }
 export function filterItems(items: Item[], filters: Filters): Item[] {
   const term = filters.search.trim().toLocaleLowerCase();
   return items.filter(
     (item) =>
       item.recordState === 'ready' &&
-      (filters.scope === 'trash'
-        ? item.deletedAt !== null
-        : item.deletedAt === null &&
-          (filters.scope === 'archive'
-            ? isDisposed(item)
-            : !isDisposed(item) &&
-              (filters.scope !== 'review' || item.reviewStatus === 'needs_review'))) &&
+      (filters.trash ? item.deletedAt !== null : item.deletedAt === null) &&
+      (filters.trash && !filters.box
+        ? true
+        : filters.box === 'gone'
+          ? isDisposed(item)
+          : !isDisposed(item) &&
+            (!filters.box ||
+              (filters.box === 'unpacked' ? item.boxId === null : item.boxId === filters.box))) &&
       (!term ||
         [item.name, item.serialNumber, item.notes, item.category].some((value) =>
           value?.toLocaleLowerCase().includes(term),
         )) &&
-      (!filters.currentLocation || locationKey(item.currentLocation) === filters.currentLocation) &&
-      (!filters.originalRoomId || item.originalRoomId === filters.originalRoomId) &&
+      (!filters.room ||
+        (filters.room === 'none' ? item.roomId === null : item.roomId === filters.room)) &&
       (!filters.decision || item.decision === filters.decision) &&
       (!filters.progress || item.progress === filters.progress) &&
       (!filters.reviewStatus || item.reviewStatus === filters.reviewStatus) &&
@@ -163,7 +154,7 @@ export function filterItems(items: Item[], filters: Filters): Item[] {
   );
 }
 export const boxSchema = z.strictObject({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   label: z
     .string()
     .min(1)

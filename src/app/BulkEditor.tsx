@@ -6,7 +6,7 @@ import type { Box, ItemCommand } from '../domain/organize';
 import type { FirebaseServices } from '../data/firebase';
 import { bulkEdit } from '../data/organize-repository';
 import type { BulkResult } from '../data/organize-repository';
-import { LocationSelect, selectedLocation } from './LocationSelect';
+import { RoomSelect, BoxSelect } from './LocationSelect';
 
 export function BulkEditor({
   items,
@@ -27,7 +27,8 @@ export function BulkEditor({
 }) {
   const [action, setAction] = useState('review');
   const [category, setCategory] = useState('');
-  const [location, setLocation] = useState('unassigned');
+  const [room, setRoom] = useState('');
+  const [box, setBox] = useState('');
   const [decision, setDecision] = useState<Item['decision']>('undecided');
   const [progress, setProgress] = useState<Item['progress']>('not_started');
   const [busy, setBusy] = useMutationState();
@@ -38,15 +39,17 @@ export function BulkEditor({
       ? { kind: 'metadata', patch: { reviewStatus: 'reviewed' } }
       : action === 'category'
         ? { kind: 'metadata', patch: { category: category || null } }
-        : action === 'move'
-          ? { kind: 'move', location: selectedLocation(location) }
-          : action === 'decision'
-            ? { kind: 'decision', decision }
-            : action === 'progress'
-              ? { kind: 'progress', progress }
-              : action === 'restore'
-                ? { kind: 'restore' }
-                : { kind: 'trash' };
+        : action === 'room'
+          ? { kind: 'setRoom', roomId: room || null }
+          : action === 'pack'
+            ? { kind: 'pack', boxId: box || null }
+            : action === 'decision'
+              ? { kind: 'decision', decision }
+              : action === 'progress'
+                ? { kind: 'progress', progress }
+                : action === 'restore'
+                  ? { kind: 'restore' }
+                  : { kind: 'trash' };
   const warning =
     command.kind === 'trash' ||
     (command.kind === 'decision' &&
@@ -83,7 +86,8 @@ export function BulkEditor({
           >
             <option value="review">Mark reviewed</option>
             <option value="category">Set category</option>
-            <option value="move">Change current location / pack</option>
+            <option value="room">Set room</option>
+            <option value="pack">Pack / unpack</option>
             <option value="decision">Change decision</option>
             <option value="progress">Change progress</option>
             <option value="trash">Move to trash</option>
@@ -100,14 +104,11 @@ export function BulkEditor({
             />
           </label>
         )}
-        {action === 'move' && (
-          <LocationSelect
-            rooms={rooms}
-            boxes={boxes}
-            label="Bulk current location"
-            value={location}
-            onChange={setLocation}
-          />
+        {action === 'room' && (
+          <RoomSelect rooms={rooms} label="Bulk room" value={room} onChange={setRoom} />
+        )}
+        {action === 'pack' && (
+          <BoxSelect boxes={boxes} label="Bulk box" value={box} onChange={setBox} />
         )}
         {action === 'decision' && (
           <label>

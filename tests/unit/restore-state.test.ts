@@ -38,7 +38,7 @@ it('allows only the narrow pending staging differences and rejects changed scala
 });
 it('rejects inconsistent recovery counters and premature completion', () => {
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: 1,
     operationId: 'operation',
     exportId: 'export',

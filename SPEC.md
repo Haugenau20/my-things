@@ -1,6 +1,6 @@
 # Product specification
 
-Version: 1.0 | Status: initial implementation baseline | Date: 2026-10-10
+Version: 2.0 | Status: approved workspace redesign | Date: 2026-10-10
 
 ## 1. Purpose and context
 
@@ -72,28 +72,25 @@ mark reviewed, set category, change current room, pack into a box, change moving
 move to trash. Update only explicitly chosen fields. Show the selected count and individual failures;
 never report an entire batch as successful when only some items changed.
 
-### LOC-01: Rooms now, boxes later
+### LOC-01: Independent room tags and packing state
 
-An item has exactly one current location: a room, a box, or unassigned. It may also have an original room.
-Original room means the first room recorded for that item, not a second claim about its current location.
+Room is where a thing belongs, stored as nullable `roomId`. It is a persistent tag, editable only
+explicitly. Box is where it is packed, stored as nullable `boxId`; null means Not packed unless the
+item is Gone. Packing, unpacking and reboxing never change the room. Room-move history is intentionally
+not retained. Gone is derived from completed sell/give-away and requires a null box while retaining room.
 
-Example: Bedroom -> Living room -> Box B012. Current location changes twice; original room stays Bedroom.
-Packing an item does not reset the original room or mark its moving task complete. A room/box rename does
-not change its stable ID or require rewriting items. Boxes are a flat list, not nested containers.
+Rooms and flat numbered boxes use stable IDs. Renaming never rewrites items. New capture gets its sticky
+room tag and a null box. Unpacking clears the box; reopening Gone leaves it unpacked. Gone must be reopened
+before packing. Room and Box filters have equal priority and combine; Box All means still owned.
 
-For a new item captured in a room, set both room fields to that room. When an item initially has no
-original room, its first assignment to a room fills it. Later moves preserve it; correcting an erroneous
-original room is a separate explicit edit.
+Archive rooms without removing existing tags. Referenced archived rooms remain browseable and counted,
+labelled “(archived)”, but cannot be selected for capture or new assignment. Archiving a box requires no
+owned items or pending captures in it. Restore from Trash preserves tags and packing: a retained archived
+box must be explicitly reactivated first; an archived room tag does not block restore.
 
-A box page shows its current contents as photos. A room page means **currently in this room**. Provide a
-separately labeled **Original room** filter for recalling possessions after packing. No need to track a
-box's room in V1.
-
-Archive unused rooms/boxes rather than remove labels referenced by history. Require current owned items
-to be moved out before archiving their room/box. Retained references from completed/trash records and
-original rooms remain readable. Warn about duplicate names/labels rather than relying on them as IDs.
-An owned item in trash may retain an archived location. Explicitly reactivate that room/box before
-restoring the item, so restore can preserve its exact location and workflow instead of guessing new data.
+Schema v2 removes currentLocation and originalRoomId. The owner approved a clean inventory reset without
+migration or legacy compatibility. Reject v1 documents and archives clearly. Preserve the trusted
+owner authorization root. Production reset is separately confirmed; see docs/SETUP.md.
 
 ### MOV-01: Moving decisions and progress
 
@@ -105,10 +102,10 @@ These are independent of review status, upload status, and location. `undecided`
 would be lost. A note can hold lightweight selling information; listing/buyer systems are not required.
 
 Completing `store` or `take` leaves the item owned and visible in the default inventory. Completing `sell`
-or `give_away` moves it to the completed archive, clears its current location to unassigned, and preserves
-its original room and photos. Confirm that removal from its room/box in the completion action. Undoing
-completion restores ownership but does not invent a new physical location. Reopen a disposed entry
-before assigning it a current room or box.
+or `give_away` marks it Gone, clears its box, and preserves
+its room tag and photos. Confirm removal from its box in the completion action. Undoing
+completion restores ownership but does not invent a new physical location. Reopen a Gone entry
+before packing it. An explicit room-tag correction remains available.
 
 An entire grouped entry shares one decision/progress/location. To split a group across boxes or outcomes,
 create separate entries and adjust quantities; automatic partial-quantity workflows are deferred.
@@ -116,15 +113,15 @@ create separate entries and adjust quantities; automatic partial-quantity workfl
 ### BRW-01: Browse while abroad
 
 Default view: photo grid of ready, nontrashed items that are still owned. Each card shows cover photo,
-name, current location, and concise workflow/review indicators. Provide search over name, serial number,
-notes, and category, plus filters for current room, box, original room, decision, progress, review status,
-and archive/trash scope. Searching only loaded cards must never masquerade as a whole-inventory search.
+name, room and box tags, and concise workflow/review indicators. Provide search over name, serial number,
+notes, and category, plus filters for room, box state (including Gone), decision, progress, review status,
+missing photos and Trash. Searching only loaded cards must never masquerade as a whole-inventory search.
 
 Search is case-insensitive. Exact serial numbers remain displayable. A fancy search engine, semantic
 search, and relevance ranking are not required. Show a clear indexing/loading state when the local
 metadata index is incomplete. Thumbnails are loaded on demand; full detail photos load when opened.
 
-Completed sales/donations are searchable in a separate archive. Trash is separate from that archive.
+Completed sales/donations are searchable through the Gone box filter. Trash is separate from that archive.
 Searching by a box label can be offered, but direct box navigation is sufficient for V1.
 
 ### DEL-01: Trash and permanent deletion
@@ -158,8 +155,8 @@ A static offline HTML gallery is useful but optional, not a release gate. See th
 | Estimated value | Optional; total for this entry, not per unit; currency required when a value exists |
 | Serial number | Optional; a string, including leading zeros |
 | Notes / category | Optional plain text; no rich HTML |
-| Current location | Room, box, or unassigned |
-| Original room | Optional retained room reference |
+| Room | Nullable persistent room tag, explicitly editable |
+| Box | Nullable packing reference; Gone is derived from workflow |
 | Review | Explicit needs-review/reviewed status |
 | Moving workflow | Decision plus progress, with a completion timestamp |
 

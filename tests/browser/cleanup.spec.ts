@@ -59,7 +59,7 @@ test('failed permanent photo deletion retains a marker and completes after reloa
       .getByRole('status')
       .filter({ hasText: 'Permanently deleted Synthetic permanent deletion' }),
   ).toBeVisible();
-  await page.getByLabel('Inventory scope').selectOption('trash');
+  await page.getByLabel('Trash scope').check();
   await expect(
     page.getByRole('button', { name: 'Open Synthetic permanent deletion', exact: true }),
   ).toHaveCount(0);

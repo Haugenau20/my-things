@@ -69,7 +69,7 @@ Only the owner of the inventory root can read its settings or read/write the all
 Deny unrelated paths and root-collection enumeration. Never use an unrestricted recursive wildcard that
 accidentally permits ownership changes. Test direct `get`, `list`, create, update, and delete separately.
 
-Allow only known fields and supported schemas. Validate lengths, types, enums, location shape, revision
+Allow only known fields and supported schemas. Require the trusted schema-v2 root and reject v1 item writes. Validate lengths, types, enums, independent nullable room/box references, revision
 progression, immutable creation metadata, and permitted deletion/state transitions where feasible. For
 rooms/boxes, ordinary client deletion is unnecessary; archive them. Unknown accounts may not create an
 inventory or plant an owner document.
@@ -189,3 +189,5 @@ owner bypassing the app can violate bookkeeping or delete valid files; this is a
 never access for others. Unexpected or changed data blocks recovery without overwrites/deletion.
 Refresh old app tabs before import: rules block their writes, but older export clients do not understand
 restore reports. Deploying the report collection does not migrate or rewrite existing records.
+
+The owner authorized the scoped v1 test-inventory reset on 2026-10-10. This maintenance preserves the trusted root owner binding and Auth identity, and changes only the root schema version after deleting the specified child data and photo prefix. See [cutover procedure](SETUP.md#8-approved-v1-reset-and-schema-v2-cutover). Authorization does not claim execution, authorize IAM changes, or grant PR merge permission.

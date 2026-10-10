@@ -197,7 +197,7 @@ export async function beginRestore(
       return;
     }
     tx.set(target, {
-      schemaVersion: 1,
+      schemaVersion: 2,
       revision: 1,
       operationId: crypto.randomUUID(),
       exportId: archive.manifest.exportId,
@@ -262,7 +262,7 @@ export async function claimRestoreRecord(
     signal.throwIfAborted();
     tx.set(target, { ...historical, revision: 1, updatedAt: serverTimestamp() });
     tx.set(claim, {
-      schemaVersion: 1,
+      schemaVersion: 2,
       revision: 1,
       operationId: marker.operationId,
       kind,

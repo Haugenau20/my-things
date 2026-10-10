@@ -27,7 +27,7 @@ async function fixture(partBytes?: number) {
   const source: ExportSnapshot = {
     inventoryId: 'main',
     inventory: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       ownerUid: 'synthetic-owner',
       displayName: 'Synthetic archive',
       defaultCurrency: null,
@@ -37,7 +37,7 @@ async function fixture(partBytes?: number) {
     rooms: [
       {
         id: 'room-one',
-        schemaVersion: 1,
+        schemaVersion: 2,
         name: 'Synthetic original room',
         sortOrder: 0,
         revision: 3,
@@ -49,7 +49,7 @@ async function fixture(partBytes?: number) {
     boxes: [
       {
         id: 'box-one',
-        schemaVersion: 1,
+        schemaVersion: 2,
         label: 'Synthetic box',
         sortOrder: 0,
         revision: 2,
@@ -75,8 +75,8 @@ async function fixture(partBytes?: number) {
         estimatedValue: { amountMinor: 0, currency: 'JPY' },
         serialNumber: '00042',
         notes: 'Synthetic\næ',
-        originalRoomId: 'room-one',
-        currentLocation: { kind: 'box', boxId: 'box-one' },
+        roomId: 'room-one',
+        boxId: 'box-one',
         deletedAt: timestamp,
         photos: [
           { id: 'photo-one', state: 'ready', detail: file('detail'), thumbnail: file('thumb') },
@@ -126,8 +126,8 @@ it('validates a full archive without importing authority and preserves exact his
     quantity: 7,
     serialNumber: '00042',
     estimatedValue: { amountMinor: 0, currency: 'JPY' },
-    originalRoomId: 'room-one',
-    currentLocation: { kind: 'box', boxId: 'box-one' },
+    roomId: 'room-one',
+    boxId: 'box-one',
   });
   expect(archive.snapshot.items[0]!.deletedAt?.nanoseconds).toBe(123456000);
   expect(archive.snapshot.inventory.ownerUid).not.toBe('synthetic-owner');
@@ -151,7 +151,7 @@ it('requires every named part and rejects extra parts or duplicate selections', 
 it('rejects future versions, injected authorization fields, duplicate IDs and dangling references', async () => {
   const source = (await fixture())[0]!;
   const future = await rewrite(source, (_payload, manifest) => {
-    Object.assign(manifest, { formatVersion: 2 });
+    Object.assign(manifest, { formatVersion: 3 });
   });
   await expect(validateArchive([future], signal())).rejects.toThrow();
   const authority = await rewrite(source, (payload) => {
@@ -167,7 +167,7 @@ it('rejects future versions, injected authorization fields, duplicate IDs and da
   await expect(validateArchive([duplicate], signal())).rejects.toThrow(/Duplicate|reference/);
   const missing = await rewrite(source, (payload) =>
     editJson(payload, 'items.json', (items) => {
-      items[0]!.originalRoomId = 'missing-room';
+      items[0]!.roomId = 'missing-room';
     }),
   );
   await expect(validateArchive([missing], signal())).rejects.toThrow(/reference/);

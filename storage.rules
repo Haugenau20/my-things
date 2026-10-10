@@ -6,7 +6,7 @@ service firebase.storage {
         && inventoryId.matches('[A-Za-z0-9_-]{1,128}')
         && firestore.exists(/databases/(default)/documents/inventories/$(inventoryId))
         && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.keys().hasAll(['schemaVersion', 'ownerUid'])
-        && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.schemaVersion == 1
+        && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.schemaVersion == 2
         && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.ownerUid == request.auth.uid;
     }
 

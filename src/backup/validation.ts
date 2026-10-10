@@ -32,7 +32,7 @@ const timestamp = z
   })
   .transform(({ seconds, nanoseconds }) => new Timestamp(seconds, nanoseconds));
 const inventorySchema = z.strictObject({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   sourceInventoryId: idSchema,
   displayName: z.string().trim().min(1).max(100),
   defaultCurrency: z
@@ -69,8 +69,8 @@ const portableBox = boxSchema.extend({
 });
 const manifestSchema = z.strictObject({
   format: z.literal('home-inventory-export'),
-  formatVersion: z.literal(1),
-  dataSchemaVersion: z.literal(1),
+  formatVersion: z.literal(2),
+  dataSchemaVersion: z.literal(2),
   exportId: idSchema,
   createdAt: z.iso.datetime(),
   complete: z.literal(true),
@@ -157,7 +157,19 @@ export async function validateArchive(
   }
   if (!main) throw new Error('The final manifest ZIP is missing.');
   const manifestBytes = await readZipMember(main, 'manifest.json', 16 * 1024 * 1024, signal);
-  const manifest = manifestSchema.parse(parseJson(manifestBytes));
+  const rawManifest = parseJson(manifestBytes);
+  if (
+    rawManifest &&
+    typeof rawManifest === 'object' &&
+    'formatVersion' in rawManifest &&
+    (rawManifest.formatVersion !== 2 ||
+      !('dataSchemaVersion' in rawManifest) ||
+      rawManifest.dataSchemaVersion !== 2)
+  )
+    throw new Error(
+      'Unsupported archive version. Only format/schema v2 archives can be restored; v1 is unsupported.',
+    );
+  const manifest = manifestSchema.parse(rawManifest);
   const mainName = `inventory-${manifest.exportId}.zip`;
   const expectedNames = [
     mainName,
@@ -262,7 +274,7 @@ export async function validateArchive(
   const snapshot = preflightExport({
     inventoryId: inventory.sourceInventoryId,
     inventory: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       ownerUid: 'archive-validation-placeholder',
       displayName: inventory.displayName,
       defaultCurrency: inventory.defaultCurrency,

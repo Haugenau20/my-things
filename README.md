@@ -99,3 +99,5 @@ numbered box without losing their original room. Find them through the gallery. 
 photos, and restore them into an empty, isolated, administrator-authorized verification inventory.
 Separately, prove that another account
 cannot access either records or photos.
+
+The approved [UI refactor](docs/UI_REFACTOR.md) starts with schema-v2 independent room tags and packing boxes. Production test data was reset under explicit owner authorization; the reviewed release pipeline remains the only deployment path.

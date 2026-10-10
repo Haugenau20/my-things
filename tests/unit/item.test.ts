@@ -44,8 +44,8 @@ describe('capture schema and defaults', () => {
       revision: 1,
       recordState: 'draft',
       coverPhotoId: null,
-      originalRoomId: null,
-      currentLocation: { kind: 'unassigned' },
+      roomId: null,
+      boxId: null,
       deletedAt: null,
       completedAt: null,
       decision: 'undecided',
@@ -53,12 +53,12 @@ describe('capture schema and defaults', () => {
     });
     expect(parseItem(draft, 'main', 'item-one')).toEqual(draft);
   });
-  it('sets both room references and supports explicit reviewed capture', () => {
+  it('sets the room tag without packing and supports explicit reviewed capture', () => {
     expect(
       captureDraft({ ...input, roomId: 'room-one', reviewStatus: 'reviewed' }, time),
     ).toMatchObject({
-      originalRoomId: 'room-one',
-      currentLocation: { kind: 'room', roomId: 'room-one' },
+      roomId: 'room-one',
+      boxId: null,
       reviewStatus: 'reviewed',
     });
   });
@@ -95,7 +95,7 @@ describe('capture schema and defaults', () => {
   });
   it('rejects unexpected fields and unsupported schema versions', () => {
     const draft = captureDraft(input, time);
-    expect(() => parseItem({ ...draft, schemaVersion: 2 }, 'main', 'item-one')).toThrow();
+    expect(() => parseItem({ ...draft, schemaVersion: 3 }, 'main', 'item-one')).toThrow();
     expect(() => parseItem({ ...draft, unknown: true }, 'main', 'item-one')).toThrow();
   });
   it('rejects foreign paths, invalid hashes, excessive dimensions and ambiguous locations', () => {

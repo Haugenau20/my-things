@@ -66,7 +66,7 @@ afterAll(async () => {
 async function destination(id: string) {
   await environment.withSecurityRulesDisabled(async (context) => {
     await context.firestore().doc(`inventories/${id}`).set({
-      schemaVersion: 1,
+      schemaVersion: 2,
       ownerUid: services.auth.currentUser!.uid,
       displayName: 'Synthetic destination',
       defaultCurrency: null,
@@ -101,7 +101,7 @@ async function fixture() {
   const source: ExportSnapshot = {
     inventoryId: 'synthetic-source',
     inventory: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       ownerUid: 'source-authority-is-not-imported',
       displayName: 'Synthetic source name',
       defaultCurrency: 'JPY',
@@ -111,7 +111,7 @@ async function fixture() {
     rooms: [
       {
         id: 'old-room',
-        schemaVersion: 1,
+        schemaVersion: 2,
         name: 'Synthetic archived room',
         sortOrder: 0,
         revision: 4,
@@ -123,7 +123,7 @@ async function fixture() {
     boxes: [
       {
         id: 'restore-box',
-        schemaVersion: 1,
+        schemaVersion: 2,
         label: 'Synthetic box',
         notes: 'Box notes',
         sortOrder: 0,
@@ -141,8 +141,8 @@ async function fixture() {
         ),
         id: 'restore-item',
         quantity: 7,
-        originalRoomId: 'old-room',
-        currentLocation: { kind: 'box', boxId: 'restore-box' },
+        roomId: 'old-room',
+        boxId: 'restore-box',
         estimatedValue: { amountMinor: 0, currency: 'JPY' },
         notes: 'Literal\næ',
         serialNumber: '00042',
@@ -156,8 +156,8 @@ async function fixture() {
           history,
         ),
         id: 'sold-item',
-        originalRoomId: 'old-room',
-        currentLocation: { kind: 'unassigned' },
+        roomId: 'old-room',
+        boxId: null,
         decision: 'sell',
         progress: 'completed',
         completedAt: history,

@@ -8,13 +8,12 @@ import {
   DECISIONS,
   PROGRESS,
   isDisposed,
-  locationKey,
   moneyInput,
   parseMoney,
 } from '../domain/organize';
 import type { Box, ItemCommand, MetadataPatch } from '../domain/organize';
 import { editItem } from '../data/organize-repository';
-import { LocationSelect, selectedLocation } from './LocationSelect';
+import { RoomSelect, BoxSelect } from './LocationSelect';
 
 function fields(item: Item, defaultCurrency: string | null) {
   return {
@@ -54,8 +53,8 @@ export function ItemEditor({
 }) {
   const [base, setBase] = useState(item);
   const [form, setForm] = useState(() => fields(item, defaultCurrency));
-  const [location, setLocation] = useState(locationKey(item.currentLocation));
-  const [original, setOriginal] = useState(item.originalRoomId ?? '');
+  const [room, setRoom] = useState(item.roomId ?? '');
+  const [box, setBox] = useState(item.boxId ?? '');
   const [decision, setDecision] = useState(item.decision);
   const [progress, setProgress] = useState(item.progress);
   const [busy, setBusy] = useMutationState();
@@ -69,8 +68,8 @@ export function ItemEditor({
   const reset = (value: Item) => {
     setBase(value);
     setForm(fields(value, defaultCurrency));
-    setLocation(locationKey(value.currentLocation));
-    setOriginal(value.originalRoomId ?? '');
+    setRoom(value.roomId ?? '');
+    setBox(value.boxId ?? '');
     setDecision(value.decision);
     setProgress(value.progress);
   };
@@ -315,56 +314,27 @@ export function ItemEditor({
               </button>
             </div>
           </fieldset>
-          <fieldset disabled={busy || pending || isDisposed(base)}>
-            <legend>Current location</legend>
-            {isDisposed(base) && (
-              <p>Reopen this completed sale or donation before assigning a location.</p>
-            )}
-            <LocationSelect
-              rooms={rooms}
-              boxes={boxes}
-              label="New current location"
-              value={location}
-              onChange={setLocation}
-            />
+          <fieldset disabled={busy || pending}>
+            <legend>Room</legend>
+            <RoomSelect rooms={rooms} label="Room tag" value={room} onChange={setRoom} />
             <button
               className="secondary-button"
-              onClick={() =>
-                void save({ kind: 'move', location: selectedLocation(location) }, 'Location saved')
-              }
+              onClick={() => void save({ kind: 'setRoom', roomId: room || null }, 'Room saved')}
             >
-              Move item
+              Set room
             </button>
           </fieldset>
-          <details>
-            <summary>Correct original room</summary>
-            <fieldset disabled={busy || pending}>
-              <label>
-                Original room correction
-                <select value={original} onChange={(event) => setOriginal(event.target.value)}>
-                  <option value="">No original room</option>
-                  {rooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      {room.name}
-                      {room.archivedAt ? ' (archived)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  request(
-                    { kind: 'original', roomId: original || null },
-                    'This explicitly corrects the first recorded room; current location stays as it is.',
-                    'Confirm original room correction',
-                  )
-                }
-              >
-                Correct original room
-              </button>
-            </fieldset>
-          </details>
+          <fieldset disabled={busy || pending || isDisposed(base)}>
+            <legend>Box</legend>
+            {isDisposed(base) && <p>Gone · Reopen first before packing.</p>}
+            <BoxSelect boxes={boxes} label="Packing box" value={box} onChange={setBox} />
+            <button
+              className="secondary-button"
+              onClick={() => void save({ kind: 'pack', boxId: box || null }, 'Packing saved')}
+            >
+              Pack / unpack
+            </button>
+          </fieldset>
           <fieldset disabled={busy || pending}>
             <legend>Moving outcome</legend>
             <label>
@@ -419,7 +389,7 @@ export function ItemEditor({
                 base.progress !== 'completed'
                   ? request(
                       { kind: 'progress', progress },
-                      'Completing this sale or donation removes the item from its current room or box and moves it to the completed archive. Photos and original room are retained.',
+                      'Completing this sale or donation clears its box and marks it Gone. Photos and the room tag are retained.',
                       'Confirm completion',
                     )
                   : void save({ kind: 'progress', progress }, 'Progress saved')

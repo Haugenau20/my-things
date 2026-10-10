@@ -12,7 +12,7 @@ export const restoreCountsSchema = z.strictObject({
 });
 export const restoreReportSchema = z
   .strictObject({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     revision: integer.min(1),
     operationId: idSchema,
     exportId: idSchema,
@@ -38,7 +38,7 @@ export const restoreReportSchema = z
   });
 export const restoreClaimSchema = z
   .strictObject({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     revision: integer.min(1),
     operationId: idSchema,
     kind: z.enum(['item', 'room', 'box']),
