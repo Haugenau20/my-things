@@ -53,19 +53,25 @@ test('desktop review, metadata search, packing, archive, and trash preserve mean
   await expect(
     page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }),
   ).toHaveCount(0);
-  await page.getByLabel('Box filter').selectOption('gone');
+  await page
+    .getByRole('group', { name: 'Box filter', exact: true })
+    .getByRole('button', { name: /^Gone\s*\d+$/ })
+    .click();
   await page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }).click();
   await expect(page.getByText('Room:', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Move to trash', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm move to trash', exact: true }).click();
   await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
-  await page.getByLabel('Trash scope').check();
+  await page.getByRole('button', { name: 'Trash', exact: true }).click();
   await page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }).click();
   await page.getByRole('button', { name: 'Restore item', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Restored' })).toBeVisible();
   await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
-  await page.getByLabel('Trash scope').uncheck();
-  await page.getByLabel('Box filter').selectOption('gone');
+  await page.getByRole('button', { name: /^Things/ }).click();
+  await page
+    .getByRole('group', { name: 'Box filter', exact: true })
+    .getByRole('button', { name: /^Gone\s*\d+$/ })
+    .click();
   await expect(
     page.getByRole('button', { name: 'Open Synthetic organizing lamp', exact: true }),
   ).toBeVisible();
@@ -111,11 +117,19 @@ test('location labels use stable references, occupancy blocks archive, and filte
   await box.getByRole('button', { name: 'Confirm archive', exact: true }).click();
   await expect(box.getByRole('alert')).toContainText('Move all current owned items');
   await management.getByRole('button', { name: 'Browse B098' }).click();
-  await expect(page.getByLabel('Box filter')).toHaveValue(/.+/);
+  await expect(
+    page
+      .getByRole('group', { name: 'Box filter', exact: true })
+      .getByRole('button', { name: /^B098\s*\d+$/ }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Open Synthetic packing record', exact: true }).click();
   await expect(page.getByText(/Room: Synthetic renamed M2 room/)).toBeVisible();
   await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
-  await expect(page.getByLabel('Box filter')).toHaveValue(/.+/);
+  await expect(
+    page
+      .getByRole('group', { name: 'Box filter', exact: true })
+      .getByRole('button', { name: /^B098\s*\d+$/ }),
+  ).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('two-tab bulk conflicts report each outcome without overwriting the newer details', async ({

@@ -1,20 +1,16 @@
 import { useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Item, Room } from '../domain/item';
-import {
-  DEFAULT_FILTERS,
-  DECISIONS,
-  PROGRESS,
-  filterItems,
-  formatMoney,
-  isDisposed,
-} from '../domain/organize';
+import { DEFAULT_FILTERS, filterItems, formatMoney, isDisposed } from '../domain/organize';
 import type { Box, Filters } from '../domain/organize';
 import type { PhotoSession } from '../media/photo-session';
 import { PrivatePhoto } from './PrivatePhoto';
 import { PhotoAttachment } from './PhotoAttachment';
 import { ItemEditor } from './ItemEditor';
 import { BulkEditor } from './BulkEditor';
+import { BrowseFilters } from './BrowseFilters';
+import { defaultGrouping, selectionTitle, groupVisibleItems } from '../domain/browse';
+import type { Grouping } from '../domain/browse';
 
 export function InventoryBrowser({
   items,
@@ -53,6 +49,8 @@ export function InventoryBrowser({
 }) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [grid, setGrid] = useState(true);
+  const [groupingChoice, setGroupingChoice] = useState<Grouping>();
+  const grouping = groupingChoice ?? defaultGrouping(filters);
   const [selected, setSelected] = useState<string>();
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [announcement, setAnnouncement] = useState('');
@@ -85,6 +83,7 @@ export function InventoryBrowser({
   const visible = filterItems(items, filters).sort(
     (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis() || a.id.localeCompare(b.id),
   );
+  const groups = groupVisibleItems(visible, grouping, rooms, boxes);
   const detail = items.find((item) => item.id === selected && item.recordState === 'ready');
   const roomName = (id: string | null) =>
     id
@@ -100,10 +99,6 @@ export function InventoryBrowser({
         ? (boxes.find((box) => box.id === item.boxId)?.label ?? 'Unavailable box')
         : 'Not packed';
   const locationName = (item: Item) => roomName(item.roomId) + ' · ' + boxName(item);
-  function filter<K extends keyof Filters>(key: K, value: Filters[K]) {
-    setFilters((current) => ({ ...current, [key]: value }));
-    setSelection(new Set());
-  }
   function toggle(id: string, checked: boolean) {
     setSelection((current) => {
       const next = new Set(current);
@@ -213,147 +208,78 @@ export function InventoryBrowser({
         </>
       ) : (
         <>
-          <div className="gallery-heading">
-            <h2>Your things</h2>
-            <span>
-              {visible.length} entries{metadataReady ? '' : ' · refreshing metadata'}
-            </span>
-          </div>
           {!metadataReady && (
             <p role="status">
               Loading the complete metadata index. Search and bulk actions are unavailable until
               every page is loaded successfully.
             </p>
           )}
-          <fieldset className="browse-filters" disabled={!metadataReady}>
-            <legend>Browse and filter</legend>
-            <label>
-              Search all items
-              <input
-                type="search"
-                value={filters.search}
-                placeholder="Name, serial, notes or category"
-                onChange={(event) => filter('search', event.target.value)}
-              />
-            </label>
-            <div className="filter-fields">
-              <label>
-                Trash scope
-                <input
-                  type="checkbox"
-                  checked={filters.trash}
-                  onChange={(event) => filter('trash', event.target.checked)}
-                />
-              </label>
-              <label>
-                Room filter
-                <select
-                  value={filters.room}
-                  onChange={(event) => filter('room', event.target.value)}
-                >
-                  <option value="">All rooms</option>
-                  <option value="none">No room</option>
-                  {rooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      {room.name}
-                      {room.archivedAt ? ' (archived)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Box filter
-                <select value={filters.box} onChange={(event) => filter('box', event.target.value)}>
-                  <option value="">All · still owned</option>
-                  <option value="unpacked">Not packed</option>
-                  {boxes.map((box) => (
-                    <option key={box.id} value={box.id}>
-                      {box.label}
-                      {box.archivedAt ? ' (archived)' : ''}
-                    </option>
-                  ))}
-                  <option value="gone">Gone</option>
-                </select>
-              </label>
-              <label>
-                Decision filter
-                <select
-                  value={filters.decision}
-                  onChange={(event) => filter('decision', event.target.value)}
-                >
-                  <option value="">Any decision</option>
-                  {DECISIONS.map((value) => (
-                    <option key={value} value={value}>
-                      {label(value)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Progress filter
-                <select
-                  value={filters.progress}
-                  onChange={(event) => filter('progress', event.target.value)}
-                >
-                  <option value="">Any progress</option>
-                  {PROGRESS.map((value) => (
-                    <option key={value} value={value}>
-                      {label(value)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Review filter
-                <select
-                  value={filters.reviewStatus}
-                  onChange={(event) => filter('reviewStatus', event.target.value)}
-                >
-                  <option value="">Any review status</option>
-                  <option value="needs_review">Needs review</option>
-                  <option value="reviewed">Reviewed</option>
-                </select>
-              </label>
+          <BrowseFilters
+            items={items}
+            rooms={rooms}
+            boxes={boxes}
+            filters={filters}
+            ready={metadataReady}
+            change={(patch) => {
+              setFilters((current) => ({ ...current, ...patch }));
+              setSelection(new Set());
+            }}
+            clear={() => {
+              setFilters({
+                ...DEFAULT_FILTERS,
+                trash: workspaceView === 'trash',
+                reviewStatus: workspaceView === 'review' ? 'needs_review' : '',
+              });
+              setSelection(new Set());
+            }}
+          />
+          <div className="gallery-heading">
+            <div className="gallery-title">
+              <h2>{selectionTitle(filters, rooms, boxes)}</h2>
+              <span>
+                {visible.length} things in{' '}
+                {new Set(visible.map((item) => item.roomId).filter(Boolean)).size} rooms
+                {metadataReady ? '' : ' · refreshing metadata'}
+              </span>
             </div>
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={filters.missingPhotos}
-                onChange={(event) => filter('missingPhotos', event.target.checked)}
-              />
-              Missing photos
-            </label>
-            <button
-              className="text-button"
-              onClick={() => {
-                setFilters(DEFAULT_FILTERS);
-                setSelection(new Set());
-              }}
-            >
-              Clear filters
-            </button>
-          </fieldset>
-          <div className="browse-toolbar">
-            <button className="secondary-button" aria-pressed={grid} onClick={() => setGrid(true)}>
-              Grid
-            </button>
-            <button
-              className="secondary-button"
-              aria-pressed={!grid}
-              onClick={() => setGrid(false)}
-            >
-              Table
-            </button>
-            <button
-              className="text-button"
-              disabled={!metadataReady || !visible.length}
-              onClick={() => setSelection(new Set(visible.map((item) => item.id)))}
-            >
-              Select {visible.length} filtered entries
-            </button>
-            <button className="text-button" onClick={() => setSelection(new Set())}>
-              Clear selection
-            </button>
+            <div className="browse-toolbar">
+              <label>
+                Group by
+                <select
+                  aria-label="Group by"
+                  value={grouping}
+                  onChange={(event) => setGroupingChoice(event.target.value as Grouping)}
+                >
+                  <option value="room">Room</option>
+                  <option value="box">Box</option>
+                  <option value="none">None</option>
+                </select>
+              </label>
+              <button
+                className="secondary-button"
+                aria-pressed={grid}
+                onClick={() => setGrid(true)}
+              >
+                Grid
+              </button>
+              <button
+                className="secondary-button"
+                aria-pressed={!grid}
+                onClick={() => setGrid(false)}
+              >
+                Table
+              </button>
+              <button
+                className="text-button"
+                disabled={!metadataReady || !visible.length}
+                onClick={() => setSelection(new Set(visible.map((item) => item.id)))}
+              >
+                Select {visible.length} filtered entries
+              </button>
+              <button className="text-button" onClick={() => setSelection(new Set())}>
+                Clear selection
+              </button>
+            </div>
           </div>
           <BulkEditor
             items={metadataReady ? visible.filter((item) => selection.has(item.id)) : []}
@@ -381,46 +307,67 @@ export function InventoryBrowser({
             </div>
           )}
           {grid ? (
-            <div className="gallery-grid">
-              {visible.map((item) => {
-                const cover = item.photos.find(
-                  (photo) => photo.id === item.coverPhotoId && photo.state === 'ready',
-                );
-                return (
-                  <article key={item.id} className="item-card">
-                    {cover ? (
-                      <PrivatePhoto file={cover.thumbnail} session={session} alt={item.name} />
-                    ) : (
-                      <div className="private-photo thumbnail">
-                        <span className="photo-placeholder">No photo yet</span>
-                      </div>
-                    )}
-                    <label className="card-select checkbox-label">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${item.name}`}
-                        disabled={!metadataReady}
-                        checked={selection.has(item.id)}
-                        onChange={(event) => toggle(item.id, event.target.checked)}
-                      />
-                      Select
-                    </label>
-                    <button
-                      className="item-card-name"
-                      aria-label={`Open ${item.name}`}
-                      onClick={() => open(item.id)}
-                    >
-                      {item.name}
-                    </button>
-                    <span className="item-card-meta">
-                      {locationName(item)} ·{' '}
-                      {item.reviewStatus === 'reviewed' ? 'Reviewed' : 'Needs review'}
-                      <br />
-                      {label(item.decision)} / {label(item.progress)} · Quantity {item.quantity}
-                    </span>
-                  </article>
-                );
-              })}
+            <div className="grouped-gallery">
+              {groups.map((group) => (
+                <section
+                  className="item-group"
+                  key={group.key}
+                  aria-label={group.label || 'All things'}
+                >
+                  {grouping !== 'none' && (
+                    <div className="group-heading">
+                      <h3>{group.label}</h3>
+                      <span>{group.items.length} things</span>
+                    </div>
+                  )}
+                  <div className="gallery-grid">
+                    {group.items.map((item) => {
+                      const cover = item.photos.find(
+                        (photo) => photo.id === item.coverPhotoId && photo.state === 'ready',
+                      );
+                      return (
+                        <article key={item.id} className="item-card">
+                          {cover ? (
+                            <PrivatePhoto
+                              file={cover.thumbnail}
+                              session={session}
+                              alt={item.name}
+                            />
+                          ) : (
+                            <div className="private-photo thumbnail">
+                              <span className="photo-placeholder">No photo yet</span>
+                            </div>
+                          )}
+                          <label className="card-select checkbox-label">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${item.name}`}
+                              disabled={!metadataReady}
+                              checked={selection.has(item.id)}
+                              onChange={(event) => toggle(item.id, event.target.checked)}
+                            />
+                            Select
+                          </label>
+                          <button
+                            className="item-card-name"
+                            aria-label={`Open ${item.name}`}
+                            onClick={() => open(item.id)}
+                          >
+                            {item.name}
+                          </button>
+                          <span className="item-card-meta">
+                            {locationName(item)} ·{' '}
+                            {item.reviewStatus === 'reviewed' ? 'Reviewed' : 'Needs review'}
+                            <br />
+                            {label(item.decision)} / {label(item.progress)} · Quantity{' '}
+                            {item.quantity}
+                          </span>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
             </div>
           ) : (
             <div className="table-scroll">
