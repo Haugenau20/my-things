@@ -7,6 +7,7 @@ import { MAX_PHOTOS, preparePhoto } from '../media/processing';
 import type { CaptureAttempt } from '../media/capture';
 import { saveAttempt } from '../media/capture';
 import { PhotoInputs } from './PhotoInputs';
+import { captureFailureDetail } from '../media/capture-errors';
 
 export function CaptureForm({
   services,
@@ -133,7 +134,7 @@ export function CaptureForm({
         setStatus('');
         setError(
           attempt.current
-            ? 'Capture is unfinished. Retry the same attempt, or reload to recover or explicitly discard it. Your selection is retained.'
+            ? `${captureFailureDetail(failure)} Capture is unfinished. Retry the same attempt, or reload to recover or explicitly discard it. Your selection is retained.`.trim()
             : failure instanceof Error
               ? failure.message
               : 'Could not prepare this photo. Choose a smaller JPEG or PNG.',

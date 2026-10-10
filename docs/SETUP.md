@@ -162,6 +162,7 @@ is not activated in your shell.
 | `npm run typecheck` | Run strict TypeScript checks |
 | `npm run test` | Noninteractive unit/component tests |
 | `npm run test:rules` | Start/use demo emulators and run positive/negative rules tests |
+| `npm run test:rules:cloud -- --project PROJECT_ID` | Optional explicit cloud Rules API evaluation with synthetic requests/mocked documents; no data reads/writes or deployment; requires CLI authentication |
 | `npm run test:integration` | Start isolated demo emulators and verify real SDK/seed integration |
 | `npm run test:e2e` | Browser flows against emulators only |
 | `npm run build` | Compile a local validation build; never deploy |
