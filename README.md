@@ -19,6 +19,8 @@ already-authorized inventory. See [M3 restore evidence](docs/M3_RESTORE.md), [M3
 steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
 
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
+See [GitHub Actions setup](docs/GITHUB_ACTIONS.md) for automated PR checks and production deployment
+after successful `main` checks; activation awaits one-time cloud setup and the owner's GitHub variables.
 
 ## The first version
 

@@ -192,6 +192,11 @@ service-account keys or arbitrary secret API tokens there. [References S17](REFE
 
 ## 7. Production release and operating routine
 
+GitHub test/deployment automation is defined in `.github/workflows/ci.yml`; see
+[GitHub Actions setup](GITHUB_ACTIONS.md) for the owner's three variables, keyless authentication,
+one-time cloud setup and activation gates. PR checks use only emulators. Successful `main` builds
+publish Firestore rules/indexes, Storage rules and Hosting after the explicit production preflight.
+
 Use the existing production project and complete its verified bootstrap/configuration. Before release, pass the
 [test plan](TEST_PLAN.md), inspect the project/bucket IDs in the built config, review rules and indexes,
 and explicitly select the deployment project. Deploy only reviewed components. A Hosting deployment by
