@@ -118,6 +118,10 @@ service cloud.firestore {
     function readyPhotos(data) {
       return data.photos.size() == 0 || (data.photos[0].state == 'ready' && (data.photos.size() == 1 || data.photos[1].state == 'ready'));
     }
+    function permanentMarker(data) {
+      return resource.data.recordState == 'ready' && resource.data.deletedAt is timestamp && readyPhotos(resource.data)
+        && data.recordState == 'deleting' && data.diff(resource.data).affectedKeys().hasOnly(['recordState','revision','updatedAt']);
+    }
     function editedLocation(data, inventoryId) {
       let loc = data.currentLocation;
       return loc is map && ((loc.keys().hasOnly(['kind']) && loc.kind == 'unassigned')
@@ -176,10 +180,11 @@ service cloud.firestore {
           && request.resource.data.updatedAt == request.time
           && request.resource.data.revision <= 9007199254740991
           && (request.resource.data.diff(resource.data).affectedKeys().hasAny(['photos','coverPhotoId','recordState'])
-            ? (completion(request.resource.data,inventoryId,itemId) || discard(request.resource.data) || firstPhotos(request.resource.data,inventoryId,itemId))
+            ? (permanentMarker(request.resource.data) || completion(request.resource.data,inventoryId,itemId) || discard(request.resource.data) || firstPhotos(request.resource.data,inventoryId,itemId))
             : metadataEdit(request.resource.data,inventoryId));
         allow delete: if owns(inventoryId) && resource.data.recordState == 'deleting'
-          && resource.data.coverPhotoId == null && resource.data.deletedAt == null;
+          && ((resource.data.coverPhotoId == null && resource.data.deletedAt == null)
+            || (resource.data.deletedAt is timestamp && readyPhotos(resource.data)));
       }
       match /rooms/{roomId} {
         allow get, list: if owns(inventoryId);

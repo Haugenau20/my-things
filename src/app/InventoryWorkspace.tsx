@@ -12,6 +12,8 @@ import { RecoveryPanel } from './RecoveryPanel';
 import { InventoryBrowser } from './InventoryBrowser';
 import { LocationManager } from './LocationManager';
 import { InventorySettings } from './InventorySettings';
+import { DeletionDialog, DeletionRecovery } from './DeletionDialog';
+import { OrphanInspection } from './OrphanInspection';
 
 export function InventoryWorkspace({
   services,
@@ -27,6 +29,8 @@ export function InventoryWorkspace({
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [settings, setSettings] = useState(inventory);
   const [activeAttempt, setActiveAttempt] = useState<string>();
+  const [deletionRequested, setDeletionRequested] = useState<Item>();
+  const [notice, setNotice] = useState('');
   const [manage, setManage] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [browseLocation, setBrowseLocation] = useState<string>();
@@ -97,6 +101,29 @@ export function InventoryWorkspace({
           and refresh before continuing.
         </p>
       )}
+      {notice && (
+        <p role="status" className="save-status">
+          {notice}
+        </p>
+      )}
+      {deletionRequested && (
+        <DeletionDialog
+          item={deletionRequested}
+          services={services}
+          inventoryId={inventoryId}
+          signal={controller.signal}
+          reload={reload}
+          closed={() => {
+            setDeletionRequested(undefined);
+            void reload();
+          }}
+          completed={async () => {
+            setNotice(`Permanently deleted ${deletionRequested.name}.`);
+            setDeletionRequested(undefined);
+            await reload();
+          }}
+        />
+      )}
       {loading ? (
         <p role="status">Loading saved items and rooms…</p>
       ) : (
@@ -105,6 +132,7 @@ export function InventoryWorkspace({
             items={items.filter(
               (item) =>
                 item.id !== activeAttempt &&
+                item.deletedAt === null &&
                 ((item.recordState !== 'ready' && item.coverPhotoId === null) ||
                   (item.recordState === 'ready' &&
                     item.photos.some((photo) => photo.state !== 'ready'))),
@@ -113,6 +141,12 @@ export function InventoryWorkspace({
             inventoryId={inventoryId}
             signal={controller.signal}
             reload={reload}
+          />
+          <DeletionRecovery
+            items={items.filter(
+              (item) => item.recordState === 'deleting' && item.deletedAt !== null,
+            )}
+            open={setDeletionRequested}
           />
           {manage && (
             <LocationManager
@@ -138,6 +172,14 @@ export function InventoryWorkspace({
                 reload={reload}
               />
             )}
+          </details>
+          <details className="inventory-settings">
+            <summary>Photo maintenance</summary>
+            <OrphanInspection
+              services={services}
+              inventoryId={inventoryId}
+              signal={controller.signal}
+            />
           </details>
           <div className="inventory-layout">
             <CaptureForm
@@ -175,6 +217,7 @@ export function InventoryWorkspace({
                 });
                 await reload();
               }}
+              requestDeletion={setDeletionRequested}
             />
           </div>
         </>

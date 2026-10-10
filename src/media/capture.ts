@@ -9,7 +9,8 @@ import {
   markDiscard,
   deleteDiscardedDraft,
 } from '../data/capture-repository';
-import { deleteObject, list, ref } from 'firebase/storage';
+import { deleteObject, ref } from 'firebase/storage';
+import { deleteItemPhotos } from './cleanup';
 import {
   ensureFirstPhotos,
   finishFirstPhotos,
@@ -118,43 +119,7 @@ export async function discardAttempt(
   }
   const marker = await markDiscard(services.db, inventory, item, signal);
   if (!marker) return;
-  const prefix = `inventories/${inventory}/items/${item.id}/photos`;
-  const pending = [prefix];
-  while (pending.length) {
-    signal.throwIfAborted();
-    const folder = pending.pop()!;
-    let token: string | undefined;
-    do {
-      signal.throwIfAborted();
-      const result = await list(ref(services.storage, folder), {
-        maxResults: 100,
-        ...(token ? { pageToken: token } : {}),
-      });
-      pending.push(...result.prefixes.map((child) => child.fullPath));
-      await runBounded(
-        result.items,
-        2,
-        async (object) => {
-          if (
-            !object.fullPath.startsWith(prefix + '/') ||
-            !/^inventories\/[A-Za-z0-9_-]+\/items\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+\/(detail|thumb)\.jpg$/.test(
-              object.fullPath,
-            )
-          )
-            throw new Error(
-              'Unexpected object blocks safe discard. Administrative review is required.',
-            );
-          try {
-            await deleteObject(object);
-          } catch (error) {
-            if (!missing(error)) throw error;
-          }
-        },
-        signal,
-      );
-      token = result.nextPageToken;
-    } while (token);
-  }
+  await deleteItemPhotos(services.storage, inventory, item.id, signal);
   signal.throwIfAborted();
   await deleteDiscardedDraft(services.db, inventory, marker, signal);
 }

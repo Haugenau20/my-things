@@ -11,7 +11,8 @@ IAM and exact-origin CORS are applied; the signed-out page and Google redirect s
 Trusted owner bootstrap is complete and public signup is disabled. The owner verified reauthentication
 and another account's rejection; actual iPhone/Windows capture checks remain pending. Review, metadata
 editing, rooms/boxes, search, filters, bulk actions, moving outcomes, and reversible trash are implemented
-for M2; backup and permanent cleanup remain M3. See [M2 evidence](docs/M2_ORGANIZE.md),
+for M2. M3 now adds deployed recoverable permanent deletion and read-only orphan inspection; full export/restore
+remains in progress. See [M3 recovery evidence](docs/M3_RECOVERY.md), [M2 evidence](docs/M2_ORGANIZE.md),
 [deployment evidence](docs/M1_RELEASE.md), [M1 evidence and release
 steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
 

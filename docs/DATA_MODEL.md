@@ -194,6 +194,12 @@ revision before inspecting every server item page, rejects current owned items a
 then checks that revision in its transaction. Concurrent incoming assignments invalidate that inspection.
 Collection-wide emptiness is enforced by the application, not a query inside Security Rules.
 
+Permanent deletion uses existing fields: a revision-checked ready trash item with all photos ready moves
+to `recordState: deleting`. Keep its cover, photo paths, and historical fields intact. It cannot be edited
+or restored while cleanup is in progress. The document is removed only after exact-prefix file cleanup
+and an empty-prefix check. Photo-free trash follows the same marker protocol. Separate capture discard
+markers have `deletedAt: null`; permanent-deletion markers retain their trash timestamp.
+
 An import is a dedicated operation: preserve exported historical creation/completion/deletion times,
 set a new server `updatedAt`, and start the destination revision at 1. Rules must distinguish allowed
 creation of historical timestamps from ordinary immutable `createdAt` updates; do not relax ownership

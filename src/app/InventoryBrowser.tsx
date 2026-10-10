@@ -31,6 +31,7 @@ export function InventoryBrowser({
   metadataReady,
   browseLocation,
   setDefaultCurrency,
+  requestDeletion,
 }: {
   items: Item[];
   rooms: Room[];
@@ -46,6 +47,7 @@ export function InventoryBrowser({
   metadataReady: boolean;
   browseLocation: string | undefined;
   setDefaultCurrency: (currency: string) => Promise<void>;
+  requestDeletion: (item: Item) => void;
 }) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [grid, setGrid] = useState(true);
@@ -164,6 +166,7 @@ export function InventoryBrowser({
               inventoryId={inventoryId}
               defaultCurrency={defaultCurrency}
               setDefaultCurrency={setDefaultCurrency}
+              requestDeletion={requestDeletion}
               signal={signal}
               reload={reload}
               next={() => {

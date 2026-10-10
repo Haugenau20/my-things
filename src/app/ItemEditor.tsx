@@ -37,6 +37,7 @@ export function ItemEditor({
   reload,
   next,
   setDefaultCurrency,
+  requestDeletion,
 }: {
   item: Item;
   rooms: Room[];
@@ -48,6 +49,7 @@ export function ItemEditor({
   reload: () => Promise<void>;
   next: () => void;
   setDefaultCurrency: (currency: string) => Promise<void>;
+  requestDeletion: (item: Item) => void;
 }) {
   const [base, setBase] = useState(item);
   const [form, setForm] = useState(() => fields(item, defaultCurrency));
@@ -153,15 +155,24 @@ export function ItemEditor({
         </p>
       )}
       {base.deletedAt !== null ? (
-        <button
-          className="secondary-button"
-          disabled={busy}
-          onClick={() =>
-            void save({ kind: 'restore' }, 'Restored; the previous moving outcome is preserved')
-          }
-        >
-          Restore item
-        </button>
+        <div className="save-actions">
+          <button
+            className="secondary-button"
+            disabled={busy}
+            onClick={() =>
+              void save({ kind: 'restore' }, 'Restored; the previous moving outcome is preserved')
+            }
+          >
+            Restore item
+          </button>
+          <button
+            className="text-button"
+            disabled={busy || pending}
+            onClick={() => requestDeletion(base)}
+          >
+            Delete permanently
+          </button>
+        </div>
       ) : (
         <>
           <form onSubmit={details}>
