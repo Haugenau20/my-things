@@ -86,8 +86,11 @@ the inventory root, using Firestore access from Storage rules. Deny missing inve
 owner checks to reads, metadata reads, writes, deletion, and path-scoped listings; listing permissions
 must not expose other inventory namespaces.
 
-Constrain uploaded file names, JPEG content type, and size according to the photo specification. Handle
-object deletion in its own rule branch: a delete has no incoming file whose size/content type can be
+Constrain uploaded file names, JPEG content type, and size according to the photo specification. Treat
+an absent custom-metadata map as equivalent to an empty map; cloud requests may omit it. Unexpected
+custom metadata remains denied. See [photo upload investigation](PHOTO_UPLOAD_FIX.md) for cloud
+Rules API regression evidence and the separate provider-generated token audit limitation.
+Handle object deletion in its own rule branch: a delete has no incoming file whose size/content type can be
 validated. Wrong paths, unexpected variants, HTML/SVG uploads, and oversized files must fail.
 
 Firestore-dependent Storage rules require cross-service permission setup. Confirm the documented service

@@ -33,6 +33,12 @@ Also test missing roots, manipulated inventory IDs, malicious owner-field update
 unexpected fields, unsupported schema versions, invalid revisions, wrong file extensions/content types,
 oversized uploads, metadata-only changes, and storage deletion with no incoming resource.
 
+For Storage releases, separately run the explicit synthetic cloud Rules API check documented in
+[Setup](SETUP.md) and [photo upload investigation](PHOTO_UPLOAD_FIX.md). It covers an absent optional
+custom-metadata map, which the emulator normalizes to an empty map. Mocked evaluation does not establish
+actual authenticated uploads or provider-generated download-token behavior; those still require the
+authorized owner/device checks.
+
 Run direct SDK/HTTP requests, not only UI navigation tests. A route guard passing says nothing about data
 protection. Verify that deleting/renaming a frontend route does not affect backend authorization.
 

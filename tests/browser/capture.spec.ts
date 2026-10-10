@@ -224,6 +224,7 @@ test('an interrupted upload stays unfinished and can be explicitly discarded aft
   await page.getByLabel('Choose photos').setInputFiles(await image(page));
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Capture is unfinished' })).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('storage/unauthorized');
   await expect(page.getByLabel('Item name')).toHaveValue('Synthetic interrupted capture');
   await page.unrouteAll();
   await page.reload();

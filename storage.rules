@@ -37,7 +37,8 @@ service firebase.storage {
         && request.resource.contentType == 'image/jpeg'
         && request.resource.size > 0
         && request.resource.size <= (variant == 'detail.jpg' ? 8388608 : 524288)
-        && request.resource.metadata.keys().hasOnly([]);
+        // Cloud uploads can omit this optional map; the emulator supplies an empty map.
+        && (!('metadata' in request.resource) || request.resource.metadata.keys().hasOnly([]));
       // Verified retries reuse existing bytes; replacements require a new photo ID.
       allow update: if false;
       // Deletes have no incoming resource to validate.

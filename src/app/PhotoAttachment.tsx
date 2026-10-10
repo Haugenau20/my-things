@@ -7,6 +7,7 @@ import type { PreparedPhoto } from '../media/processing';
 import { preparePhoto } from '../media/processing';
 import { attachFirstPhotos } from '../media/capture';
 import { PhotoInputs } from './PhotoInputs';
+import { captureFailureDetail } from '../media/capture-errors';
 
 export function PhotoAttachment({
   item,
@@ -87,7 +88,7 @@ export function PhotoAttachment({
         setStatus('');
         setError(
           attempt.current
-            ? 'Photo upload is unfinished. Your item remains saved. Retry these photos, or return to the gallery to recover or cancel the attachment.'
+            ? `${captureFailureDetail(failure)} Photo upload is unfinished. Your item remains saved. Retry these photos, or return to the gallery to recover or cancel the attachment.`.trim()
             : failure instanceof Error
               ? failure.message
               : 'Could not prepare these photos.',
