@@ -247,3 +247,7 @@ The schema cutover must be coordinated with the reviewed pipeline because v2 rul
 ### 2026-10-11 — Desktop capture details
 
 The approved PR-07 handoff permits optional details during desktop capture. Creation now validates existing metadata fields using the same limits as edits; stable retries compare those fields to prevent a changed payload reusing an item ID. No schema bump or further production maintenance is needed. The mounted shared panel retains drafts while closed, defaults to the selected active Room facet or last session room, and keeps the existing locked upload/recovery process.
+
+### 2026-10-11 — Phone browse navigation
+
+The approved ≤850px layout replaces the interim top menu with Things/Review/More bottom tabs. More provides overview, locations, Trash, backup/settings and sign-out. Native modal dialog sheets keep filter choices reachable outside the horizontal chip strip, with the same shared counts as desktop. Phone browsing uses a flat two-column square grid while retaining desktop grouping/table choices for the wider layout; full-view return retains filters and scroll. Actual Safari/Home Screen acceptance remains manual.

@@ -132,6 +132,9 @@ export function InventoryBrowser({
     (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis() || a.id.localeCompare(b.id),
   );
   const groups = groupVisibleItems(visible, grouping, rooms, boxes);
+  const renderedGroups: ItemGroup[] = narrow
+    ? [{ key: 'phone-items', label: '', items: visible }]
+    : groups;
   useEffect(() => {
     selectionAnchor.current = undefined;
   }, [filters, workspaceView, browseLocation]);
@@ -150,9 +153,10 @@ export function InventoryBrowser({
         ? (boxes.find((box) => box.id === item.boxId)?.label ?? 'Unavailable box')
         : 'Not packed';
   function toggle(id: string, checked: boolean, shift = false) {
-    const order = grid
-      ? groups.flatMap((group) => group.items.map((item) => item.id))
-      : visible.map((item) => item.id);
+    const order =
+      grid && !narrow
+        ? groups.flatMap((group) => group.items.map((item) => item.id))
+        : visible.map((item) => item.id);
     const anchor = selectionAnchor.current;
     setSelection((current) => clickSelection(current, id, checked, anchor, order, shift));
     if (!shift || !order.includes(selectionAnchor.current ?? '')) selectionAnchor.current = id;
@@ -276,7 +280,7 @@ export function InventoryBrowser({
             : 'gallery-panel'
       }
       aria-label="Saved inventory"
-      style={{ paddingBottom: bulkHeight ? bulkHeight + 48 : undefined }}
+      style={{ paddingBottom: bulkHeight ? bulkHeight + (narrow ? 128 : 48) : undefined }}
     >
       {announcement && <p role="status">{announcement}</p>}
       {capturePanel}
@@ -308,10 +312,21 @@ export function InventoryBrowser({
         />
         <div className="gallery-heading">
           <div className="gallery-title">
-            <h2>{selectionTitle(filters, rooms, boxes)}</h2>
+            <h2>
+              {narrow
+                ? workspaceView === 'things'
+                  ? 'Your things'
+                  : workspaceView === 'review'
+                    ? 'Review inbox'
+                    : 'Trash'
+                : selectionTitle(filters, rooms, boxes)}
+            </h2>
             <span>
               {visible.length} things in{' '}
               {new Set(visible.map((item) => item.roomId).filter(Boolean)).size} rooms
+              {narrow && (filters.room || filters.box)
+                ? ' · ' + selectionTitle(filters, rooms, boxes)
+                : ''}
               {metadataReady ? '' : ' · refreshing metadata'}
             </span>
           </div>
@@ -406,15 +421,15 @@ export function InventoryBrowser({
             <p>Your saved things will appear here.</p>
           </div>
         )}
-        {grid ? (
+        {grid || narrow ? (
           <div className="grouped-gallery">
-            {groups.map((group) => (
+            {renderedGroups.map((group) => (
               <section
                 className="item-group"
                 key={group.key}
                 aria-label={group.label || 'All things'}
               >
-                {grouping !== 'none' && (
+                {!narrow && grouping !== 'none' && (
                   <div className="group-heading">
                     <h3 className={group.room !== undefined ? 'room-tag' : 'box-tag'}>
                       {group.label}
@@ -449,7 +464,7 @@ export function InventoryBrowser({
                       item={item}
                       rooms={rooms}
                       boxes={boxes}
-                      grouping={grouping}
+                      grouping={narrow ? (filters.room ? 'room' : 'box') : grouping}
                       session={session}
                       checked={selection.has(item.id)}
                       selecting={selection.size > 0}

@@ -218,7 +218,14 @@ test('phone-width editing and currency defaults preserve existing amounts', asyn
     true,
   );
   await page.screenshot({ path: test.info().outputPath('organize-phone.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Phone inventory views' })
+    .getByRole('button', { name: 'More', exact: true })
+    .click();
+  await page
+    .getByRole('dialog', { name: 'More views' })
+    .getByRole('button', { name: 'Backup & settings', exact: true })
+    .click();
   await page.getByText('Inventory settings', { exact: true }).click();
   await page.getByLabel('Default value currency').selectOption('JPY');
   await page.getByRole('button', { name: 'Save settings', exact: true }).click();
