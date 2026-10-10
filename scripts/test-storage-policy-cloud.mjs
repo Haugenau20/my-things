@@ -23,7 +23,7 @@ const functionMocks = [
   {
     function: 'firestore.get',
     args: [{ exactValue: root }],
-    result: { value: { data: { schemaVersion: 1, ownerUid: 'synthetic-owner' } } },
+    result: { value: { data: { schemaVersion: 2, ownerUid: 'synthetic-owner' } } },
   },
   {
     function: 'firestore.get',

@@ -375,9 +375,9 @@ describe('real client SDK and trusted synthetic seed', () => {
     const room = await createRoom(services.db, 'main', 'Synthetic study', 0);
     const plan = await attempt('sdk-room');
     plan.input = { ...plan.input, roomId: room.id };
-    expect(captureDraft(plan.input, Timestamp.now()).originalRoomId).toBe(room.id);
+    expect(captureDraft(plan.input, Timestamp.now()).roomId).toBe(room.id);
     const saved = await saveAttempt(services, 'main', plan, new AbortController().signal, () => {});
-    expect(saved.currentLocation).toEqual({ kind: 'room', roomId: room.id });
+    expect(saved.roomId).toBe(room.id);
     await signInWithEmailAndPassword(
       services.auth,
       LOCAL_ACCOUNTS.unrelated.email,
@@ -427,7 +427,7 @@ describe('real client SDK and trusted synthetic seed', () => {
       services.db,
       'main',
       [records[0]!, ...records.slice(1, 10)],
-      { kind: 'move', location: { kind: 'box', boxId: box.id } },
+      { kind: 'pack', boxId: box.id },
     );
     expect(bulk.filter((result) => result.status === 'saved')).toHaveLength(9);
     expect(bulk[0]?.status).toBe('conflict');
@@ -450,8 +450,8 @@ describe('real client SDK and trusted synthetic seed', () => {
         kind: 'progress',
         progress: 'completed',
       });
-      expect(completed.currentLocation).toEqual({ kind: 'unassigned' });
-      expect(completed.originalRoomId).toBe(room.id);
+      expect(completed.boxId).toBeNull();
+      expect(completed.roomId).toBe(room.id);
       const trashed = await organizeRepository.editItem(services.db, 'main', completed, {
         kind: 'trash',
       });
@@ -465,52 +465,78 @@ describe('real client SDK and trusted synthetic seed', () => {
       record.id.startsWith('organize-'),
     );
     expect(all).toHaveLength(20);
-    expect(all.filter((record) => record.currentLocation.kind === 'box')).toHaveLength(7);
+    expect(all.filter((record) => record.boxId !== null)).toHaveLength(7);
     expect(all.every((record) => record.reviewStatus === 'needs_review')).toBe(true);
     const empty = await organizeRepository.createBox(services.db, 'main', 'Empty', 1);
     await organizeRepository.archiveLocation(services.db, 'main', 'box', empty.id);
     await expect(
       organizeRepository.editItem(services.db, 'main', patched, {
-        kind: 'move',
-        location: { kind: 'box', boxId: empty.id },
+        kind: 'pack',
+        boxId: empty.id,
       }),
     ).rejects.toThrow(/archived/);
   });
-  it('detects a capture racing location archiving and preserves restored location history', async () => {
-    const services = await owner('archive-race');
-    const room = await createRoom(services.db, 'main', 'Synthetic race room', 2);
-    const originalLoad = captureRepository.loadItems;
-    const spy = vi.spyOn(captureRepository, 'loadItems').mockImplementationOnce(async (...args) => {
-      const snapshot = await originalLoad(...args);
-      await ensureDraft(services.db, 'main', 'archive-racer', {
-        name: 'Synthetic concurrent capture',
+  it('archives referenced room tags and restores trash without requiring room reactivation', async () => {
+    const services = await owner('archived-room-tag');
+    const room = await createRoom(services.db, 'main', 'Synthetic archived room', 2);
+    const current = await ensureDraft(services.db, 'main', 'archived-room-item', {
+      name: 'Synthetic tagged item',
+      roomId: room.id,
+      photos: [],
+      reviewStatus: 'needs_review',
+    });
+    await organizeRepository.archiveLocation(services.db, 'main', 'room', room.id);
+    const saved = (await captureRepository.loadItem(services.db, 'main', current.id))!;
+    expect(saved.roomId).toBe(room.id);
+    const trashed = await organizeRepository.editItem(services.db, 'main', saved, {
+      kind: 'trash',
+    });
+    const restored = await organizeRepository.editItem(services.db, 'main', trashed, {
+      kind: 'restore',
+    });
+    expect(restored).toMatchObject({ roomId: room.id, boxId: null, deletedAt: null });
+    await expect(
+      ensureDraft(services.db, 'main', 'archived-room-rejected', {
+        name: 'Synthetic invalid capture',
         roomId: room.id,
         photos: [],
         reviewStatus: 'needs_review',
-      });
+      }),
+    ).rejects.toThrow(/available/);
+  });
+  it('detects packing racing box archive and requires box reactivation before restoring its retained contents', async () => {
+    const services = await owner('box-archive-race');
+    const box = await organizeRepository.createBox(services.db, 'main', 'Synthetic race box', 3);
+    const item = await ensureDraft(services.db, 'main', 'box-archive-racer', {
+      name: 'Synthetic race item',
+      roomId: null,
+      photos: [],
+      reviewStatus: 'needs_review',
+    });
+    const originalLoad = captureRepository.loadItems;
+    const spy = vi.spyOn(captureRepository, 'loadItems').mockImplementationOnce(async (...args) => {
+      const snapshot = await originalLoad(...args);
+      await organizeRepository.editItem(services.db, 'main', item, { kind: 'pack', boxId: box.id });
       return snapshot;
     });
     try {
       await expect(
-        organizeRepository.archiveLocation(services.db, 'main', 'room', room.id),
+        organizeRepository.archiveLocation(services.db, 'main', 'box', box.id),
       ).rejects.toThrow(/changed elsewhere/);
     } finally {
       spy.mockRestore();
     }
-    const current = (await captureRepository.loadItem(services.db, 'main', 'archive-racer'))!;
-    const trashed = await organizeRepository.editItem(services.db, 'main', current, {
-      kind: 'trash',
-    });
-    await organizeRepository.archiveLocation(services.db, 'main', 'room', room.id);
+    const packed = (await captureRepository.loadItem(services.db, 'main', item.id))!;
+    const trash = await organizeRepository.editItem(services.db, 'main', packed, { kind: 'trash' });
+    await organizeRepository.archiveLocation(services.db, 'main', 'box', box.id);
     await expect(
-      organizeRepository.editItem(services.db, 'main', trashed, { kind: 'restore' }),
+      organizeRepository.editItem(services.db, 'main', trash, { kind: 'restore' }),
     ).rejects.toThrow(/Reactivate/);
-    await organizeRepository.reactivateLocation(services.db, 'main', 'room', room.id);
-    const restored = await organizeRepository.editItem(services.db, 'main', trashed, {
+    await organizeRepository.reactivateLocation(services.db, 'main', 'box', box.id);
+    const restored = await organizeRepository.editItem(services.db, 'main', trash, {
       kind: 'restore',
     });
-    expect(restored.currentLocation).toEqual({ kind: 'room', roomId: room.id });
-    expect(restored.originalRoomId).toBe(room.id);
+    expect(restored.boxId).toBe(box.id);
   });
   it('loads and searches metadata beyond a 250-document server page', async () => {
     const services = await owner('m2-paging');
@@ -710,7 +736,7 @@ describe('real client SDK and trusted synthetic seed', () => {
     const signal = new AbortController().signal;
     await environment.withSecurityRulesDisabled(async (context) => {
       await context.firestore().doc(`inventories/${inventory}`).set({
-        schemaVersion: 1,
+        schemaVersion: 2,
         ownerUid: LOCAL_ACCOUNTS.owner.uid,
         displayName: 'Synthetic export inventory',
         defaultCurrency: null,
@@ -765,8 +791,8 @@ describe('real client SDK and trusted synthetic seed', () => {
       },
     });
     await organizeRepository.editItem(services.db, inventory, valued, {
-      kind: 'move',
-      location: { kind: 'box', boxId: box.id },
+      kind: 'pack',
+      boxId: box.id,
     });
     const sold = await ensureDraft(services.db, inventory, 'export-sold', {
       name: 'Synthetic sold item',
@@ -798,16 +824,16 @@ describe('real client SDK and trusted synthetic seed', () => {
     expect(manifest.counts).toEqual({ items: 4, rooms: 2, boxes: 1, photos: 1, photoFiles: 2 });
     const records = JSON.parse(new TextDecoder().decode(payload['items.json'])) as {
       id: string;
-      originalRoomId: string | null;
-      currentLocation: { kind: string };
+      roomId: string | null;
+      boxId: string | null;
       quantity: number;
       deletedAt: unknown;
       completedAt: unknown;
     }[];
     expect(records.find((item) => item.id === grouped.id)).toMatchObject({
       quantity: 7,
-      originalRoomId: room.id,
-      currentLocation: { kind: 'box' },
+      roomId: room.id,
+      boxId: box.id,
     });
     expect(records.find((item) => item.id === sold.id)?.completedAt).not.toBeNull();
     expect(records.find((item) => item.id === trash.id)?.deletedAt).not.toBeNull();
@@ -833,7 +859,7 @@ describe('real client SDK and trusted synthetic seed', () => {
       await context
         .firestore()
         .doc('inventories/main')
-        .set({ schemaVersion: 1, ownerUid: 'different-synthetic-owner' });
+        .set({ schemaVersion: 2, ownerUid: 'different-synthetic-owner' });
     });
     await expect(seedLocal(validateConfig(env))).rejects.toThrow();
   });

@@ -187,9 +187,9 @@ export function RestorePanel({
               items in trash.
             </p>
             <p>
-              Source inventory: {archive.snapshot.inventoryId}. IDs, original rooms, quantities,
-              values and historical timestamps will be preserved. Destination revision counters
-              restart and update times record the import.
+              Source inventory: {archive.snapshot.inventoryId}. IDs, room tags, packing boxes,
+              quantities, values and historical timestamps will be preserved. Destination revision
+              counters restart and update times record the import.
             </p>
             {eligible && (
               <>

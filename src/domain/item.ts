@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 import { z } from 'zod';
-import { ID_PATTERN } from '../data/config';
-import { CURRENCIES } from './currency';
+import { ID_PATTERN } from '../data/config.ts';
+import { CURRENCIES } from './currency.ts';
 
 export const idSchema = z.string().regex(ID_PATTERN);
 // Keep full metadata validation within the Firestore rules expression budget (D10).
@@ -14,11 +14,6 @@ const text = (length: number) =>
     .refine((value) => value === value.trim());
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const time = z.instanceof(Timestamp);
-export const locationSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('unassigned') }),
-  z.strictObject({ kind: z.literal('room'), roomId: idSchema }),
-  z.strictObject({ kind: z.literal('box'), boxId: idSchema }),
-]);
 const fileSchema = (edge: number, bytes: number) =>
   z.strictObject({
     storagePath: z
@@ -42,7 +37,7 @@ export type Photo = z.infer<typeof photoSchema>;
 export type PhotoFile = Photo['detail'];
 export const itemSchema = z
   .strictObject({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     revision: integer.min(1),
     name: text(200),
     quantity: integer.min(1).max(100000),
@@ -55,8 +50,8 @@ export const itemSchema = z
     serialNumber: z.string().max(200).nullable(),
     notes: z.string().max(10000),
     category: z.string().max(100).nullable(),
-    originalRoomId: idSchema.nullable(),
-    currentLocation: locationSchema,
+    roomId: idSchema.nullable(),
+    boxId: idSchema.nullable(),
     reviewStatus: z.enum(['needs_review', 'reviewed']),
     decision: z.enum(['undecided', 'store', 'take', 'sell', 'give_away']),
     progress: z.enum(['not_started', 'in_progress', 'completed']),
@@ -79,9 +74,9 @@ export const itemSchema = z
     if (
       ['sell', 'give_away'].includes(item.decision) &&
       item.progress === 'completed' &&
-      item.currentLocation.kind !== 'unassigned'
+      item.boxId !== null
     )
-      issue('Disposed item has a location');
+      issue('Gone item cannot be packed');
     if (item.recordState === 'ready') {
       const ready = item.photos.filter((photo) => photo.state === 'ready');
       if (
@@ -97,7 +92,7 @@ export const itemSchema = z
 export type ItemDocument = z.infer<typeof itemSchema>;
 export type Item = ItemDocument & { id: string };
 export const roomSchema = z.strictObject({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   name: text(100),
   sortOrder: integer.max(100000),
   revision: integer.min(1),
@@ -127,7 +122,7 @@ export function captureDraft(input: CaptureInput, timestamp: Timestamp): ItemDoc
   if (value.photos.some((photo) => photo.state !== 'pending'))
     throw new Error('New capture requires pending photos');
   return itemSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: 1,
     name: value.name,
     quantity: 1,
@@ -135,8 +130,8 @@ export function captureDraft(input: CaptureInput, timestamp: Timestamp): ItemDoc
     serialNumber: null,
     notes: '',
     category: null,
-    originalRoomId: value.roomId,
-    currentLocation: value.roomId ? { kind: 'room', roomId: value.roomId } : { kind: 'unassigned' },
+    roomId: value.roomId,
+    boxId: null,
     reviewStatus: value.reviewStatus,
     decision: 'undecided',
     progress: 'not_started',
@@ -152,6 +147,8 @@ export function captureDraft(input: CaptureInput, timestamp: Timestamp): ItemDoc
 export function parseItem(value: unknown, inventory: string, id: string): ItemDocument {
   idSchema.parse(inventory);
   idSchema.parse(id);
+  if (value && typeof value === 'object' && 'schemaVersion' in value && value.schemaVersion !== 2)
+    throw new Error('Unsupported item schema. This app requires schema v2; v1 data must be reset.');
   const item = itemSchema.parse(value);
   for (const photo of item.photos) {
     if (

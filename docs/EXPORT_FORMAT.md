@@ -1,18 +1,18 @@
 # Portable export and restore contract
 
-Format: `home-inventory-export` | Format version: 1 | Status: export, validation and resumable restore implemented; real cloud recovery gate pending
+Format: `home-inventory-export` | Format version: 2 | Status: export, validation and resumable restore implemented; real cloud recovery gate pending
 
 ## 1. Scope
 
 A complete export includes all ready item records, including completed sales/donations and trash, all room
 and box records needed to preserve labels, inventory display settings, and both JPEG derivatives of every
-retained ready photo. Keep original room references and grouped quantities. It is not an export of account
+retained ready photo. Keep independent room and box references and grouped quantities. It is not an export of account
 authorization, Google/Firebase tokens, or cloud infrastructure.
 
 Photo-free ready items are included with `photos: []` and `coverPhotoId: null`, zero photo files,
 and an empty CSV cover path. Intentional photo absence is valid, not a missing-file or incomplete-backup
 condition. Pending photo attachments still block a complete export. Restore photo-free records without
-inventing a placeholder file. Existing schema/format versions and photo-bearing records remain compatible.
+inventing a placeholder file. Only schema/format v2 is supported. V1 documents and archives are explicitly rejected.
 
 Preflight must find and resolve drafts, pending photo additions/deletions, and item deletion operations.
 Offer retry or explicit discard, not silent exclusion. A complete export is blocked while those operations
@@ -60,8 +60,8 @@ size, dimensions, content type, and SHA-256. Restore derives new destination sto
 | Field | Meaning |
 | --- | --- |
 | `format` | Literal `home-inventory-export` |
-| `formatVersion` | Integer 1 |
-| `dataSchemaVersion` | Integer 1 |
+| `formatVersion` | Integer 2 |
+| `dataSchemaVersion` | Integer 2 |
 | `exportId` | Unique opaque ID for this export |
 | `createdAt` | UTC ISO 8601 export timestamp |
 | `complete` | True only after all preflight, file, and count checks pass |
@@ -96,7 +96,7 @@ were saved. Do not imply that saving only the metadata ZIP is a complete backup.
 ## 4. CSV for ordinary inspection
 
 Include one row per item with stable IDs, name, quantity, total estimated value and currency, serial
-number, notes/category, original-room ID/name, current-location kind/ID/label, review/decision/progress,
+number, notes/category, room ID/name, derived box state, box ID/label, review/decision/progress,
 creation/completion/deletion times, cover photo relative path, and photo count. Keep leading-zero serials
 as text where possible and document spreadsheet-import behavior.
 
@@ -105,12 +105,12 @@ formulas. Preserve exact source values in JSON so CSV presentation safeguards do
 
 ## 5. Restore behavior
 
-V1 restore targets an empty, already authorized inventory in the selected environment. The destination
+V2 restore targets an empty, already authorized inventory in the selected environment. The destination
 root already exists and retains its own owner binding. Do not accept arbitrary project/bucket paths from
 an archive and do not import authorization policy. Refuse a nonempty destination rather than merge or
 wipe it. Importing an archive is an explicit operation, never a side effect of opening a file.
 
-1. Validate manifest version, archive membership, all JSON schemas, unique IDs, location references, photo
+1. Validate manifest version, archive membership, all JSON schemas, unique IDs, room/box references, photo
    references, allowed paths/content types, counts, uncompressed sizes, and every payload checksum.
 2. Show a dry-run summary and explicit destination/environment. No cloud writes before validation and
    confirmation. Reject unsupported future versions; never guess and drop fields.

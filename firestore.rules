@@ -6,7 +6,7 @@ service cloud.firestore {
       return request.auth != null
         && inventoryId.matches('[A-Za-z0-9_-]{1,128}')
         && policy.keys().hasAll(['schemaVersion', 'ownerUid'])
-        && policy.schemaVersion == 1
+        && policy.schemaVersion == 2
         && policy.ownerUid is string
         && policy.ownerUid == request.auth.uid;
     }
@@ -48,21 +48,19 @@ service cloud.firestore {
         && slot(data,0,inventoryId,itemId,state) && slot(data,1,inventoryId,itemId,state);
     }
     function location(data, inventoryId) {
-      return data.currentLocation is map
-        && ((data.currentLocation.keys().hasOnly(['kind']) && data.currentLocation.kind == 'unassigned' && data.originalRoomId == null)
-          || (data.currentLocation.keys().hasOnly(['kind','roomId']) && data.currentLocation.kind == 'room'
-            && id(data.currentLocation.roomId) && data.originalRoomId == data.currentLocation.roomId
-            && assignment(inventoryId,'rooms',data.currentLocation.roomId)));
+      return data.boxId == null && (data.roomId == null ||
+        (id(data.roomId) && assignment(inventoryId,'rooms',data.roomId)));
     }
     function assignment(inventoryId, collection, locationId) {
       let before = get(/databases/$(database)/documents/inventories/$(inventoryId)/$(collection)/$(locationId)).data;
       let after = getAfter(/databases/$(database)/documents/inventories/$(inventoryId)/$(collection)/$(locationId)).data;
-      return before.archivedAt == null && after.archivedAt == null && after.revision == before.revision + 1;
+      return before.schemaVersion == 2 && after.schemaVersion == 2
+        && before.archivedAt == null && after.archivedAt == null && after.revision == before.revision + 1;
     }
     function newCapture(data, inventoryId, itemId) {
       return id(itemId) && data.keys().hasOnly(['schemaVersion','revision','name','quantity','estimatedValue','serialNumber','notes','category',
-        'originalRoomId','currentLocation','reviewStatus','decision','progress','completedAt','recordState','coverPhotoId','photos','createdAt','updatedAt','deletedAt'])
-        && data.schemaVersion == 1 && data.revision == 1 && data.name is string
+        'roomId','boxId','reviewStatus','decision','progress','completedAt','recordState','coverPhotoId','photos','createdAt','updatedAt','deletedAt'])
+        && data.schemaVersion == 2 && data.revision == 1 && data.name is string
         && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
         && data.quantity == 1 && data.estimatedValue == null && data.serialNumber == null && data.notes == '' && data.category == null
         && data.reviewStatus in ['needs_review','reviewed'] && data.decision == 'undecided' && data.progress == 'not_started'
@@ -104,7 +102,7 @@ service cloud.firestore {
     }
     function newRoom(data, roomId) {
       return id(roomId) && data.keys().hasOnly(['schemaVersion','name','sortOrder','revision','createdAt','updatedAt','archivedAt'])
-        && data.schemaVersion == 1 && data.name is string && data.name.size() > 0 && data.name.size() <= 100 && data.name.matches('.*[^\\s].*')
+        && data.schemaVersion == 2 && data.name is string && data.name.size() > 0 && data.name.size() <= 100 && data.name.matches('.*[^\\s].*')
         && data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 100000 && data.revision == 1
         && data.createdAt == request.time && data.updatedAt == request.time && data.archivedAt == null;
     }
@@ -123,15 +121,11 @@ service cloud.firestore {
         && data.recordState == 'deleting' && data.diff(resource.data).affectedKeys().hasOnly(['recordState','revision','updatedAt']);
     }
     function editedLocation(data, inventoryId) {
-      let loc = data.currentLocation;
-      return loc is map && ((loc.keys().hasOnly(['kind']) && loc.kind == 'unassigned')
-        || (loc.keys().hasOnly(['kind','roomId']) && loc.kind == 'room' && id(loc.roomId)
-          && ((loc == resource.data.currentLocation && !(resource.data.deletedAt != null && data.deletedAt == null)) || assignment(inventoryId,'rooms',loc.roomId)))
-        || (loc.keys().hasOnly(['kind','boxId']) && loc.kind == 'box' && id(loc.boxId)
-          && ((loc == resource.data.currentLocation && !(resource.data.deletedAt != null && data.deletedAt == null)) || assignment(inventoryId,'boxes',loc.boxId))))
-        && (data.originalRoomId == null || (id(data.originalRoomId)
-          && (data.originalRoomId == resource.data.originalRoomId || exists(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(data.originalRoomId)))))
-        && (loc == resource.data.currentLocation || loc.kind != 'room' || resource.data.originalRoomId != null || data.originalRoomId == loc.roomId);
+      return (data.roomId == null || (id(data.roomId) &&
+          (data.roomId == resource.data.roomId || assignment(inventoryId,'rooms',data.roomId))))
+        && (data.boxId == null || (id(data.boxId) &&
+          ((data.boxId == resource.data.boxId && !(resource.data.deletedAt != null && data.deletedAt == null))
+            || assignment(inventoryId,'boxes',data.boxId))));
     }
     function workflow(data) {
       let before = resource.data;
@@ -140,13 +134,13 @@ service cloud.firestore {
         && (data.progress == 'completed' ? (data.completedAt is timestamp &&
           (before.progress == 'completed' && before.decision == data.decision ? data.completedAt == before.completedAt : data.completedAt == request.time)) : data.completedAt == null)
         && (data.decision == before.decision || data.progress == 'not_started')
-        && (!(data.decision in ['sell','give_away']) || data.progress != 'completed' || data.currentLocation.kind == 'unassigned');
+        && (!(data.decision in ['sell','give_away']) || data.progress != 'completed' || data.boxId == null);
     }
     function metadataEdit(data, inventoryId) {
       let before = resource.data;
       let changed = data.diff(before).affectedKeys();
-      return before.recordState == 'ready' && readyPhotos(before) && data.schemaVersion == 1
-        && changed.hasOnly(['revision','updatedAt','name','quantity','estimatedValue','serialNumber','notes','category','originalRoomId','currentLocation','reviewStatus','decision','progress','completedAt','deletedAt'])
+      return before.recordState == 'ready' && readyPhotos(before) && data.schemaVersion == 2
+        && changed.hasOnly(['revision','updatedAt','name','quantity','estimatedValue','serialNumber','notes','category','roomId','boxId','reviewStatus','decision','progress','completedAt','deletedAt'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
         && data.quantity is int && data.quantity >= 1 && data.quantity <= 100000 && money(data.estimatedValue)
         && (data.serialNumber == null || (data.serialNumber is string && data.serialNumber.size() <= 200))
@@ -156,7 +150,7 @@ service cloud.firestore {
           && (before.deletedAt == null ? data.deletedAt == request.time : data.deletedAt == null)) : before.deletedAt == null);
     }
     function validLocationRecord(data, box) {
-      return data.schemaVersion == 1 && (box ? data.keys().hasOnly(['schemaVersion','label','sortOrder','revision','notes','createdAt','updatedAt','archivedAt'])
+      return data.schemaVersion == 2 && (box ? data.keys().hasOnly(['schemaVersion','label','sortOrder','revision','notes','createdAt','updatedAt','archivedAt'])
           && data.label is string && data.label.size() > 0 && data.label.size() <= 100 && data.label.matches('.*[^\\s].*')
           && data.notes is string && data.notes.size() <= 10000
         : data.keys().hasOnly(['schemaVersion','name','sortOrder','revision','createdAt','updatedAt','archivedAt'])
@@ -192,21 +186,17 @@ service cloud.firestore {
         && (data.archivedAt == null || data.archivedAt is timestamp);
     }
     function historicalLocation(data, inventoryId) {
-      let loc = data.currentLocation;
-      return loc is map && ((loc.keys().hasOnly(['kind']) && loc.kind == 'unassigned')
-        || (loc.keys().hasOnly(['kind','roomId']) && loc.kind == 'room' && id(loc.roomId)
-          && exists(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(loc.roomId)))
-        || (loc.keys().hasOnly(['kind','boxId']) && loc.kind == 'box' && id(loc.boxId)
-          && exists(/databases/$(database)/documents/inventories/$(inventoryId)/boxes/$(loc.boxId))))
-        && (data.originalRoomId == null || (id(data.originalRoomId)
-          && exists(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(data.originalRoomId))));
+      return (data.roomId == null || (id(data.roomId)
+          && exists(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(data.roomId))))
+        && (data.boxId == null || (id(data.boxId)
+          && exists(/databases/$(database)/documents/inventories/$(inventoryId)/boxes/$(data.boxId))));
     }
     function restoredItem(data, inventoryId, itemId) {
       return restoreClaim(inventoryId,'item',itemId) && id(itemId)
         && getAfter(claimPath(inventoryId,'item',itemId)).data.state == 'pending'
         && data.keys().hasOnly(['schemaVersion','revision','name','quantity','estimatedValue','serialNumber','notes','category',
-          'originalRoomId','currentLocation','reviewStatus','decision','progress','completedAt','recordState','coverPhotoId','photos','createdAt','updatedAt','deletedAt'])
-        && data.schemaVersion == 1 && data.revision == 1 && data.createdAt is timestamp && data.updatedAt == request.time
+          'roomId','boxId','reviewStatus','decision','progress','completedAt','recordState','coverPhotoId','photos','createdAt','updatedAt','deletedAt'])
+        && data.schemaVersion == 2 && data.revision == 1 && data.createdAt is timestamp && data.updatedAt == request.time
         && data.name is string && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
         && data.quantity is int && data.quantity >= 1 && data.quantity <= 100000 && money(data.estimatedValue)
         && (data.serialNumber == null || (data.serialNumber is string && data.serialNumber.size() <= 200))
@@ -215,7 +205,7 @@ service cloud.firestore {
         && data.decision in ['undecided','store','take','sell','give_away'] && data.progress in ['not_started','in_progress','completed']
         && (data.decision != 'undecided' || data.progress == 'not_started')
         && (data.progress == 'completed' ? data.completedAt is timestamp : data.completedAt == null)
-        && (!(data.decision in ['sell','give_away']) || data.progress != 'completed' || data.currentLocation.kind == 'unassigned')
+        && (!(data.decision in ['sell','give_away']) || data.progress != 'completed' || data.boxId == null)
         && data.recordState == 'ready' && data.photos == [] && data.coverPhotoId == null && data.deletedAt == null;
     }
     function restoredItemFinal(data, inventoryId, itemId) {
@@ -230,7 +220,7 @@ service cloud.firestore {
     function restoreTotal(data) { return data.counts.items + data.counts.rooms + data.counts.boxes; }
     function validRestore(data) {
       return data.keys().hasOnly(['schemaVersion','revision','operationId','exportId','manifestSha256','state','counts','claimedRecords','completedRecords','createdAt','updatedAt'])
-        && data.schemaVersion == 1 && id(data.operationId) && id(data.exportId) && data.manifestSha256 is string && data.manifestSha256.matches('[a-f0-9]{64}')
+        && data.schemaVersion == 2 && id(data.operationId) && id(data.exportId) && data.manifestSha256 is string && data.manifestSha256.matches('[a-f0-9]{64}')
         && data.counts is map && data.counts.keys().hasOnly(['items','rooms','boxes','photos','photoFiles'])
         && data.counts.items is int && data.counts.items >= 0 && data.counts.items <= 5000
         && data.counts.rooms is int && data.counts.rooms >= 0 && data.counts.rooms <= 5000
@@ -242,7 +232,7 @@ service cloud.firestore {
     }
     function validRestoreClaim(data, recordKey) {
       return data.keys().hasOnly(['schemaVersion','revision','operationId','kind','recordId','recordSha256','state','deletedAt','coverPhotoId','createdAt','updatedAt'])
-        && data.schemaVersion == 1 && id(data.operationId) && data.kind in ['item','room','box'] && id(data.recordId) && recordKey == data.kind + '_' + data.recordId
+        && data.schemaVersion == 2 && id(data.operationId) && data.kind in ['item','room','box'] && id(data.recordId) && recordKey == data.kind + '_' + data.recordId
         && data.recordSha256 is string && data.recordSha256.matches('[a-f0-9]{64}') && data.state in ['pending','verified']
         && (data.deletedAt == null || data.deletedAt is timestamp) && (data.coverPhotoId == null || id(data.coverPhotoId))
         && (data.kind == 'item' || (data.deletedAt == null && data.coverPhotoId == null && data.state == 'verified'))
@@ -280,7 +270,8 @@ service cloud.firestore {
         allow get, list: if owns(inventoryId);
         allow create: if owns(inventoryId) && (unlocked(inventoryId)
           ? newCapture(request.resource.data,inventoryId,itemId) : restoredItem(request.resource.data,inventoryId,itemId));
-        allow update: if owns(inventoryId) && request.resource.data.revision == resource.data.revision + 1
+        allow update: if owns(inventoryId) && resource.data.schemaVersion == 2 && request.resource.data.schemaVersion == 2
+          && request.resource.data.revision == resource.data.revision + 1
           && request.resource.data.updatedAt == request.time
           && request.resource.data.revision <= 9007199254740991
           && (unlocked(inventoryId) ? (request.resource.data.diff(resource.data).affectedKeys().hasAny(['photos','coverPhotoId','recordState'])

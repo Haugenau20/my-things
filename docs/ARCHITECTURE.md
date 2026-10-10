@@ -68,7 +68,7 @@ Store image object paths and derivative metadata in records, never base64 images
 URLs. Obtain photos through authenticated SDK downloads and display temporary browser object URLs. This
 requires bucket CORS configuration; see [References S06](REFERENCES.md#s06).
 
-Current location, original room, review status, moving workflow, record readiness, and trash status are
+Room tags, nullable packing-box references, review status, moving workflow, record readiness, and trash status are
 different concepts. See [Data model](DATA_MODEL.md); do not collapse them into a single `status` field.
 
 ## 4. Search, reads, and updates

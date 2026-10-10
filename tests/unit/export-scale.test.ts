@@ -16,7 +16,7 @@ it('packages a synthetic 2 GiB photo payload into bounded independently named pa
   const source: ExportSnapshot = {
     inventoryId: 'main',
     inventory: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       ownerUid: 'synthetic-owner',
       displayName: 'Synthetic scale',
       defaultCurrency: null,

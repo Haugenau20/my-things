@@ -3,7 +3,6 @@ import { useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Item, Room } from '../domain/item';
 import { isVisible } from '../domain/item';
-import { locationKey } from '../domain/organize';
 import type { Box } from '../domain/organize';
 import { createRoom } from '../data/capture-repository';
 import {
@@ -74,7 +73,7 @@ function LocationRow({
     >
       <legend>
         {title}
-        {value.archivedAt ? ' · archived' : ''} · {count} current owned entries
+        {value.archivedAt ? ' · archived' : ''} · {count} owned entries
       </legend>
       {base.revision !== value.revision && (
         <p role="status">This location changed. Load its latest fields before saving.</p>
@@ -153,7 +152,9 @@ function LocationRow({
       {confirm && (
         <div className="confirmation">
           <p>
-            Archive {title}? Move current owned items out first; historical labels remain readable.
+            Archive {title}?{' '}
+            {kind === 'box' ? 'Unpack owned items first.' : 'Room tags are retained.'} Labels remain
+            readable.
           </p>
           <button className="secondary-button" onClick={() => void perform(true)}>
             Confirm archive
@@ -226,15 +227,19 @@ export function LocationManager({
   }
   const counts = new Map<string, number>();
   for (const item of items.filter(isVisible)) {
-    const key = locationKey(item.currentLocation);
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    for (const key of [
+      item.roomId ? `room:${item.roomId}` : '',
+      item.boxId ? `box:${item.boxId}` : '',
+    ]) {
+      if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
   }
   return (
     <section aria-label="Rooms and boxes" className="location-manager">
       <h2>Rooms and boxes</h2>
       <p className="supporting">
-        Labels can change without moving items. Original room remains separate from current
-        contents. Counts are entries, not summed quantities.
+        Room tags stay independent of packing. Labels can change without rewriting items. Counts are
+        entries, not summed quantities.
       </p>
       <fieldset disabled={busy}>
         <legend>Create locations</legend>

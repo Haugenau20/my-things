@@ -1,6 +1,6 @@
 # Data model
 
-Schema version: 1. Root/item/location contracts are implemented. Restore reports are an additional
+Schema version: 2. Root/item/location contracts are implemented. Restore reports are an additional
 optional operational collection; this addition does not rewrite existing inventory records.
 
 ## 1. Paths and ownership
@@ -26,7 +26,7 @@ IDs during import. Photo hashes are 64 lowercase hexadecimal characters, and dim
 positive integers within the documented limits.
 
 The inventory root is created by a trusted administrator, never by arbitrary authenticated clients.
-It contains `schemaVersion: 1`, `ownerUid`, `displayName`, `defaultCurrency: string | null`, `createdAt`,
+It contains `schemaVersion: 2`, `ownerUid`, `displayName`, `defaultCurrency: string | null`, `createdAt`,
 and `updatedAt`. Clients may update only display name, default currency, and update timestamp. The owner
 binding and schema version are not client-editable. No membership/invitation collection in V1.
 
@@ -37,11 +37,6 @@ IDs come from paths; add `id` in repository objects and exports, not as a second
 
 ```ts
 import type { Timestamp } from "firebase/firestore";
-
-type CurrentLocation =
-  | { kind: "unassigned" }
-  | { kind: "room"; roomId: string }
-  | { kind: "box"; boxId: string };
 
 type Decision = "undecided" | "store" | "take" | "sell" | "give_away";
 type Progress = "not_started" | "in_progress" | "completed";
@@ -68,7 +63,7 @@ type Photo = {
 };
 
 type ItemDocument = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   revision: number;
   name: string;
   quantity: number;
@@ -76,8 +71,8 @@ type ItemDocument = {
   serialNumber: string | null;
   notes: string;
   category: string | null;
-  originalRoomId: string | null;
-  currentLocation: CurrentLocation;
+  roomId: string | null; // persistent room tag
+  boxId: string | null;  // null = not packed (or Gone)
   reviewStatus: "needs_review" | "reviewed";
   decision: Decision;
   progress: Progress;
@@ -91,9 +86,9 @@ type ItemDocument = {
 };
 ```
 
-Create records with explicit defaults: quantity 1, no value/serial/category/original room, empty notes,
-unassigned location, needs-review, undecided/not-started, no completion/deletion timestamp, revision 1.
-Capture-room selection overrides the two room defaults. Prepare derivative metadata before creating a
+Create records with explicit defaults: quantity 1, no value/serial/category/room, empty notes,
+no packing box, needs-review, undecided/not-started, no completion/deletion timestamp, revision 1.
+Capture-room selection sets roomId only. Prepare derivative metadata before creating a
 cloud draft so pending entries contain exact expected paths, sizes, and checksums.
 
 `photos` only contains metadata and is deliberately bounded. If this model later becomes unwieldy,
@@ -107,32 +102,30 @@ plain-text `notes` field defaults to empty. Suggested box labels are B001, B002,
 
 Names/labels can change; IDs cannot. Warn about duplicate labels, but never treat labels as identifiers
 or promise cross-tab uniqueness without implementing it. Archived locations are not new assignment
-choices. Keep their labels available wherever existing references are displayed. A room/box cannot be
-archived through the application while currently assigned owned items remain there.
+choices. Keep their labels available wherever existing references are displayed. A box cannot be
+archived while it holds owned items. Rooms can be archived while tagged items remain; their tags stay
+readable in filters, groups and the overview with an “(archived)” label.
 Archived locations can be explicitly reactivated. Restore of an owned trashed item requires its retained
-physical room/box to be active first; item fields remain unchanged.
+packing box to be active first; item fields remain unchanged.
 
 ## 4. Invariants and transitions
 
 | Operation | Required behavior |
 | --- | --- |
-| First room assignment | Set current room; fill original room only when it is null |
-| Later room move | Change current room only |
-| Pack into box | Set current location to box; preserve original room and workflow |
-| Unpack | Choose a room or unassigned; preserve original room |
-| Correct original room | Explicit separate edit, including an intentional clear |
-| Change decision | Reset progress and completion timestamp; warn about discarded progress |
-| Complete store/take | Set completion timestamp; still owned; do not infer location |
-| Complete sell/give-away | Set completion timestamp and current location to unassigned; retain record |
-| Reopen completed outcome | Clear completion timestamp; do not guess a location |
-| Trash / restore | Set/clear deletion timestamp without rewriting workflow or deleting photos |
-| Permanent delete | Only from trash; mark record deleting, remove live photo objects, then delete record |
+| Set room | Explicitly set/clear roomId, preserving boxId |
+| Pack / rebox | Set boxId, preserving roomId and workflow |
+| Unpack | Clear boxId, preserving roomId |
+| Change decision | Reset progress/completion; warn about discarded progress |
+| Complete store/take | Still owned; preserve room and packing |
+| Complete sell/give-away | Gone; clear boxId, preserve roomId and photos |
+| Reopen | Clear completion timestamp; remain Not packed |
+| Trash / restore | Set/clear deletion timestamp without changing tags, workflow or photos |
+| Permanent delete | From Trash only; marker, object cleanup, then document deletion |
 
-A location union contains only the fields for its selected kind. References point inside the current
-inventory, not another inventory. `originalRoomId` may legitimately differ from current room, or exist
-when current location is a box/unassigned. `undecided` requires `not_started` and a null completion time.
-Other decisions have a completion time exactly when progress is `completed`. A disposed entry must
-have an unassigned current location; reopen the outcome before assigning a room or box.
+Nullable roomId/boxId references point inside this inventory. Both facets can be present together.
+Undecided requires not_started and no completion time. Other decisions have a completion time exactly
+when completed. A Gone entry has boxId null; pack is rejected until reopened. Explicit room changes
+remain possible on Gone entries. Assignment uses active destinations; retained archived tags stay valid.
 
 A ready record may have no photos (`photos: []`, `coverPhotoId: null`). If any photo is ready, its cover
 refers to a ready photo in that same item; otherwise the cover is null. Photo absence is not a draft.
@@ -140,11 +133,10 @@ A draft can contain pending photos and have no cover yet. Existing ready records
 pending/deleting photos; continue showing their ready photos and expose the unfinished operation.
 Do not claim a photo addition/removal complete while its metadata or objects remain unfinished.
 
-The optional-photo change retains schema-1 fields and all existing photo-bearing records without
-rewriting live data. The current first-photo flow accepts a photo-free ready item, registers pending
+The schema-v2 capture and attachment paths retain the optional-photo lifecycle. The current first-photo flow accepts a photo-free ready item, registers pending
 metadata in a revision-checked partial patch, and finalizes only photo fields after verified uploads.
 Cancellation marks only those photos deleting, removes their exact objects, then clears their metadata.
-The item's identity, details, location, and ready state remain intact. No live-record migration is needed.
+The item's identity, details, location, and ready state remain intact. There is no v1 compatibility or migration; the approved clean reset is separately controlled.
 
 Derived predicates (do not add independently editable copies):
 
@@ -152,14 +144,14 @@ Derived predicates (do not add independently editable copies):
 isDisposed = decision in {sell, give_away} AND progress == completed
 isOwned = NOT isDisposed
 inDefaultView = recordState == ready AND deletedAt == null AND isOwned
-inCompletedArchive = recordState == ready AND deletedAt == null AND isDisposed
+inGoneView = recordState == ready AND deletedAt == null AND isDisposed
 inReviewInbox = inDefaultView AND reviewStatus == needs_review
 inTrash = deletedAt != null
 ```
 
-Default location/box counts use owned, ready, nontrashed items. Item counts and quantity totals are distinct
-and must be labeled. Completing a disposal clears current location so box contents do not retain sold
-possessions. Original room and optional notes preserve useful context.
+Default owned counts use owned, ready, nontrashed items. Item counts and quantity totals are distinct
+and must be labeled. Completing disposal clears boxId so box contents do not retain sold
+possessions. The room tag and optional notes preserve context. Overview includes Gone separately.
 
 ## 5. Value and text validation
 
@@ -191,9 +183,9 @@ Normal creates/updates use server timestamps for `createdAt`/`updatedAt`; a save
 acknowledgment. Item/room/box updates read the current revision in a transaction, compare it with the
 expected revision, apply an explicit patch, and increment it. Never do network uploads inside a retriable
 Firestore transaction callback.
-Capture, moves, and owned restores increment the destination location's existing revision in the same
+Capture, setRoom, pack, and owned restores into a retained box increment the destination record's revision in the same
 transaction. Rules require that paired write and an active destination. Archiving reads a location
-revision before inspecting every server item page, rejects current owned items and pending captures,
+revision before inspecting every server item page, rejects owned items and pending captures for boxes,
 then checks that revision in its transaction. Concurrent incoming assignments invalidate that inspection.
 Collection-wide emptiness is enforced by the application, not a query inside Security Rules.
 
@@ -210,7 +202,7 @@ by 1,000). Rules must distinguish allowed
 creation of historical timestamps from ordinary immutable `createdAt` updates; do not relax ownership
 checks for imports. The already provisioned inventory root retains its destination owner.
 
-The owner-only active report has `schemaVersion: 1`, positive `revision`, opaque `operationId`, `exportId`,
+The owner-only active report has `schemaVersion: 2`, positive `revision`, opaque `operationId`, `exportId`,
 exact `manifestSha256`, state `restoring | interrupted | completed`, expected counts
 `items/rooms/boxes/photos/photoFiles`, `claimedRecords`, `completedRecords`, and server creation/update
 timestamps. Limits are 5,000 per record collection, two photos per item and two files per photo. Counters
@@ -222,8 +214,8 @@ SHA-256, state `pending | verified`, original `deletedAt` and `coverPhotoId` (nu
 timestamps. Claims and initial records are created together only when the target is absent. Locations
 preserve historical archive times and start verified. Items initially have ready scalar records, no
 photos, null cover/trash timestamp and a pending claim. The active report makes the whole import
-unfinished, including staged photo-free items. Historical archived-location references do not change
-location revision/history; normal capture/move rules continue to require active destinations.
+unfinished, including staged photo-free items. Historical archived-room/box references do not change
+location revision/history; normal capture/assignment rules continue to require active destinations.
 
 Photos use the existing pending-first-attachment protocol with destination-derived paths. After exact
 private-byte verification, a narrow transaction applies original cover/trash history, verifies the claim
@@ -238,6 +230,10 @@ also enforces cross-record references and photo integrity. Do not claim Firestor
 objects exist, or that a JPEG content-type header proves the bytes are a safe image. Every such boundary
 must be reflected in tests; see [Security](SECURITY.md).
 
-Schema changes require an explicit version/migration plan, an export before touching real data, and an
+Future schema changes require an explicit version/migration plan, an export before touching real data, and a
 restore test into an empty, isolated, administrator-authorized verification inventory. Do not drop unknown
 future fields during an older client's write.
+
+The 2026-10 schema-v2 change is the owner-approved clean-reset exception. V1 is rejected; no migration
+or legacy archive reader is implemented. Preserve authorization and update the root version through a
+trusted administrative cutover, never a client write. Production reset has not been executed.

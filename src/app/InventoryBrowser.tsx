@@ -59,7 +59,11 @@ export function InventoryBrowser({
   // A location navigation request resets scope/filter choices, but ordinary reloads do not.
   if (browseLocation !== lastBrowse) {
     setLastBrowse(browseLocation);
-    setFilters({ ...DEFAULT_FILTERS, currentLocation: browseLocation ?? '' });
+    const [facet, id] = (browseLocation ?? '').split(':');
+    setFilters({
+      ...DEFAULT_FILTERS,
+      ...(facet === 'room' ? { room: id ?? '' } : { box: id ?? '' }),
+    });
     setSelection(new Set());
     setSelected(undefined);
     setGrid(true);
@@ -69,15 +73,19 @@ export function InventoryBrowser({
   );
   const detail = items.find((item) => item.id === selected && item.recordState === 'ready');
   const roomName = (id: string | null) =>
-    id ? (rooms.find((room) => room.id === id)?.name ?? 'Unavailable room') : 'Unassigned';
-  const locationName = (item: Item) => {
-    const location = item.currentLocation;
-    return location.kind === 'room'
-      ? roomName(location.roomId)
-      : location.kind === 'box'
-        ? (boxes.find((box) => box.id === location.boxId)?.label ?? 'Unavailable box')
-        : 'Unassigned';
-  };
+    id
+      ? (() => {
+          const room = rooms.find((room) => room.id === id);
+          return room ? room.name + (room.archivedAt ? ' (archived)' : '') : 'Unavailable room';
+        })()
+      : 'No room';
+  const boxName = (item: Item) =>
+    isDisposed(item)
+      ? 'Gone'
+      : item.boxId
+        ? (boxes.find((box) => box.id === item.boxId)?.label ?? 'Unavailable box')
+        : 'Not packed';
+  const locationName = (item: Item) => roomName(item.roomId) + ' · ' + boxName(item);
   function filter<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
     setSelection(new Set());
@@ -114,11 +122,11 @@ export function InventoryBrowser({
             {locationName(detail)} ·{' '}
             {detail.reviewStatus === 'reviewed' ? 'Reviewed' : 'Needs review'} ·{' '}
             {label(detail.decision)} / {label(detail.progress)}
-            {isDisposed(detail) ? ' · Completed archive' : ''}
+            {isDisposed(detail) ? ' · Gone' : ''}
             {detail.deletedAt ? ' · Trash' : ''}
           </p>
           <p className="supporting">
-            Original room: {roomName(detail.originalRoomId)} · Quantity: {detail.quantity}
+            Room: {roomName(detail.roomId)} · Quantity: {detail.quantity}
           </p>
           <div className="item-detail-layout">
             <div className="item-detail-media">
@@ -216,52 +224,41 @@ export function InventoryBrowser({
             </label>
             <div className="filter-fields">
               <label>
-                Inventory scope
-                <select
-                  value={filters.scope}
-                  onChange={(event) => filter('scope', event.target.value as Filters['scope'])}
-                >
-                  <option value="owned">Still owned</option>
-                  <option value="review">Review inbox</option>
-                  <option value="archive">Completed archive</option>
-                  <option value="trash">Trash</option>
-                </select>
+                Trash scope
+                <input
+                  type="checkbox"
+                  checked={filters.trash}
+                  onChange={(event) => filter('trash', event.target.checked)}
+                />
               </label>
               <label>
-                Current location filter
+                Room filter
                 <select
-                  value={filters.currentLocation}
-                  onChange={(event) => filter('currentLocation', event.target.value)}
+                  value={filters.room}
+                  onChange={(event) => filter('room', event.target.value)}
                 >
-                  <option value="">Any current location</option>
-                  <option value="unassigned">Unassigned</option>
-                  {rooms.map((room) => (
-                    <option key={room.id} value={`room:${room.id}`}>
-                      Room · {room.name}
-                      {room.archivedAt ? ' (archived)' : ''}
-                    </option>
-                  ))}
-                  {boxes.map((box) => (
-                    <option key={box.id} value={`box:${box.id}`}>
-                      Box · {box.label}
-                      {box.archivedAt ? ' (archived)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Original room filter
-                <select
-                  value={filters.originalRoomId}
-                  onChange={(event) => filter('originalRoomId', event.target.value)}
-                >
-                  <option value="">Any original room</option>
+                  <option value="">All rooms</option>
+                  <option value="none">No room</option>
                   {rooms.map((room) => (
                     <option key={room.id} value={room.id}>
                       {room.name}
                       {room.archivedAt ? ' (archived)' : ''}
                     </option>
                   ))}
+                </select>
+              </label>
+              <label>
+                Box filter
+                <select value={filters.box} onChange={(event) => filter('box', event.target.value)}>
+                  <option value="">All · still owned</option>
+                  <option value="unpacked">Not packed</option>
+                  {boxes.map((box) => (
+                    <option key={box.id} value={box.id}>
+                      {box.label}
+                      {box.archivedAt ? ' (archived)' : ''}
+                    </option>
+                  ))}
+                  <option value="gone">Gone</option>
                 </select>
               </label>
               <label>
@@ -422,7 +419,8 @@ export function InventoryBrowser({
                     {[
                       'Select',
                       'Name',
-                      'Location',
+                      'Room',
+                      'Box',
                       'Quantity',
                       'Value',
                       'Serial',
@@ -457,7 +455,8 @@ export function InventoryBrowser({
                           {item.name}
                         </button>
                       </td>
-                      <td>{locationName(item)}</td>
+                      <td>{roomName(item.roomId)}</td>
+                      <td>{boxName(item)}</td>
                       <td>{item.quantity}</td>
                       <td>{formatMoney(item.estimatedValue)}</td>
                       <td>{item.serialNumber ?? '—'}</td>

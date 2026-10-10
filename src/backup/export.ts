@@ -5,7 +5,7 @@ import { idSchema, parseItem, roomSchema } from '../domain/item';
 import type { Inventory } from '../domain/inventory';
 import { parseInventory } from '../domain/inventory';
 import type { Box } from '../domain/organize';
-import { boxSchema, moneyInput } from '../domain/organize';
+import { boxSchema, moneyInput, isDisposed } from '../domain/organize';
 import { sha256 } from '../media/processing';
 
 export const EXPORT_PART_BYTES = 100 * 1024 * 1024;
@@ -24,8 +24,8 @@ export type ExportPart = { name: string; blob: Blob; final: boolean; payloadByte
 export type ManifestFile = { archive: string; path: string; byteSize: number; sha256: string };
 export type ExportManifest = {
   format: 'home-inventory-export';
-  formatVersion: 1;
-  dataSchemaVersion: 1;
+  formatVersion: 2;
+  dataSchemaVersion: 2;
   exportId: string;
   createdAt: string;
   complete: true;
@@ -69,11 +69,9 @@ export function preflightExport(source: ExportSnapshot): ExportSnapshot {
       throw new Error(
         'Resolve unfinished captures, photo operations, and deletions before exporting.',
       );
-    const location = item.currentLocation;
     if (
-      (item.originalRoomId !== null && !rooms.has(item.originalRoomId)) ||
-      (location.kind === 'room' && !rooms.has(location.roomId)) ||
-      (location.kind === 'box' && !boxes.has(location.boxId))
+      (item.roomId !== null && !rooms.has(item.roomId)) ||
+      (item.boxId !== null && !boxes.has(item.boxId))
     )
       throw new Error('A missing room or box reference blocks a complete export.');
   }
@@ -114,11 +112,11 @@ function csv(snapshot: ExportSnapshot): string {
     'serialNumber',
     'notes',
     'category',
-    'originalRoomId',
-    'originalRoomName',
-    'currentLocationKind',
-    'currentLocationId',
-    'currentLocationLabel',
+    'roomId',
+    'roomName',
+    'boxState',
+    'boxId',
+    'boxLabel',
     'reviewStatus',
     'decision',
     'progress',
@@ -133,19 +131,6 @@ function csv(snapshot: ExportSnapshot): string {
     [
       headers.map((value) => csvCell(value)).join(','),
       ...snapshot.items.map((item) => {
-        const location = item.currentLocation;
-        const locationId =
-          location.kind === 'room'
-            ? location.roomId
-            : location.kind === 'box'
-              ? location.boxId
-              : '';
-        const label =
-          location.kind === 'room'
-            ? rooms.get(locationId)!
-            : location.kind === 'box'
-              ? boxes.get(locationId)!
-              : '';
         return [
           item.id,
           item.name,
@@ -155,11 +140,11 @@ function csv(snapshot: ExportSnapshot): string {
           item.serialNumber ?? '',
           item.notes,
           item.category ?? '',
-          item.originalRoomId ?? '',
-          item.originalRoomId ? rooms.get(item.originalRoomId)! : '',
-          location.kind,
-          locationId,
-          label,
+          item.roomId ?? '',
+          item.roomId ? rooms.get(item.roomId)! : '',
+          isDisposed(item) ? 'gone' : item.boxId ? 'packed' : 'unpacked',
+          item.boxId ?? '',
+          item.boxId ? boxes.get(item.boxId)! : '',
           item.reviewStatus,
           item.decision,
           item.progress,
@@ -196,7 +181,7 @@ export function serializeExport(snapshot: ExportSnapshot): Payload[] {
     {
       path: 'inventory.json',
       bytes: json({
-        schemaVersion: 1,
+        schemaVersion: 2,
         sourceInventoryId: inventoryId,
         displayName: inventory.displayName,
         defaultCurrency: inventory.defaultCurrency,
@@ -209,7 +194,7 @@ export function serializeExport(snapshot: ExportSnapshot): Payload[] {
     {
       path: 'EXPORT_README.txt',
       bytes: encoder.encode(
-        'Home inventory export — format version 1\n\nThis is unencrypted personal data. Keep every ZIP listed in manifest.json together, outside the Firebase project and this source repository. JSON is authoritative; CSV quotes and neutralizes formula-like text and leading-zero serial numbers. Import CSV columns as text where necessary. Photo absence is valid. Timestamps in JSON preserve seconds and nanoseconds.\n\nChecksums verify copy integrity, not authenticity or encryption. This export is a validated copy made while avoiding edits, not an atomic cross-service snapshot. No account authorization, credentials, project/bucket configuration, or download tokens are included. A backup is not a verified recovery until restore has been tested.\n',
+        'Home inventory export — format version 2\n\nThis is unencrypted personal data. Keep every ZIP listed in manifest.json together, outside the Firebase project and this source repository. JSON is authoritative; CSV quotes and neutralizes formula-like text and leading-zero serial numbers. Import CSV columns as text where necessary. Photo absence is valid. Timestamps in JSON preserve seconds and nanoseconds.\n\nChecksums verify copy integrity, not authenticity or encryption. This export is a validated copy made while avoiding edits, not an atomic cross-service snapshot. No account authorization, credentials, project/bucket configuration, or download tokens are included. A backup is not a verified recovery until restore has been tested.\n',
       ),
     },
   ];
@@ -373,8 +358,8 @@ export async function* exportParts(
     throw new Error('Inventory changed during export. No complete backup was finalized.');
   const manifest: ExportManifest = {
     format: 'home-inventory-export',
-    formatVersion: 1,
-    dataSchemaVersion: 1,
+    formatVersion: 2,
+    dataSchemaVersion: 2,
     exportId,
     createdAt: createdAt.toISOString(),
     complete: true,

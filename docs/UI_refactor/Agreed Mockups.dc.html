@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><style>body{margin:0;background:#ebe8df;font-family:'Segoe UI',system-ui,sans-serif;color:#263c32;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#3d5145}a:hover{color:#84502e}.scr{display:flex;flex-direction:column;gap:10px;flex:none}.lbl{display:flex;gap:10px;align-items:baseline;font-size:13px;color:#5d685e;max-width:1280px;line-height:1.5}.tag{font:600 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:#263c32;color:#fff;border-radius:4px;flex:none}.card{background:#faf8f3;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}</style></helmet>
+
+<div style="padding:44px;display:flex;flex-direction:column;gap:48px">
+<div style="max-width:1280px">
+  <div style="font-size:11px;letter-spacing:2px;font-weight:650;text-transform:uppercase;color:#84613f;margin-bottom:10px">My things · agreed redesign · handoff</div>
+  <h1 style="font-family:Georgia,serif;font-weight:400;font-size:46px;letter-spacing:-1.6px;margin:0 0 14px">Agreed mockups</h1>
+  <p style="font-size:14px;line-height:1.7;color:#5d685e;margin:0;max-width:820px">Static reference for the implementing agent. Screens A–F are referenced from README.md and the PR files. The desktop is for overview and editing; the phone is for capture. Colours and type are unchanged from <code>src/styles.css</code>.</p>
+</div>
+
+<div style="max-width:1280px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:16px;font-size:13px;line-height:1.6;color:#5d685e">
+  <div style="color:#263c32"><div style="font-family:Georgia,serif;font-size:24px;line-height:1.2;margin-bottom:8px">Where is it?<br>Two facets, always both.</div>Equal priority. Room matters most while collecting; Box matters most once packing starts.</div>
+  <div style="background:#fffefa;border:1px solid #deded2;border-radius:10px;padding:16px"><span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#e8eee4;color:#365a3d">Bedroom</span><div style="font-weight:600;color:#263c32;margin:10px 0 4px">Room: where it belongs</div>A permanent tag, set at capture. Packing never changes it.</div>
+  <div style="background:#fffefa;border:1px solid #deded2;border-radius:10px;padding:16px"><span style="font:500 11px ui-monospace,Menlo,monospace;border:1px solid #c6a77c;background:#f7f0df;color:#84613f;padding:1px 6px;border-radius:4px">B012</span><div style="font-weight:600;color:#263c32;margin:10px 0 4px">Box: where it's packed</div>Not packed · a box · Gone (sold / given away).</div>
+  <div style="background:#f2f0e8;border-radius:10px;padding:16px"><div style="font-weight:600;color:#263c32;margin-bottom:4px">Schema v2</div><code style="font-size:12px">roomId</code> + <code style="font-size:12px">boxId</code>. Gone is derived from the decision and progress. The database is wiped, with no migration (PR-01).</div>
+</div>
+
+<!-- A -->
+<div class="scr" id="A"><div class="lbl"><span class="tag">A</span><span><b style="color:#263c32">Desktop · Things, panel collapsed.</b> Slim nav sidebar. Room and Box chip rows at equal weight; they combine and their counts cross-filter. Group by Room / Box / None. Group action "Pack into box…". PR-02, 03, 04.</span></div>
+<div class="card" style="width:1280px;height:820px;display:grid;grid-template-columns:200px minmax(0,1fr)">
+  <aside style="background:#f2f0e8;border-right:1px solid #deded2;padding:26px 16px;display:flex;flex-direction:column;gap:22px;font-size:14px">
+    <div style="display:flex;gap:10px;align-items:center;font-size:18px;font-weight:650;letter-spacing:-0.6px"><span style="font-family:Georgia,serif;font-size:24px;background:#263c32;color:#faf8f3;width:34px;height:34px;border-radius:10px;text-align:center;line-height:32px">m.</span>my things</div>
+    <button style="font:inherit;font-weight:600;color:#263c32;background:transparent;border:1px solid #8a9687;border-radius:7px;padding:10px 12px;display:flex;justify-content:space-between"><span>+ Add a thing</span><span style="font:500 11px ui-monospace,Menlo,monospace;color:#626b60">N</span></button>
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <div style="display:flex;justify-content:space-between;padding:8px 10px;border-radius:6px;background:#fffefa;border:1px solid #deded2;font-weight:600"><span>Things</span><span style="color:#626b60;font-weight:400">142</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 10px"><span>Review inbox</span><span style="background:#84502e;color:#fff;font-size:11px;font-weight:600;padding:1px 7px;border-radius:9px">12</span></div>
+      <div style="padding:8px 10px">Where everything is</div>
+      <div style="padding:8px 10px">Manage rooms &amp; boxes</div>
+    </nav>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:2px;font-size:13px;color:#3d5145"><div style="padding:5px 10px">Trash</div><div style="padding:5px 10px">Backup &amp; settings</div><div style="border-top:1px solid #deded2;margin-top:8px;padding:12px 10px 0;display:flex;justify-content:space-between;font-size:12px"><span style="color:#365a3d">✓ Owner</span><span style="text-decoration:underline;text-underline-offset:4px">Sign out</span></div></div>
+  </aside>
+  <main style="padding:28px 34px;display:flex;flex-direction:column;gap:14px;min-width:0;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:16px"><div style="flex:1;display:flex;align-items:center;background:#fffefa;border:1px solid #b7b8a8;border-radius:6px;padding:0 14px;height:44px;font-size:14px;color:#626b60"><span style="flex:1">Search name, serial, notes or category</span><span style="font:500 11px ui-monospace,Menlo,monospace;border:1px solid #deded2;border-radius:4px;padding:2px 6px">/</span></div><span style="display:flex;gap:8px;font-size:13px"><span style="padding:7px 12px;border:1px solid #b7b8a8;border-radius:16px">Decision ▾</span><span style="padding:7px 12px;border:1px solid #b7b8a8;border-radius:16px">Progress ▾</span><span style="padding:7px 12px;border:1px solid #b7b8a8;border-radius:16px">Review ▾</span><span style="padding:7px 12px;border:1px solid #b7b8a8;border-radius:16px">More ▾</span></span></div>
+    <div style="display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px 12px;align-items:center;padding:14px 16px;background:#f2f0e8;border-radius:10px">
+      <span style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#365a3d;font-weight:650">Room</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px"><sc-for list="{{ roomsA }}" as="c" hint-placeholder-count="6"><span style="padding:6px 12px;border-radius:16px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};display:flex;gap:6px;flex:none;white-space:nowrap"><span>{{ c.name }}</span><span style="opacity:.6">{{ c.n }}</span></span></sc-for></div>
+      <span style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#84613f;font-weight:650">Box</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;font:500 12px ui-monospace,Menlo,monospace"><sc-for list="{{ boxesA }}" as="c" hint-placeholder-count="6"><span style="padding:6px 12px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};display:flex;gap:6px;flex:none;white-space:nowrap"><span>{{ c.name }}</span><span style="opacity:.6">{{ c.n }}</span></span></sc-for></div>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:14px"><h2 style="font-family:Georgia,serif;font-weight:400;font-size:34px;letter-spacing:-1px;margin:0">Not packed</h2><span style="font-size:14px;color:#626b60">98 things in 5 rooms</span><span style="margin-left:auto;display:flex;align-items:center;gap:10px;font-size:13px;color:#626b60">Group by<span style="display:flex;border:1px solid #8a9687;border-radius:6px;overflow:hidden;color:#263c32"><span style="padding:5px 11px;background:#e1e7dc;font-weight:600">Room</span><span style="padding:5px 11px">Box</span><span style="padding:5px 11px">None</span></span><span style="display:flex;border:1px solid #8a9687;border-radius:6px;overflow:hidden;color:#263c32"><span style="padding:5px 11px;background:#e1e7dc;font-weight:600">Grid</span><span style="padding:5px 11px">Table</span></span></span></div>
+    <div style="display:flex;align-items:center;gap:12px;border-top:1px solid #deded2;padding-top:12px"><span style="font-size:12px;padding:3px 9px;border-radius:4px;background:#e8eee4;color:#365a3d;font-weight:600">Bedroom</span><span style="font-size:13px;color:#626b60">12</span><span style="margin-left:auto;font-size:13px;color:#3d5145;text-decoration:underline;text-underline-offset:4px">Select all</span><span style="font-size:13px;font-weight:600;color:#fff;background:#84502e;border-radius:6px;padding:7px 12px">Pack into box…</span></div>
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px">
+      <sc-for list="{{ unpackedBed }}" as="it" hint-placeholder-count="5">
+        <article style="border:1px solid #deded2;border-radius:10px;background:#fffefa;overflow:hidden">
+          <sc-if value="{{ it.photo }}" hint-placeholder-val="{{ true }}"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#e8e8df 0 8px,#e1e0d4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 10px ui-monospace,Menlo,monospace;color:#73735e">{{ it.ph }}</div></sc-if>
+          <sc-if value="{{ it.nophoto }}"><div style="aspect-ratio:4/3;background:#e8e8df;display:flex;align-items:center;justify-content:center;font-size:12px;color:#626b60">No photo yet</div></sc-if>
+          <div style="padding:9px 11px 11px"><div style="display:flex;justify-content:space-between;gap:6px"><span style="font-weight:600;font-size:13px">{{ it.name }}</span><sc-if value="{{ it.review }}"><span style="width:8px;height:8px;border-radius:50%;background:#84502e;margin-top:5px;flex:none"></span></sc-if></div><div style="font-size:12px;color:#626b60;margin-top:3px">{{ it.dec }} · {{ it.prog }}</div></div>
+        </article>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;border-top:1px solid #deded2;padding-top:12px"><span style="font-size:12px;padding:3px 9px;border-radius:4px;background:#e8eee4;color:#365a3d;font-weight:600">Kitchen</span><span style="font-size:13px;color:#626b60">41</span><span style="margin-left:auto;font-size:13px;color:#3d5145;text-decoration:underline;text-underline-offset:4px">Select all</span><span style="font-size:13px;font-weight:600;color:#fff;background:#84502e;border-radius:6px;padding:7px 12px">Pack into box…</span></div>
+    <div style="display:flex;gap:6px;font-size:12px;color:#626b60;align-items:center"><span style="width:8px;height:8px;border-radius:50%;background:#84502e"></span>needs review</div>
+  </main>
+</div></div>
+
+<!-- B -->
+<div class="scr" id="B"><div class="lbl"><span class="tag">B</span><span><b style="color:#263c32">Desktop · Things + Inspector + selection.</b> Room = Bedroom, Box = All, grouped by Box. The selected card is ringed; the inspector edits room, box, decision, progress and review in place. The contextual bulk bar appears only while something is selected. PR-04, 05, 06.</span></div>
+<div class="card" style="width:1280px;height:820px;display:grid;grid-template-columns:200px minmax(0,1fr) 380px">
+  <aside style="background:#f2f0e8;border-right:1px solid #deded2;padding:26px 16px;display:flex;flex-direction:column;gap:22px;font-size:14px">
+    <div style="display:flex;gap:10px;align-items:center;font-size:18px;font-weight:650;letter-spacing:-0.6px"><span style="font-family:Georgia,serif;font-size:24px;background:#263c32;color:#faf8f3;width:34px;height:34px;border-radius:10px;text-align:center;line-height:32px">m.</span>my things</div>
+    <button style="font:inherit;font-weight:600;color:#263c32;background:transparent;border:1px solid #8a9687;border-radius:7px;padding:10px 12px;display:flex;justify-content:space-between"><span>+ Add a thing</span><span style="font:500 11px ui-monospace,Menlo,monospace;color:#626b60">N</span></button>
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <div style="display:flex;justify-content:space-between;padding:8px 10px;border-radius:6px;background:#fffefa;border:1px solid #deded2;font-weight:600"><span>Things</span><span style="color:#626b60;font-weight:400">142</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 10px"><span>Review inbox</span><span style="background:#84502e;color:#fff;font-size:11px;font-weight:600;padding:1px 7px;border-radius:9px">12</span></div>
+      <div style="padding:8px 10px">Where everything is</div>
+      <div style="padding:8px 10px">Manage rooms &amp; boxes</div>
+    </nav>
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:2px;font-size:13px;color:#3d5145"><div style="padding:5px 10px">Trash</div><div style="padding:5px 10px">Backup &amp; settings</div><div style="border-top:1px solid #deded2;margin-top:8px;padding:12px 10px 0;display:flex;justify-content:space-between;font-size:12px"><span style="color:#365a3d">✓ Owner</span><span style="text-decoration:underline;text-underline-offset:4px">Sign out</span></div></div>
+  </aside>
+  <main style="padding:28px 28px;display:flex;flex-direction:column;gap:14px;min-width:0;overflow:hidden;position:relative">
+    <div style="display:flex;align-items:center;background:#fffefa;border:1px solid #b7b8a8;border-radius:6px;padding:0 14px;height:44px;font-size:14px;color:#626b60">Search name, serial, notes or category</div>
+    <div style="display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px 10px;align-items:center;padding:12px 14px;background:#f2f0e8;border-radius:10px">
+      <span style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#365a3d;font-weight:650">Room</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px"><sc-for list="{{ roomsB }}" as="c" hint-placeholder-count="6"><span style="padding:5px 10px;border-radius:16px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};display:flex;gap:5px;flex:none;white-space:nowrap"><span>{{ c.name }}</span><span style="opacity:.6">{{ c.n }}</span></span></sc-for></div>
+      <span style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#84613f;font-weight:650">Box</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;font:500 11px ui-monospace,Menlo,monospace"><sc-for list="{{ boxesB }}" as="c" hint-placeholder-count="6"><span style="padding:5px 10px;border-radius:6px;border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};display:flex;gap:5px;flex:none;white-space:nowrap"><span>{{ c.name }}</span><span style="opacity:.6">{{ c.n }}</span></span></sc-for></div>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:12px"><h2 style="font-family:Georgia,serif;font-weight:400;font-size:30px;letter-spacing:-1px;margin:0">Bedroom</h2><span style="font-size:13px;color:#626b60">34 · 22 packed</span><span style="margin-left:auto;font-size:12px;color:#626b60">Group by <b style="color:#263c32">Box</b> ▾</span></div>
+    <div style="display:flex;align-items:center;gap:10px;border-top:1px solid #deded2;padding-top:10px"><span style="font:500 13px ui-monospace,Menlo,monospace;border:1px solid #c6a77c;background:#f7f0df;color:#84613f;padding:2px 8px;border-radius:4px">B003</span><span style="font-size:13px;color:#626b60">14</span><span style="margin-left:auto;font-size:12px;color:#3d5145;text-decoration:underline;text-underline-offset:4px">Open box</span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+      <sc-for list="{{ b003 }}" as="it" hint-placeholder-count="6">
+        <article style="border:1px solid #deded2;border-radius:10px;background:#fffefa;overflow:hidden;position:relative">
+          <sc-if value="{{ it.sel }}"><span style="position:absolute;inset:0;border:2px solid #263c32;border-radius:10px"></span></sc-if>
+          <sc-if value="{{ it.checked }}"><span style="position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:5px;background:#365a3d;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center">✓</span></sc-if>
+          <sc-if value="{{ it.photo }}" hint-placeholder-val="{{ true }}"><div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#e8e8df 0 8px,#e1e0d4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 10px ui-monospace,Menlo,monospace;color:#73735e">{{ it.ph }}</div></sc-if>
+          <sc-if value="{{ it.nophoto }}"><div style="aspect-ratio:4/3;background:#e8e8df;display:flex;align-items:center;justify-content:center;font-size:12px;color:#626b60">No photo yet</div></sc-if>
+          <div style="padding:8px 10px 10px"><div style="display:flex;justify-content:space-between;gap:6px"><span style="font-weight:600;font-size:13px">{{ it.name }}</span><sc-if value="{{ it.review }}"><span style="width:8px;height:8px;border-radius:50%;background:#84502e;margin-top:5px;flex:none"></span></sc-if></div><div style="font-size:12px;color:#626b60;margin-top:2px">{{ it.dec }} · {{ it.prog }}</div></div>
+        </article>
+      </sc-for>
+    </div>
+    <div style="position:absolute;left:28px;right:28px;bottom:20px;background:#263c32;color:#faf8f3;border-radius:10px;padding:11px 14px 11px 16px;display:flex;align-items:center;gap:14px;font-size:13px;box-shadow:0 10px 30px rgba(38,60,50,.25);white-space:nowrap">
+      <b style="font-weight:600">2 selected</b><span style="opacity:.85">Reviewed</span><span style="opacity:.85">Room</span><span style="opacity:.85">Pack</span><span style="opacity:.85">Decision</span><span style="opacity:.85">Trash</span><span style="margin-left:auto;text-decoration:underline;text-underline-offset:4px;opacity:.85">Clear</span>
+    </div>
+  </main>
+  <aside style="border-left:1px solid #deded2;background:#fffefa;padding:22px 24px;display:flex;flex-direction:column;gap:15px;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#626b60"><span>‹ 1 of 34 ›</span><span style="display:flex;gap:14px;align-items:center"><span style="text-decoration:underline;text-underline-offset:4px;color:#3d5145">Open full view</span><span style="font-size:18px;color:#263c32">×</span></span></div>
+    <div style="aspect-ratio:4/3;border-radius:8px;background:repeating-linear-gradient(135deg,#e8e8df 0 8px,#e1e0d4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 10px ui-monospace,Menlo,monospace;color:#73735e">winter coat · detail photo</div>
+    <div><h2 style="font-family:Georgia,serif;font-weight:400;font-size:28px;margin:0 0 4px">Winter coat</h2><div style="font-size:12px;color:#365a3d">✓ Reviewed · Quantity 1 · DKK 900</div></div>
+    <div style="display:grid;grid-template-columns:64px 1fr auto;gap:12px 10px;align-items:center;font-size:13px;border-top:1px solid #deded2;padding-top:14px">
+      <span style="color:#626b60">Room</span><span><span style="font-size:12px;padding:3px 8px;border-radius:4px;background:#e8eee4;color:#365a3d">Bedroom</span></span><span style="color:#3d5145;text-decoration:underline;text-underline-offset:4px">Change</span>
+      <span style="color:#626b60">Box</span><span><span style="font:500 12px ui-monospace,Menlo,monospace;border:1px solid #c6a77c;background:#f7f0df;color:#84613f;padding:2px 7px;border-radius:4px">B003</span></span><span style="color:#3d5145;text-decoration:underline;text-underline-offset:4px">Unpack</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid #deded2;padding-top:14px">
+      <span style="font-size:13px;color:#626b60">Decision</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px"><span style="padding:6px 11px;border:1px solid #b7b8a8;border-radius:16px">Undecided</span><span style="padding:6px 11px;border:1px solid #b7b8a8;border-radius:16px">Store</span><span style="padding:6px 11px;border-radius:16px;background:#365a3d;color:#fff;font-weight:600">Take</span><span style="padding:6px 11px;border:1px solid #b7b8a8;border-radius:16px">Sell</span><span style="padding:6px 11px;border:1px solid #b7b8a8;border-radius:16px">Give away</span></div>
+      <span style="font-size:13px;color:#626b60;margin-top:4px">Progress</span>
+      <div style="display:flex;border:1px solid #8a9687;border-radius:6px;overflow:hidden;font-size:13px"><span style="flex:1;text-align:center;padding:8px 0;background:#e1e7dc;font-weight:600">Not started</span><span style="flex:1;text-align:center;padding:8px 0;border-left:1px solid #8a9687;border-right:1px solid #8a9687">In progress</span><span style="flex:1;text-align:center;padding:8px 0">Completed</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;font-size:13px;border-top:1px solid #deded2;padding-top:12px"><span style="border:1px solid #8a9687;border-radius:6px;padding:7px 11px">Needs review</span><span style="color:#3d5145;text-decoration:underline;text-underline-offset:4px">Next needing review</span></div>
+    <div style="border-top:1px solid #deded2;border-bottom:1px solid #deded2;padding:10px 0;font-size:13px">▸ Details <span style="color:#626b60">· serial, category, notes, value</span></div>
+    <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:13px"><span style="color:#9d322d;text-decoration:underline;text-underline-offset:4px">Move to trash</span><span style="color:#365a3d">✓ Saved</span></div>
+  </aside>
+</div></div>
+
+<div style="display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap">
+<!-- C -->
+<div class="scr" id="C"><div class="lbl" style="max-width:380px"><span class="tag">C</span><span><b style="color:#263c32">Desktop · panel in Capture mode.</b> Opened with "+ Add a thing" or N. It takes the same slot as the inspector. PR-07.</span></div>
+<div class="card" style="width:380px;height:820px;background:#eeeade;padding:28px 26px;display:flex;flex-direction:column;gap:16px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:11px;letter-spacing:2px;font-weight:650;text-transform:uppercase;color:#84613f">One thing at a time</span><span style="font-size:18px;color:#626b60">×</span></div>
+  <h2 style="font-family:Georgia,serif;font-weight:400;font-size:28px;margin:-4px 0 0">Add a thing</h2>
+  <div style="display:flex;align-items:center;justify-content:space-between;background:#fffefa;border:1px solid #deded2;border-radius:8px;padding:10px 12px;font-size:13px"><span><span style="color:#626b60">Capturing in </span><b style="font-weight:600">Bedroom</b></span><span style="text-decoration:underline;text-underline-offset:4px;color:#3d5145">Change</span></div>
+  <label style="font-size:13px;font-weight:600">Item name<div style="margin-top:8px;background:#fffefa;border:1px solid #263c32;outline:3px solid #a6562e;outline-offset:2px;border-radius:6px;padding:12px;font-weight:400;font-size:15px">Wool blanket<span style="border-left:1.5px solid #263c32;margin-left:1px"></span></div></label>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="aspect-ratio:1;border-radius:8px;background:repeating-linear-gradient(135deg,#e8e8df 0 8px,#e1e0d4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 10px ui-monospace,Menlo,monospace;color:#73735e">photo 1 · cover</div>
+    <div style="aspect-ratio:1;border-radius:8px;border:1px dashed #8a9687;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;color:#3d5145;text-align:center;padding:10px"><b style="font-weight:600">Add photo</b><span style="color:#626b60">Drop, choose or take</span></div>
+  </div>
+  <div style="font-size:12px;color:#626b60;line-height:1.6">Optional. Up to two optimized photos. Your originals stay untouched.</div>
+  <div style="border-top:1px solid #deded2;border-bottom:1px solid #deded2;padding:11px 0;font-size:13px">▸ Details <span style="color:#626b60">· quantity, value, serial, notes</span></div>
+  <div style="display:flex;gap:10px"><button style="font:inherit;font-weight:600;color:#fff;background:#84502e;border:1px solid #84502e;border-radius:7px;padding:14px 16px;flex:1">Save &amp; next ↵</button><button style="font:inherit;background:transparent;color:#263c32;border:1px solid #8a9687;border-radius:6px;padding:12px 12px">Save as reviewed</button></div>
+  <div style="font-size:13px;color:#365a3d">✓ Saved Reading lamp. Ready for the next thing.</div>
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#73735e">Just added · Bedroom</div>
+    <sc-for list="{{ recent }}" as="r" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:34px;height:34px;border-radius:5px;background:repeating-linear-gradient(135deg,#e8e8df 0 5px,#e1e0d4 5px 10px);flex:none"></span><span style="flex:1">{{ r.name }}</span><span style="font-size:12px;color:#626b60">{{ r.time }}</span></div></sc-for>
+  </div>
+</div></div>
+
+<!-- D -->
+<div class="scr" id="D"><div class="lbl" style="max-width:860px"><span class="tag">D</span><span><b style="color:#263c32">Desktop · Where everything is.</b> Rooms × (Not packed · boxes · Gone). Every cell links to Things with both facets set. PR-10. Shown without the sidebar for width; in the app it sits in the A shell.</span></div>
+<div class="card" style="width:860px;height:820px;padding:34px 40px;display:flex;flex-direction:column;gap:22px">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px"><div><div style="font-size:11px;letter-spacing:2px;font-weight:650;text-transform:uppercase;color:#84613f;margin-bottom:10px">Overview</div><h2 style="font-family:Georgia,serif;font-weight:400;font-size:42px;letter-spacing:-1.4px;line-height:1;margin:0">Where everything is</h2></div><div style="font-size:13px;color:#5d685e;text-align:right;line-height:1.6"><b style="color:#263c32">84</b> not packed · <b style="color:#263c32">41</b> in 3 boxes · <b style="color:#263c32">17</b> gone</div></div>
+  <div style="display:grid;grid-template-columns:140px repeat(5,minmax(0,1fr)) 64px;border:1px solid #deded2;border-radius:10px;background:#fffefa;overflow:hidden;font-size:14px">
+    <span style="padding:14px 16px;border-bottom:1px solid #deded2"></span>
+    <sc-for list="{{ matrixCols }}" as="h" hint-placeholder-count="5"><span style="padding:14px 6px;border-bottom:1px solid #deded2;text-align:center;font:600 12px ui-monospace,Menlo,monospace;color:#84613f;white-space:nowrap">{{ h }}</span></sc-for>
+    <span style="padding:14px 10px;border-bottom:1px solid #deded2;text-align:right;font-size:12px;color:#626b60">Total</span>
+    <sc-for list="{{ matrix }}" as="row" hint-placeholder-count="5">
+      <span style="padding:12px 16px;border-bottom:1px solid #f0efe8;display:flex;align-items:center"><span style="font-size:12px;padding:3px 9px;border-radius:4px;background:#e8eee4;color:#365a3d;white-space:nowrap">{{ row.name }}</span></span>
+      <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="5"><span style="padding:6px;border-bottom:1px solid #f0efe8;display:flex"><span style="flex:1;border-radius:6px;background:{{ c.bg }};outline:{{ c.ring }};display:flex;align-items:center;justify-content:center;height:46px;font-size:16px;font-weight:{{ c.fw }};color:{{ c.fg }}">{{ c.n }}</span></span></sc-for>
+      <span style="padding:12px 10px;border-bottom:1px solid #f0efe8;text-align:right;color:#626b60;display:flex;align-items:center;justify-content:flex-end">{{ row.total }}</span>
+    </sc-for>
+  </div>
+  <div style="display:flex;gap:18px;font-size:12px;color:#626b60;align-items:center;flex-wrap:wrap"><span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:3px;background:rgba(54,90,61,.35)"></span>not packed</span><span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:3px;background:rgba(198,167,124,.6)"></span>packed</span><span style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;border-radius:3px;background:rgba(98,107,96,.3)"></span>sold / given away</span><span style="margin-left:auto">Selected: <b style="color:#263c32">Bedroom × B003 · 14</b> → <span style="color:#3d5145;text-decoration:underline;text-underline-offset:4px">open these</span></span></div>
+</div></div>
+</div>
+
+<div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap">
+<!-- E -->
+<div class="scr" id="E"><div class="lbl" style="max-width:390px"><span class="tag">E</span><span><b style="color:#263c32">iPhone · Browse.</b> Room ▾ and Box ▾ come first. Tab bar. "+ Add" opens F. PR-08.</span></div>
+<div style="width:390px;height:844px;border-radius:46px;border:10px solid #1f2a24;background:#faf8f3;overflow:hidden;display:flex;flex-direction:column;position:relative">
+  <div style="display:flex;justify-content:space-between;padding:14px 26px 6px;font-size:14px;font-weight:600"><span>9:41</span><span style="width:96px;height:26px;background:#1f2a24;border-radius:14px;margin-top:-4px"></span><span style="font-size:12px">●●● ▮</span></div>
+  <div style="display:flex;align-items:baseline;justify-content:space-between;padding:10px 20px"><span style="font-family:Georgia,serif;font-size:30px;letter-spacing:-1px">Your things</span><span style="font-size:13px;color:#626b60">142</span></div>
+  <div style="margin:0 20px;background:#fffefa;border:1px solid #b7b8a8;border-radius:8px;padding:12px 14px;font-size:15px;color:#626b60">Search name, serial, notes</div>
+  <div style="display:flex;gap:8px;padding:12px 20px;font-size:13px;white-space:nowrap;overflow:hidden"><span style="padding:7px 13px;border-radius:16px;border:1px solid #b7b8a8">Room ▾</span><span style="padding:7px 13px;border-radius:16px;background:#263c32;color:#faf8f3">Box: B012 ×</span><span style="padding:7px 13px;border-radius:16px;border:1px solid #b7b8a8">Decision ▾</span><span style="padding:7px 13px;border-radius:16px;border:1px solid #b7b8a8">More ▾</span></div>
+  <div style="padding:0 20px 8px;font-size:12px;color:#626b60">18 things in B012 · from 4 rooms</div>
+  <div style="flex:1;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:max-content;gap:12px;align-content:start;overflow:hidden">
+    <sc-for list="{{ phone }}" as="it" hint-placeholder-count="6">
+      <article style="border:1px solid #deded2;border-radius:10px;background:#fffefa;overflow:hidden">
+        <sc-if value="{{ it.photo }}" hint-placeholder-val="{{ true }}"><div style="aspect-ratio:1;background:repeating-linear-gradient(135deg,#e8e8df 0 8px,#e1e0d4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 9px ui-monospace,Menlo,monospace;color:#73735e">{{ it.ph }}</div></sc-if>
+        <sc-if value="{{ it.nophoto }}"><div style="aspect-ratio:1;background:#e8e8df;display:flex;align-items:center;justify-content:center;font-size:11px;color:#626b60">No photo yet</div></sc-if>
+        <div style="padding:8px 10px 10px;display:flex;flex-direction:column;gap:5px"><div style="font-weight:600;font-size:13px">{{ it.name }}</div><span style="align-self:flex-start;font-size:10px;padding:1px 6px;border-radius:4px;background:#e8eee4;color:#365a3d">{{ it.room }}</span></div>
+      </article>
+    </sc-for>
+  </div>
+  <span style="position:absolute;right:22px;bottom:92px;background:#84502e;color:#fff;font-weight:600;font-size:15px;border-radius:28px;padding:15px 20px;box-shadow:0 8px 20px rgba(132,80,46,.35)">+ Add</span>
+  <nav style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #deded2;padding:10px 0 22px;font-size:11px;text-align:center;color:#626b60;background:#faf8f3"><span style="color:#84502e;font-weight:600">● Things</span><span>Review 12</span><span>More</span></nav>
+</div></div>
+
+<!-- F -->
+<div class="scr" id="F"><div class="lbl" style="max-width:1230px"><span class="tag">F</span><span><b style="color:#263c32">iPhone · 3-step capture.</b> Shoot → name → saved (with Undo) → back to the camera. The room is sticky. No "Save as reviewed" and no details on the phone. PR-09.</span></div>
+<div style="display:flex;gap:30px;align-items:flex-start">
+  <div style="display:flex;flex-direction:column;gap:10px"><span style="font:600 11px ui-monospace,Menlo,monospace;color:#84613f">F1 · SHOOT</span>
+  <div style="width:390px;height:844px;border-radius:46px;border:10px solid #1f2a24;background:#1f2a24;overflow:hidden;display:flex;flex-direction:column;color:#faf8f3">
+    <div style="display:flex;justify-content:space-between;padding:14px 26px 6px;font-size:14px;font-weight:600"><span>9:41</span><span style="width:96px;height:26px;background:#000;border-radius:14px;margin-top:-4px"></span><span style="font-size:12px">●●● ▮</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 18px"><span style="font-size:22px">×</span><span style="background:#faf8f3;color:#263c32;border-radius:18px;padding:8px 14px;font-size:14px"><span style="color:#626b60">Room · </span><b style="font-weight:600">Bedroom ▾</b></span><span style="font-size:13px;opacity:.8">14 today</span></div>
+    <div style="flex:1;margin:6px 0;background:repeating-linear-gradient(135deg,#3a4a40 0 10px,#33433a 10px 20px);display:flex;align-items:center;justify-content:center;font:500 11px ui-monospace,Menlo,monospace;color:#a8b3a2">live camera</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 34px 40px"><span style="width:46px;height:46px;border-radius:8px;background:repeating-linear-gradient(135deg,#8a9687 0 5px,#7a8677 5px 10px);display:flex;align-items:flex-end;justify-content:center;font-size:9px;padding-bottom:2px">Library</span><span style="width:76px;height:76px;border-radius:50%;border:4px solid #faf8f3;display:flex;align-items:center;justify-content:center"><span style="width:60px;height:60px;border-radius:50%;background:#faf8f3"></span></span><span style="font-size:13px;width:46px;text-align:center;line-height:1.2">No photo</span></div>
+  </div></div>
+  <div style="display:flex;flex-direction:column;gap:10px"><span style="font:600 11px ui-monospace,Menlo,monospace;color:#84613f">F2 · NAME</span>
+  <div style="width:390px;height:844px;border-radius:46px;border:10px solid #1f2a24;background:#faf8f3;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;padding:14px 26px 6px;font-size:14px;font-weight:600"><span>9:41</span><span style="width:96px;height:26px;background:#1f2a24;border-radius:14px;margin-top:-4px"></span><span style="font-size:12px">●●● ▮</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px;font-size:14px"><span style="color:#3d5145">‹ Retake</span><span><span style="color:#626b60">Room · </span><b style="font-weight:600">Bedroom</b></span></div>
+    <div style="display:flex;gap:10px;padding:8px 20px 0;align-items:flex-end"><span style="width:150px;aspect-ratio:1;border-radius:10px;background:repeating-linear-gradient(135deg,#e8e8df 0 8px,#e1e0d4 8px 16px);display:flex;align-items:center;justify-content:center;font:500 10px ui-monospace,Menlo,monospace;color:#73735e">photo 1</span><span style="width:72px;height:72px;border-radius:10px;border:1px dashed #8a9687;display:flex;align-items:center;justify-content:center;font-size:12px;color:#3d5145;text-align:center;line-height:1.2">+ 2nd<br>photo</span></div>
+    <div style="padding:22px 20px 0"><div style="font-size:11px;letter-spacing:2px;font-weight:650;text-transform:uppercase;color:#84613f;margin-bottom:10px">What is it?</div><div style="font:400 30px Georgia,serif;letter-spacing:-0.6px;border-bottom:2px solid #84502e;padding-bottom:8px">Wool blanket<span style="border-left:2px solid #263c32;margin-left:2px"></span></div></div>
+    <div style="flex:1"></div>
+    <div style="padding:12px 16px"><button style="width:100%;font:inherit;font-size:17px;font-weight:600;color:#fff;background:#84502e;border:0;border-radius:10px;padding:16px">Save &amp; next</button></div>
+    <div style="height:300px;background:repeating-linear-gradient(135deg,#d6d7cf 0 8px,#cfd0c7 8px 16px);display:flex;align-items:center;justify-content:center;font:500 11px ui-monospace,Menlo,monospace;color:#626b60">iOS keyboard · return = save</div>
+  </div></div>
+  <div style="display:flex;flex-direction:column;gap:10px"><span style="font:600 11px ui-monospace,Menlo,monospace;color:#84613f">F3 · SAVED → NEXT</span>
+  <div style="width:390px;height:844px;border-radius:46px;border:10px solid #1f2a24;background:#1f2a24;overflow:hidden;display:flex;flex-direction:column;color:#faf8f3">
+    <div style="display:flex;justify-content:space-between;padding:14px 26px 6px;font-size:14px;font-weight:600"><span>9:41</span><span style="width:96px;height:26px;background:#000;border-radius:14px;margin-top:-4px"></span><span style="font-size:12px">●●● ▮</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 18px"><span style="font-size:22px">×</span><span style="background:#faf8f3;color:#263c32;border-radius:18px;padding:8px 14px;font-size:14px"><span style="color:#626b60">Room · </span><b style="font-weight:600">Bedroom ▾</b></span><span style="font-size:13px;opacity:.8">15 today</span></div>
+    <div style="flex:1;margin:6px 0;background:repeating-linear-gradient(135deg,#3a4a40 0 10px,#33433a 10px 20px);display:flex;flex-direction:column;align-items:center;padding-top:14px;font:500 11px ui-monospace,Menlo,monospace;color:#a8b3a2">
+      <div style="background:#e8eee4;color:#263c32;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;font:400 14px 'Segoe UI',system-ui,sans-serif;width:330px;box-shadow:0 6px 18px rgba(0,0,0,.25)"><span style="width:36px;height:36px;border-radius:6px;background:repeating-linear-gradient(135deg,#e8e8df 0 5px,#e1e0d4 5px 10px);flex:none"></span><span style="flex:1"><b style="font-weight:600;color:#365a3d">✓ Wool blanket</b><br><span style="font-size:12px;color:#626b60">Saved to Bedroom · in review inbox</span></span><span style="font-size:13px;text-decoration:underline;text-underline-offset:4px">Undo</span></div>
+      <span style="margin:auto 0">live camera · ready for the next thing</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 34px 40px"><span style="width:46px;height:46px;border-radius:8px;background:repeating-linear-gradient(135deg,#8a9687 0 5px,#7a8677 5px 10px);display:flex;align-items:flex-end;justify-content:center;font-size:9px;padding-bottom:2px">Library</span><span style="width:76px;height:76px;border-radius:50%;border:4px solid #faf8f3;display:flex;align-items:center;justify-content:center"><span style="width:60px;height:60px;border-radius:50%;background:#faf8f3"></span></span><span style="font-size:13px;width:46px;text-align:center;line-height:1.2">No photo</span></div>
+  </div></div>
+</div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (name, room, dec, prog, photo, review, extra) => ({ name, room, dec, prog, photo, nophoto: !photo, review, ph: name.toLowerCase(), ...extra });
+    const chips = (list, active, room) => list.map(([name, n]) => {
+      const a = name === active;
+      return room
+        ? { name, n, bg: a ? '#263c32' : '#fffefa', fg: a ? '#faf8f3' : (n === 0 ? '#b7b8a8' : '#263c32'), bd: a ? '#263c32' : '#b7b8a8' }
+        : { name, n, bg: a ? '#84613f' : '#f7f0df', fg: a ? '#fff' : (n === 0 ? '#c6b696' : '#84613f'), bd: a ? '#84613f' : '#c6a77c' };
+    });
+    const matrixRaw = [['Bedroom', [12, 14, 8, 0, 3]], ['Living room', [6, 0, 1, 15, 6]], ['Kitchen', [41, 0, 0, 3, 8]], ['Study', [16, 0, 0, 0, 0]], ['Hallway', [9, 0, 0, 0, 0]]];
+    return {
+      roomsA: chips([['All', 98], ['Bedroom', 12], ['Living room', 6], ['Kitchen', 41], ['Study', 16], ['Hallway', 9]], 'All', true),
+      boxesA: chips([['All', 125], ['Not packed', 84], ['B003', 14], ['B007', 9], ['B012', 18], ['Gone', 17]], 'Not packed'),
+      roomsB: chips([['All', 125], ['Bedroom', 34], ['Living room', 22], ['Kitchen', 44], ['Study', 16], ['Hallway', 9]], 'Bedroom', true),
+      boxesB: chips([['All', 34], ['Not packed', 12], ['B003', 14], ['B007', 8], ['B012', 0], ['Gone', 3]], 'All'),
+      unpackedBed: [t('Wool blanket', 'Bedroom', 'Take', 'not started', true, true), t('Bedside table', 'Bedroom', 'Undecided', 'not started', true, true), t('Mirror', 'Bedroom', 'Sell', 'not started', false, false), t('Rug', 'Bedroom', 'Store', 'not started', true, false), t('Laundry basket', 'Bedroom', 'Give away', 'not started', false, true)],
+      b003: [t('Winter coat', 'Bedroom', 'Take', 'not started', true, false, { sel: true, checked: true }), t('Linen sheets', 'Bedroom', 'Store', 'not started', true, false, { checked: true }), t('Alarm clock', 'Bedroom', 'Take', 'not started', true, false), t('Hangers (20)', 'Bedroom', 'Give away', 'not started', false, true), t('Slippers', 'Bedroom', 'Take', 'not started', true, false), t('Scarves', 'Bedroom', 'Take', 'not started', true, false)],
+      recent: [{ name: 'Reading lamp', time: 'now' }, { name: 'Bedside table', time: '1 min' }, { name: 'Mirror', time: '2 min' }],
+      phone: [t('Record player', 'Living room', '', '', true), t('Ceramic bowls (6)', 'Kitchen', '', '', true), t('Vinyl records (40)', 'Living room', '', '', true), t('Spice jars', 'Kitchen', '', '', true), t('Desk lamp', 'Study', '', '', false), t('Picture frames', 'Hallway', '', '', true)],
+      matrixCols: ['Not packed', 'B003', 'B007', 'B012', 'Gone'],
+      matrix: matrixRaw.map(([name, v]) => ({
+        name, total: v.reduce((a, b) => a + b, 0),
+        cells: v.map((n, i) => ({ n: n || '·', bg: !n ? 'transparent' : i === 4 ? `rgba(98,107,96,${0.08 + n / 60})` : i === 0 ? `rgba(54,90,61,${0.08 + n / 60})` : `rgba(198,167,124,${0.15 + n / 30})`, fw: n ? 600 : 400, fg: n ? '#263c32' : '#b7b8a8', ring: name === 'Bedroom' && i === 1 ? '2px solid #263c32' : '0' })),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

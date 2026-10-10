@@ -58,11 +58,11 @@ protection. Verify that deleting/renaming a frontend route does not affect backe
 | T-CAP-04 | Saved photo-free item survives reload, receives photos later under the same ID, and survives attachment cancellation |
 | T-CAP-02 | Save & next retains capture room, resets per-item data, and defaults to needs-review |
 | T-CAP-03 | Optional details can remain blank; save-as-reviewed is explicit |
-| T-LOC-01 | First room fills original room; moving and packing preserve it |
-| T-LOC-02 | Current room filter differs from original room filter; box grid shows actual contents |
+| T-LOC-01 | Capture sets a nullable room tag; packing/repacking/unpacking preserves it |
+| T-LOC-02 | Room and Box facets combine independently; archived referenced rooms remain findable and counted |
 | T-LOC-03 | Renaming a location preserves links; archived labels remain readable |
 | T-MOV-01 | Each decision/progress transition obeys the schema and completion timestamps |
-| T-MOV-02 | Store/take completion remains owned; sell/give-away completion archives and clears location |
+| T-MOV-02 | Store/take completion remains owned; sell/give-away completion enters Gone, clears box, and preserves room |
 | T-MOV-03 | Reopening/decision changes do not invent a location or silently retain invalid progress |
 | T-VAL-01 | Group value is a total; null differs from zero; currency defaults do not convert old amounts |
 | T-VAL-02 | Currency parsing handles supported fractional digits; mixed-currency totals are not combined |
@@ -125,7 +125,7 @@ Automation using a WebKit engine is useful but does not replace this real-device
 Capture 20 real items in two rooms using the iPhone. Include a grouped entry, a label close-up, multiple
 photos, and an item left unassigned. Review on Windows, pack selected items into a numbered box, rename a
 room, complete one sale and one donation, and trash/restore another item. Verify the default inventory,
-archive, original-room search, box contents, and value semantics. Export and restore into an empty,
+Gone, room-tag search, box contents, and value semantics. Export and restore into an empty,
 isolated, administrator-authorized cloud verification inventory; check all relationships and photo
 hashes. Never overwrite the main inventory. Keep this test data private. Normal automated tests remain
 synthetic emulator-only checks, not evidence of cloud backup/recovery.
@@ -146,3 +146,7 @@ manual scenarios run, export/restore outcome, known limitations, reviewed merge 
 URL/result. Separate
 passed, failed, and not-tested results. M0/M1 prototypes are not a production-ready inventory merely
 because a happy-path screenshot looks correct.
+
+## 9. Approved schema-v2 UI refactor
+
+Follow the ten handoff stages in [UI refactor](UI_refactor/README.md). Reject v1 records and archives clearly. Cover room assignment and packing separately, Gone retaining its room tag, room archiving with referenced items, box occupancy and assignment/archive races, Trash restore with archived room tags, and exact v2 export/restore photo checksums. Validate synthetic seed data against domain schemas. Production wipe authorization was granted on 2026-10-10; actual execution and root-authority retention must be recorded separately.

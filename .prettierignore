@@ -16,3 +16,6 @@ SPEC.md
 AGENTS.md
 LICENSE
 docs/*.md
+
+# Preserve the supplied design handoff and its generated mockup runtime.
+docs/UI_refactor/

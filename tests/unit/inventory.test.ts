@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { parseInventory } from '../../src/domain/inventory';
 
 const root = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   ownerUid: 'synthetic-owner',
   displayName: 'Synthetic inventory',
   defaultCurrency: null,
@@ -18,7 +18,7 @@ describe('external inventory policy validation', () => {
   it.each([
     { ...root, ownerUid: '' },
     { ...root, ownerUid: null },
-    { ...root, schemaVersion: 2 },
+    { ...root, schemaVersion: 3 },
     { ...root, displayName: ' ' },
     { ...root, createdAt: '2026-10-10' },
     { ...root, injected: true },

@@ -18,7 +18,7 @@ let environment: RulesTestEnvironment;
 const photo = 'inventories/main/items/synthetic-item/photos/synthetic-photo/detail.jpg';
 const timestamp = new Date('2026-10-10T00:00:00Z');
 const root = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   ownerUid: 'synthetic-owner',
   displayName: 'Synthetic inventory',
   defaultCurrency: null,
@@ -182,13 +182,14 @@ describe('M2 constrained owner organization', () => {
     { estimatedValue: { amountMinor: 1, currency: 'BAD' } },
     { estimatedValue: { amountMinor: 1.1, currency: 'EUR' } },
     { extra: true },
-    { schemaVersion: 2 },
+    { schemaVersion: 3 },
+    { schemaVersion: 1 },
     { createdAt: Timestamp.now() },
     { photos: [{ id: 'fake' }] },
     { coverPhotoId: 'fake' },
     { progress: 'completed', completedAt: serverTimestamp() },
-    { currentLocation: { kind: 'box', boxId: 'missing' } },
-    { originalRoomId: 'missing' },
+    { boxId: 'missing' },
+    { roomId: 'missing' },
     { recordState: 'deleting' },
     { revision: 10 },
   ])('denies malformed organization patches %#', async (data) => {
@@ -197,7 +198,7 @@ describe('M2 constrained owner organization', () => {
       updateDoc(doc(db(), 'inventories/main/items', id), { ...patch({}), ...data }),
     );
   });
-  it('requires workflow reset on decision change and unassigned disposal completion', async () => {
+  it('requires workflow reset on decision change and unpacked disposal completion', async () => {
     const id = await record();
     const reference = doc(db(), 'inventories/main/items', id);
     await assertSucceeds(updateDoc(reference, patch({ decision: 'sell' })));
@@ -227,7 +228,7 @@ describe('M2 constrained owner organization', () => {
     const roomId = crypto.randomUUID();
     await environment.withSecurityRulesDisabled(async (context) => {
       await context.firestore().doc(`inventories/main/rooms/${roomId}`).set({
-        schemaVersion: 1,
+        schemaVersion: 2,
         revision: 1,
         name: 'Synthetic destination',
         sortOrder: 0,
@@ -239,7 +240,7 @@ describe('M2 constrained owner organization', () => {
     const client = db();
     const item = doc(client, 'inventories/main/items', id);
     const room = doc(client, 'inventories/main/rooms', roomId);
-    const movement = patch({ currentLocation: { kind: 'room', roomId }, originalRoomId: roomId });
+    const movement = patch({ roomId, boxId: null });
     await assertFails(updateDoc(item, movement));
     const batch = writeBatch(client);
     batch.update(item, movement);
@@ -247,8 +248,8 @@ describe('M2 constrained owner organization', () => {
     await assertSucceeds(batch.commit());
     await assertFails(
       updateDoc(item, {
-        currentLocation: { kind: 'unassigned' },
-        originalRoomId: 'missing',
+        boxId: null,
+        roomId: 'missing',
         revision: 3,
         updatedAt: serverTimestamp(),
       }),
@@ -257,7 +258,7 @@ describe('M2 constrained owner organization', () => {
   it('allows valid boxes but denies foreign creation, unknown fields, deletion, and invalid updates', async () => {
     const id = crypto.randomUUID();
     const value = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       revision: 1,
       label: 'B012',
       notes: '',
@@ -308,7 +309,7 @@ beforeAll(async () => {
     await db.doc('inventories/foreign').set({ ...root, ownerUid: 'foreign-owner' });
     await db.doc('inventories/malformed').set({ displayName: 'No owner policy' });
     for (const collection of ['items', 'rooms', 'boxes']) {
-      await db.doc(`inventories/main/${collection}/synthetic-record`).set({ schemaVersion: 1 });
+      await db.doc(`inventories/main/${collection}/synthetic-record`).set({ schemaVersion: 2 });
     }
     await uploadBytes(ref(storage(context), photo), bytes, { contentType: 'image/jpeg' });
     for (const id of ['test-upload', 'test-invalid', 'test-token']) {
@@ -363,7 +364,7 @@ describe('Firestore owner policy', () => {
         const db = context(uid).firestore();
         await assertFails(db.doc(`inventories/main/${collection}/synthetic-record`).get());
         await assertFails(db.collection(`inventories/main/${collection}`).get());
-        await assertFails(db.doc(`inventories/main/${collection}/new`).set({ schemaVersion: 1 }));
+        await assertFails(db.doc(`inventories/main/${collection}/new`).set({ schemaVersion: 2 }));
         await assertFails(
           db.doc(`inventories/main/${collection}/synthetic-record`).update({ name: 'tampered' }),
         );
@@ -383,7 +384,7 @@ describe('Firestore owner policy', () => {
   });
   it.each([
     { ownerUid: 'unrelated-user' },
-    { schemaVersion: 2 },
+    { schemaVersion: 3 },
     { unexpected: 'field' },
     { createdAt: new Date() },
     { displayName: '' },
@@ -408,7 +409,7 @@ describe('Firestore owner policy', () => {
   it('denies malformed child records and unimplemented edits', async () => {
     const db = context('synthetic-owner').firestore();
     for (const collection of ['items', 'rooms', 'boxes']) {
-      await assertFails(db.doc(`inventories/main/${collection}/new`).set({ schemaVersion: 1 }));
+      await assertFails(db.doc(`inventories/main/${collection}/new`).set({ schemaVersion: 2 }));
       await assertFails(
         db.doc(`inventories/main/${collection}/synthetic-record`).update({ revision: 2 }),
       );
@@ -608,7 +609,7 @@ describe('M1 capture authorization', () => {
     const patches: Record<string, object> = {
       name: { name: '   ' },
       quantity: { quantity: 0 },
-      schema: { schemaVersion: 2 },
+      schema: { schemaVersion: 3 },
       extra: { unexpected: true },
       path: {
         photos: [
@@ -688,7 +689,7 @@ describe('M1 capture authorization', () => {
   });
   it('allows minimal room creation and rejects missing/archived room capture', async () => {
     const room = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       name: 'Synthetic room',
       sortOrder: 0,
       revision: 1,
@@ -699,8 +700,8 @@ describe('M1 capture authorization', () => {
     await assertSucceeds(owner().doc('inventories/main/rooms/capture-room').set(room));
     const capture = (id: string, roomId: string) => ({
       ...draft(id),
-      originalRoomId: roomId,
-      currentLocation: { kind: 'room', roomId },
+      roomId: roomId,
+      boxId: null,
     });
     const client = owner();
     await assertFails(

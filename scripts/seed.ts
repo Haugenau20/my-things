@@ -4,6 +4,7 @@ import { LOCAL_ACCOUNTS } from '../src/data/local-accounts.ts';
 import { assertLocalTarget } from './safety.ts';
 import { assertEmulatorsRunning } from './health.ts';
 import { z } from 'zod';
+import { syntheticInventory } from '../src/domain/synthetic-inventory.ts';
 
 export async function seedLocal(config: AppConfig): Promise<void> {
   if (
@@ -38,7 +39,7 @@ export async function seedLocal(config: AppConfig): Promise<void> {
         if (existing.exists) {
           if (
             existing.data()?.ownerUid !== LOCAL_ACCOUNTS.owner.uid ||
-            existing.data()?.schemaVersion !== 1
+            existing.data()?.schemaVersion !== 2
           ) {
             throw new Error('Refusing to replace an existing different owner policy');
           }
@@ -46,7 +47,7 @@ export async function seedLocal(config: AppConfig): Promise<void> {
         }
         const time = new Date('2026-10-10T00:00:00Z');
         transaction.set(reference, {
-          schemaVersion: 1,
+          schemaVersion: 2,
           ownerUid: LOCAL_ACCOUNTS.owner.uid,
           displayName: 'Synthetic inventory',
           defaultCurrency: null,
@@ -54,6 +55,27 @@ export async function seedLocal(config: AppConfig): Promise<void> {
           updatedAt: time,
         });
       });
+      // Browser tests build their own isolated examples; normal local development gets the handoff dataset.
+      const emptyInventory = (
+        await Promise.all(
+          ['items', 'rooms', 'boxes', 'restores'].map((collection) =>
+            db.collection(`inventories/main/${collection}`).limit(1).get(),
+          ),
+        )
+      ).every((snapshot) => snapshot.empty);
+      if (process.env.MY_THINGS_TEST_EMULATORS !== 'true' && emptyInventory) {
+        const fixture = syntheticInventory();
+        const batch = db.batch();
+        for (const [collection, records] of [
+          ['rooms', fixture.rooms],
+          ['boxes', fixture.boxes],
+          ['items', fixture.items],
+        ] as const) {
+          for (const { id, ...record } of records)
+            batch.set(db.doc(`inventories/main/${collection}/${id}`), record);
+        }
+        await batch.commit();
+      }
     });
     const url = `http://${endpoints.host}:${endpoints.auth}/identitytoolkit.googleapis.com/v1/projects/${DEMO_PROJECT_ID}`;
     async function request(path: string, body: unknown): Promise<unknown> {

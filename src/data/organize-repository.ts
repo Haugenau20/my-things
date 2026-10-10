@@ -16,7 +16,6 @@ import {
   commandPatch,
   commandSchema,
   isDisposed,
-  locationKey,
 } from '../domain/organize';
 import type { Box, ItemCommand } from '../domain/organize';
 import { loadItem, loadItems } from './capture-repository';
@@ -52,35 +51,24 @@ export async function editItem(
     const next = applyCommand(current, command, Timestamp.now());
     const patch = commandPatch(current, command, Timestamp.now());
     let destination: { ref: ReturnType<typeof reference>; revision: number } | undefined;
-    const assigning = command.kind === 'move' || (command.kind === 'restore' && !isDisposed(next));
-    if (assigning && next.currentLocation.kind !== 'unassigned') {
-      const location = next.currentLocation;
-      const ref = reference(
-        db,
-        inventory,
-        location.kind === 'room' ? 'rooms' : 'boxes',
-        location.kind === 'room' ? location.roomId : location.boxId,
-      );
+    const roomAssignment = command.kind === 'setRoom' && next.roomId !== current.roomId;
+    const boxAssignment =
+      (command.kind === 'pack' && next.boxId !== current.boxId) ||
+      (command.kind === 'restore' && !isDisposed(next));
+    const kind = roomAssignment ? 'rooms' : 'boxes';
+    const id = roomAssignment ? next.roomId : boxAssignment ? next.boxId : null;
+    if (id !== null) {
+      const ref = reference(db, inventory, kind, id);
       const data = (await tx.get(ref)).data();
-      const value = location.kind === 'room' ? roomSchema.parse(data) : boxSchema.parse(data);
+      const value = kind === 'rooms' ? roomSchema.parse(data) : boxSchema.parse(data);
       if (value.archivedAt !== null)
         throw new Error(
           command.kind === 'restore'
-            ? 'Reactivate this item’s room or box in Manage locations before restoring it.'
+            ? 'Reactivate this item’s box in Manage rooms & boxes before restoring it.'
             : 'This location is archived. Choose an active location.',
         );
-      if (
-        command.kind === 'restore' ||
-        locationKey(location) !== locationKey(current.currentLocation)
-      )
-        destination = { ref, revision: value.revision };
+      destination = { ref, revision: value.revision };
     }
-    if (
-      command.kind === 'original' &&
-      command.roomId !== null &&
-      !(await tx.get(reference(db, inventory, 'rooms', command.roomId))).exists()
-    )
-      throw new Error('Original room no longer exists.');
     signal?.throwIfAborted();
     // Resolve only changed timestamps on the server; retained history stays intact.
     tx.update(target, {
@@ -162,7 +150,7 @@ export async function createBox(
   const id = crypto.randomUUID();
   const target = reference(db, inventory, 'boxes', id);
   const value = boxSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     revision: 1,
     label: label.trim(),
     notes: '',
@@ -237,14 +225,14 @@ export async function archiveLocation(
   const initial = (await getDocFromServer(target)).data();
   const before = kind === 'room' ? roomSchema.parse(initial) : boxSchema.parse(initial);
   if (before.archivedAt !== null) return;
-  const items = await loadItems(db, inventory);
-  // Pending captures also block archiving: finalization must not strand a new owned item.
+  const items = kind === 'box' ? await loadItems(db, inventory) : [];
+  // Room tags remain readable after archive. Only boxes represent physical packing.
   if (
     items.some(
       (item) =>
         item.deletedAt === null &&
         (isVisible(item) || item.recordState === 'draft') &&
-        locationKey(item.currentLocation) === `${kind}:${id}`,
+        item.boxId === id,
     )
   )
     throw new Error(

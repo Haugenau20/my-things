@@ -64,7 +64,7 @@ export async function createRoom(
   idSchema.parse(inventory);
   const id = crypto.randomUUID();
   const value = roomSchema.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     name: name.trim(),
     sortOrder: sort,
     revision: 1,
@@ -94,13 +94,8 @@ function identity(item: ReturnType<typeof captureDraft>) {
   ];
   return JSON.stringify({
     name: item.name,
-    location:
-      item.currentLocation.kind === 'room'
-        ? ['room', item.currentLocation.roomId]
-        : item.currentLocation.kind === 'box'
-          ? ['box', item.currentLocation.boxId]
-          : ['unassigned'],
-    originalRoomId: item.originalRoomId,
+    roomId: item.roomId,
+    boxId: item.boxId,
     reviewStatus: item.reviewStatus,
     photos: item.photos.map(({ id, detail, thumbnail }) => ({
       id,
