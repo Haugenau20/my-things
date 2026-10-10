@@ -27,6 +27,8 @@ import { RestorePanel } from './RestorePanel';
 import { loadRestoreReport } from '../backup/restore-repository';
 import type { RestoreReport } from '../backup/restore-state';
 import type { Environment } from '../data/config';
+import { useNarrow } from './use-narrow';
+import { BottomSheet } from './BottomSheet';
 
 export function InventoryWorkspace({
   services,
@@ -63,6 +65,8 @@ export function InventoryWorkspace({
   const [view, setView] = useState<View>(hashView);
   const [browserView, setBrowserView] = useState<'things' | 'review' | 'trash'>('things');
   const [captureOpen, setCaptureOpen] = useState(false);
+  const narrow = useNarrow();
+  const [moreOpen, setMoreOpen] = useState(false);
   const [captureRoom, setCaptureRoom] = useState('');
   const [captureRequest, setCaptureRequest] = useState({ sequence: 0, room: 'sticky' });
   const [inspectRequest, setInspectRequest] = useState<{ sequence: number; id: string }>();
@@ -475,6 +479,75 @@ export function InventoryWorkspace({
             )}
           </fieldset>
         </div>
+        {narrow && (
+          <>
+            <nav className="phone-tabs" aria-label="Phone inventory views">
+              <button
+                type="button"
+                disabled={busy}
+                aria-current={view === 'things' ? 'page' : undefined}
+                onClick={() => navigate('things')}
+              >
+                Things
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                aria-label={`Review inbox ${reviewCount}`}
+                aria-current={view === 'review' ? 'page' : undefined}
+                onClick={() => navigate('review')}
+              >
+                Review <span className="review-count">{reviewCount}</span>
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                aria-current={!['things', 'review'].includes(view) ? 'page' : undefined}
+                onClick={() => setMoreOpen(true)}
+              >
+                More
+              </button>
+            </nav>
+            <button
+              type="button"
+              className="phone-add"
+              aria-label="+ Add a thing"
+              disabled={ordinaryLocked || loading || error}
+              onClick={add}
+            >
+              + Add
+            </button>
+            {moreOpen && (
+              <BottomSheet label="More views" close={() => setMoreOpen(false)}>
+                <div className="more-view-links">
+                  {VIEWS.filter((key) => !['things', 'review'].includes(key)).map((key) => (
+                    <button
+                      type="button"
+                      className="text-button"
+                      key={key}
+                      disabled={busy}
+                      onClick={() => {
+                        setMoreOpen(false);
+                        navigate(key);
+                      }}
+                    >
+                      {titles[key]}
+                    </button>
+                  ))}
+                  <span>✓ Owner verified</span>
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={signOutPending}
+                    onClick={() => void signOut()}
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </BottomSheet>
+            )}
+          </>
+        )}
       </main>
     </MutationActivity.Provider>
   );

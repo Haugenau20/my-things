@@ -136,14 +136,14 @@ test('phone opens the full item view and retains its facet context', async ({ pa
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
-  const room = page.getByRole('group', { name: 'Room filter', exact: true });
+  await page.getByRole('button', { name: 'Choose Room filter', exact: true }).click();
+  const room = page.getByRole('dialog', { name: 'Room picker' });
   await room.getByRole('button', { name: /^Synthetic bedroom\s*3$/ }).click();
   await page.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Item inspector', exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Notes', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Back to gallery', exact: true }).click();
-  await expect(room.getByRole('button', { name: /^Synthetic bedroom\s*3$/ })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(
+    page.getByRole('button', { name: 'Choose Room filter', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
 });
