@@ -49,6 +49,13 @@ export function CaptureForm({
   const [locked, setLocked] = useState(false);
   const attempt = useRef<CaptureAttempt | undefined>(undefined);
   const nameField = useRef<HTMLInputElement>(null);
+  const [focusAfterSave, setFocusAfterSave] = useState(false);
+  useEffect(() => {
+    if (focusAfterSave && !busy && !locked) {
+      nameField.current?.focus();
+      setFocusAfterSave(false);
+    }
+  }, [focusAfterSave, busy, locked]);
   const [roomBusy, setRoomBusy] = useMutationState();
   const [quantity, setQuantity] = useState('1');
   const [amount, setAmount] = useState('');
@@ -177,7 +184,6 @@ export function CaptureForm({
       setStatus(`Saved ${saved.name}. Ready for the next thing.`);
       await onSaved(saved);
       signal.throwIfAborted();
-      nameField.current?.focus();
     } catch (failure) {
       if (!signal.aborted) {
         setStatus('');
@@ -192,7 +198,7 @@ export function CaptureForm({
       }
     } finally {
       setBusy(false);
-      if (acknowledged && !signal.aborted) requestAnimationFrame(() => nameField.current?.focus());
+      if (acknowledged && !signal.aborted) setFocusAfterSave(true);
     }
   }
   return (
