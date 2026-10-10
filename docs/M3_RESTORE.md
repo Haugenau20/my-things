@@ -66,6 +66,17 @@ splitting evidence remains valid; it does not prove a 2 GiB cloud restore. SDK f
 JPEG header for byte/metadata tests; Chromium uses a canvas-generated real image. No emulator result
 is a real backup/recovery proof. Tooling audit findings remain documented in [M3 export](M3_EXPORT.md).
 
+## Production release
+
+Source `d51ba78` passed `mise exec -- npm run build:prod`, explicit production destination preflight and
+`mise exec -- npm run release:prepare`. Firebase CLI deployed Firestore rules and Hosting successfully
+on 2026-10-10 under standing owner authorization. An isolated signed-out Chromium session displayed the
+Google button and reached `accounts.google.com` without console/page errors. Anonymous root, item-list,
+restore-report and Storage-prefix requests all returned 403. No production records/photos were read,
+exported, imported, migrated, deleted or cleared. No verification root was seeded. Storage rules, Auth,
+IAM, CORS, billing and infrastructure were unchanged. These checks do not prove authenticated cloud
+restore, actual-device behavior or a personal backup. Refresh existing app tabs to load this release.
+
 ## Operating steps and remaining gates
 
 Refresh all open app tabs. Save every export part outside Firebase and this repository; ZIPs are
