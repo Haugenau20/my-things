@@ -64,8 +64,6 @@ archive/restore regression then reproduced restoring into an archived room. A di
 destination revision initially succeeded, then was denied by the paired-write policy. Browser scenarios
 initially failed on absent controls; subsequent selector/key issues were corrected during verification.
 
-## Manual gates and future work
-
 ## Production release
 
 Source commit `4318c7b` has the exact tree that passed the full suite (rebased onto the merged optional-photo
