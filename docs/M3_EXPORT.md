@@ -51,6 +51,15 @@ Node gRPC override. The full audit still reports 11 development dependency findi
 claim is made for tooling. The existing Firebase chunk size warning remains 591.77 kB (176.82 kB gzip).
 Synthetic fixtures/downloads remain ignored. No real personal backup or restore was attempted.
 
+## Production release
+
+Source `996ea2d` passed production build, explicit destination preflight, and ignored release preparation.
+Hosting deployed successfully on 2026-10-10 under standing owner authorization. An isolated signed-out
+Chromium session showed the Google button and started the redirect without console/page errors; anonymous
+root, item collection, and Storage listing requests returned 403. No production inventory data/photos
+were read or exported. Rules, IAM, CORS, Auth, and infrastructure were unchanged. This live-shell check
+does not replace an authenticated personal export or restore test.
+
 ## Remaining gates
 
 Strict archive validation and restore into an empty already-authorized destination remain unimplemented.
