@@ -81,11 +81,15 @@ export const itemSchema = z
       item.currentLocation.kind !== 'unassigned'
     )
       issue('Disposed item has a location');
-    if (
-      item.recordState === 'ready' &&
-      !item.photos.some((photo) => photo.state === 'ready' && photo.id === item.coverPhotoId)
-    )
-      issue('Ready item requires a ready cover');
+    if (item.recordState === 'ready') {
+      const ready = item.photos.filter((photo) => photo.state === 'ready');
+      if (
+        ready.length === 0
+          ? item.coverPhotoId !== null
+          : !ready.some((photo) => photo.id === item.coverPhotoId)
+      )
+        issue('Cover must refer to a ready photo, or be null when no photo is ready');
+    }
     if (item.recordState === 'draft' && (item.photos.length === 0 || item.coverPhotoId !== null))
       issue('Invalid draft');
   });
@@ -105,7 +109,7 @@ export const captureInputSchema = z.strictObject({
   name: z.string().trim().min(1).max(200),
   roomId: idSchema.nullable(),
   reviewStatus: z.enum(['needs_review', 'reviewed']),
-  photos: z.array(photoSchema).min(1).max(MAX_PHOTOS),
+  photos: z.array(photoSchema).max(MAX_PHOTOS),
 });
 export type CaptureInput = z.infer<typeof captureInputSchema>;
 export function photoPath(
@@ -136,7 +140,7 @@ export function captureDraft(input: CaptureInput, timestamp: Timestamp): ItemDoc
     decision: 'undecided',
     progress: 'not_started',
     completedAt: null,
-    recordState: 'draft',
+    recordState: value.photos.length ? 'draft' : 'ready',
     coverPhotoId: null,
     photos: value.photos,
     createdAt: timestamp,

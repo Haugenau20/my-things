@@ -9,6 +9,11 @@ and box records needed to preserve labels, inventory display settings, and both 
 retained ready photo. Keep original room references and grouped quantities. It is not an export of account
 authorization, Google/Firebase tokens, or cloud infrastructure.
 
+Photo-free ready items are included with `photos: []` and `coverPhotoId: null`, zero photo files,
+and an empty CSV cover path. Intentional photo absence is valid, not a missing-file or incomplete-backup
+condition. Pending photo attachments still block a complete export. Restore photo-free records without
+inventing a placeholder file. Existing schema/format versions and photo-bearing records remain compatible.
+
 Preflight must find and resolve drafts, pending photo additions/deletions, and item deletion operations.
 Offer retry or explicit discard, not silent exclusion. A complete export is blocked while those operations
 are unresolved or any referenced file is missing. A future salvage export may relax this, but it must be

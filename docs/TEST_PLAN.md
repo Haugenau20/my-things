@@ -40,7 +40,8 @@ protection. Verify that deleting/renaming a frontend route does not affect backe
 
 | ID | Test |
 | --- | --- |
-| T-CAP-01 | Name + ready photo required; blank names or pending uploads cannot create a completed item |
+| T-CAP-01 | Name required; intentional photo-free saves are acknowledged; selected uploads must finish before capture succeeds |
+| T-CAP-04 | Saved photo-free item survives reload, receives photos later under the same ID, and survives attachment cancellation |
 | T-CAP-02 | Save & next retains capture room, resets per-item data, and defaults to needs-review |
 | T-CAP-03 | Optional details can remain blank; save-as-reviewed is explicit |
 | T-LOC-01 | First room fills original room; moving and packing preserve it |
@@ -55,7 +56,7 @@ protection. Verify that deleting/renaming a frontend route does not affect backe
 | T-EDIT-02 | Two-tab revision conflict is surfaced instead of overwriting a newer edit |
 | T-BRW-01 | Search includes metadata beyond the currently displayed page; indexing progress is honest |
 | T-DEL-01 | Trash/restore preserve data; restoring a sold item does not silently make it owned |
-| T-DEL-02 | Last ready photo cannot be removed; cover selection stays valid |
+| T-DEL-02 | Cover points to a ready photo when one exists; otherwise it is null |
 
 ## 4. Failure injection - release blocking
 

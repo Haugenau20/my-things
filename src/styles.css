@@ -397,6 +397,15 @@ input[type='file'] {
   font-size: 12px;
   padding: 10px;
 }
+.photo-inputs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.photo-inputs input[hidden] {
+  display: none;
+}
 input::file-selector-button {
   border: 0;
   border-radius: 3px;
@@ -514,6 +523,11 @@ input::file-selector-button {
 .detail-photos {
   display: grid;
   gap: 20px;
+}
+.photo-attachment {
+  margin-top: 24px;
+  border-top: 1px solid #deded2;
+  padding-top: 16px;
 }
 .photo-placeholder {
   font-size: 12px;

@@ -30,12 +30,15 @@ function RecoveryItem({
   const [confirmation, setConfirmation] = useState(false);
   const [error, setError] = useState<string>();
   const [status, setStatus] = useState('');
+  const attachment = item.recordState === 'ready';
+  const cleaning =
+    item.recordState === 'deleting' || item.photos.some((photo) => photo.state === 'deleting');
   async function perform(discard: boolean) {
     setBusy(true);
     setError(undefined);
     try {
       if (discard) {
-        setStatus('Discarding unfinished capture…');
+        setStatus(attachment ? 'Canceling unfinished photos…' : 'Discarding unfinished capture…');
         await discardAttempt(services, inventoryId, item, signal);
       } else {
         const prepared = [];
@@ -87,11 +90,13 @@ function RecoveryItem({
     <article className="recovery-item">
       <h3>{item.name}</h3>
       <p className="supporting">
-        {item.recordState === 'deleting'
+        {cleaning
           ? 'Cleanup needs to finish.'
-          : 'Not saved yet. Verify uploaded files, or reselect all original photos in order.'}
+          : attachment
+            ? 'Your item remains saved. Verify unfinished uploads, or reselect all original photos in order.'
+            : 'Not saved yet. Verify uploaded files, or reselect all original photos in order.'}
       </p>
-      {item.recordState === 'draft' && (
+      {!cleaning && (
         <>
           <label>
             Reselect originals for {item.name}
@@ -110,11 +115,19 @@ function RecoveryItem({
       )}
       {!confirmation ? (
         <button className="text-button" disabled={busy} onClick={() => setConfirmation(true)}>
-          {item.recordState === 'deleting' ? 'Retry cleanup' : 'Discard unfinished capture'}
+          {cleaning
+            ? 'Retry cleanup'
+            : attachment
+              ? 'Cancel photo attachment'
+              : 'Discard unfinished capture'}
         </button>
       ) : (
         <div>
-          <p>Remove this unfinished item and its uploaded photos? Your originals stay untouched.</p>
+          <p>
+            {attachment
+              ? 'Remove these unfinished photo uploads? Your saved item and originals stay untouched.'
+              : 'Remove this unfinished item and its uploaded photos? Your originals stay untouched.'}
+          </p>
           <button className="secondary-button" disabled={busy} onClick={() => void perform(true)}>
             Confirm discard
           </button>
@@ -143,7 +156,10 @@ export function RecoveryPanel(props: {
   return (
     <section className="recovery-panel" aria-label="Unfinished captures">
       <h2>Unfinished captures</h2>
-      <p>These attempts need your attention. They are excluded from your saved inventory.</p>
+      <p>
+        These attempts need your attention. New captures are not yet saved; items with unfinished
+        photo attachments remain in your inventory.
+      </p>
       {props.items.map((item) => (
         <RecoveryItem
           key={item.id + ':' + item.revision}

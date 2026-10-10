@@ -10,6 +10,12 @@ import {
   deleteDiscardedDraft,
 } from '../data/capture-repository';
 import { deleteObject, list, ref } from 'firebase/storage';
+import {
+  ensureFirstPhotos,
+  finishFirstPhotos,
+  markPhotoCancellation,
+  finishPhotoCancellation,
+} from '../data/photo-attachment-repository';
 export type CaptureAttempt = { id: string; input: CaptureInput; prepared: PreparedPhoto[] };
 async function uploadAndFinish(
   services: FirebaseServices,
@@ -23,6 +29,8 @@ async function uploadAndFinish(
   if (!services.auth.currentUser) throw new Error('Sign in before retrying this capture.');
   if (item.recordState === 'deleting')
     throw new Error('This capture is being discarded. Continue its cleanup.');
+  if (item.photos.some((photo) => photo.state === 'deleting'))
+    throw new Error('These photos are being discarded. Continue their cleanup.');
   const files = item.photos.flatMap((photo) => {
     const original = prepared.find((source) => source.photo.id === photo.id);
     return [
@@ -38,7 +46,28 @@ async function uploadAndFinish(
   );
   signal.throwIfAborted();
   progress('Confirming the saved item…');
-  return finishDraft(services.db, inventory, item, signal);
+  return item.recordState === 'ready' && item.photos.length
+    ? finishFirstPhotos(services.db, inventory, item, signal)
+    : finishDraft(services.db, inventory, item, signal);
+}
+export async function attachFirstPhotos(
+  services: FirebaseServices,
+  inventory: string,
+  item: Item,
+  prepared: PreparedPhoto[],
+  signal: AbortSignal,
+  progress: (text: string) => void,
+): Promise<Item> {
+  signal.throwIfAborted();
+  progress('Registering recoverable photo uploads…');
+  const registered = await ensureFirstPhotos(
+    services.db,
+    inventory,
+    item,
+    prepared.map((entry) => entry.photo),
+    signal,
+  );
+  return uploadAndFinish(services, inventory, registered, prepared, signal, progress);
 }
 export async function saveAttempt(
   services: FirebaseServices,
@@ -69,6 +98,24 @@ export async function discardAttempt(
   item: Item,
   signal: AbortSignal,
 ): Promise<void> {
+  if (item.recordState === 'ready') {
+    const marker = await markPhotoCancellation(services.db, inventory, item, signal);
+    await runBounded(
+      marker.photos.flatMap((photo) => [photo.detail, photo.thumbnail]),
+      2,
+      async (file) => {
+        signal.throwIfAborted();
+        try {
+          await deleteObject(ref(services.storage, file.storagePath));
+        } catch (error) {
+          if (!missing(error)) throw error;
+        }
+      },
+      signal,
+    );
+    await finishPhotoCancellation(services.db, inventory, marker, signal);
+    return;
+  }
   const marker = await markDiscard(services.db, inventory, item, signal);
   if (!marker) return;
   const prefix = `inventories/${inventory}/items/${item.id}/photos`;

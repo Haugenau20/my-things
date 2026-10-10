@@ -129,10 +129,17 @@ when current location is a box/unassigned. `undecided` requires `not_started` an
 Other decisions have a completion time exactly when progress is `completed`. A disposed entry must
 have an unassigned current location; reopen the outcome before assigning a room or box.
 
-A ready record has at least one ready photo, and its cover refers to a ready photo in the same item.
+A ready record may have no photos (`photos: []`, `coverPhotoId: null`). If any photo is ready, its cover
+refers to a ready photo in that same item; otherwise the cover is null. Photo absence is not a draft.
 A draft can contain pending photos and have no cover yet. Existing ready records can have additional
 pending/deleting photos; continue showing their ready photos and expose the unfinished operation.
 Do not claim a photo addition/removal complete while its metadata or objects remain unfinished.
+
+The optional-photo change retains schema-1 fields and all existing photo-bearing records without
+rewriting live data. The current first-photo flow accepts a photo-free ready item, registers pending
+metadata in a revision-checked partial patch, and finalizes only photo fields after verified uploads.
+Cancellation marks only those photos deleting, removes their exact objects, then clears their metadata.
+The item's identity, details, location, and ready state remain intact. No live-record migration is needed.
 
 Derived predicates (do not add independently editable copies):
 

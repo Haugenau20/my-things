@@ -25,6 +25,47 @@ async function image(page: Page) {
     buffer: Buffer.from(data, 'base64'),
   };
 }
+test('photo controls show camera and library buttons instead of native file buttons', async ({
+  page,
+}) => {
+  await owner(page);
+  const camera = page.getByRole('button', { name: 'Take photo', exact: true });
+  await expect(camera).toBeVisible();
+  const chooser = page.waitForEvent('filechooser');
+  await camera.click();
+  await (await chooser).setFiles(await image(page));
+  await expect(page.getByText(/Up to two photos · 1 selected/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Choose photos', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Take a photo')).toBeHidden();
+});
+test('saves a name without photos, reloads, and attaches photos to the same item later', async ({
+  page,
+}) => {
+  await owner(page);
+  await page.getByLabel('Item name').fill('Synthetic desktop entry');
+  await page.getByRole('button', { name: 'Save & next', exact: true }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Saved Synthetic desktop entry' }),
+  ).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Open Synthetic desktop entry', exact: true }).click();
+  const detail = page.getByRole('region', { name: 'Saved inventory' });
+  await expect(detail.getByText('No photo yet', { exact: true })).toBeVisible();
+  await detail
+    .getByLabel('Choose photos')
+    .setInputFiles([
+      await image(page),
+      { ...(await image(page)), name: 'synthetic-later-second.png' },
+    ]);
+  await detail.getByRole('button', { name: 'Save photos', exact: true }).click();
+  await expect(detail.getByRole('img', { name: /Synthetic desktop entry · photo/ })).toHaveCount(2);
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: 'Open Synthetic desktop entry', exact: true }),
+  ).toHaveCount(1);
+  await page.getByRole('button', { name: 'Open Synthetic desktop entry', exact: true }).click();
+  await expect(page.getByRole('img', { name: /Synthetic desktop entry · photo/ })).toHaveCount(2);
+});
 test('sequential camera selections add photos instead of replacing the first one', async ({
   page,
 }) => {
@@ -35,6 +76,96 @@ test('sequential camera selections add photos instead of replacing the first one
     .getByLabel('Take a photo')
     .setInputFiles({ ...source, name: 'synthetic-camera-second.png' });
   await expect(page.getByText(/Up to two photos · 2 selected/)).toBeVisible();
+});
+test('failed attachment cleanup remains retryable and never deletes the saved item', async ({
+  page,
+}) => {
+  await owner(page);
+  const name = 'Synthetic preserved desktop entry';
+  await page.getByLabel('Item name').fill(name);
+  await page.getByRole('button', { name: 'Save & next', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: `Saved ${name}` })).toBeVisible();
+  await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
+  await page.route('**/127.0.0.1:19199/**', (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 403,
+          contentType: 'application/json',
+          body: '{"error":{"code":403,"message":"Synthetic failed attachment"}}',
+        })
+      : route.continue(),
+  );
+  const detail = page.getByRole('region', { name: 'Saved inventory' });
+  await detail.getByLabel('Choose photos').setInputFiles(await image(page));
+  await detail.getByRole('button', { name: 'Save photos', exact: true }).click();
+  await expect(detail.getByRole('alert')).toContainText('Your item remains saved');
+  await detail.getByRole('button', { name: 'Back to gallery', exact: true }).click();
+  await expect(page.getByRole('button', { name: `Open ${name}`, exact: true })).toBeVisible();
+  await page.unrouteAll();
+  await page.route('**/127.0.0.1:19199/**', (route) =>
+    route.request().method() === 'DELETE'
+      ? route.fulfill({
+          status: 403,
+          contentType: 'application/json',
+          body: '{"error":{"code":403,"message":"Synthetic failed cleanup"}}',
+        })
+      : route.continue(),
+  );
+  const recovery = page.getByRole('region', { name: 'Unfinished captures' });
+  await recovery.getByRole('button', { name: 'Cancel photo attachment', exact: true }).click();
+  await recovery.getByRole('button', { name: 'Confirm discard', exact: true }).click();
+  await expect(recovery.getByRole('alert')).toContainText('Cleanup is unfinished');
+  await page.unrouteAll();
+  await page.reload();
+  await recovery.getByRole('button', { name: 'Retry cleanup', exact: true }).click();
+  await recovery.getByRole('button', { name: 'Confirm discard', exact: true }).click();
+  await expect(recovery).toHaveCount(0);
+  await expect(page.getByRole('button', { name: `Open ${name}`, exact: true })).toHaveCount(1);
+  await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
+  await expect(detail.getByText('No photo yet', { exact: true })).toBeVisible();
+});
+test('reload recovery attaches original files to a saved photo-free item', async ({ page }) => {
+  await owner(page);
+  const name = 'Synthetic attachment reselection';
+  const source = await image(page);
+  await page.getByLabel('Item name').fill(name);
+  await page.getByRole('button', { name: 'Save & next', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: `Saved ${name}` })).toBeVisible();
+  await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
+  await page.route('**/127.0.0.1:19199/**', (route) =>
+    route.request().method() === 'POST'
+      ? route.fulfill({
+          status: 403,
+          contentType: 'application/json',
+          body: '{"error":{"code":403,"message":"Synthetic failed attachment"}}',
+        })
+      : route.continue(),
+  );
+  const detail = page.getByRole('region', { name: 'Saved inventory' });
+  await detail.getByLabel('Choose photos').setInputFiles(source);
+  await detail.getByRole('button', { name: 'Save photos', exact: true }).click();
+  await expect(detail.getByRole('alert')).toContainText('Your item remains saved');
+  await page.unrouteAll();
+  await page.reload();
+  const recovery = page.getByRole('region', { name: 'Unfinished captures' });
+  await recovery.getByLabel(`Reselect originals for ${name}`).setInputFiles(source);
+  await recovery.getByRole('button', { name: 'Verify & finish', exact: true }).click();
+  await expect(recovery).toHaveCount(0);
+  await expect(page.getByRole('button', { name: `Open ${name}`, exact: true })).toHaveCount(1);
+  await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
+  const photo = page.getByRole('img', { name: `${name} · photo 1`, exact: true });
+  await expect(photo).toBeVisible();
+  await expect
+    .poll(() =>
+      photo.evaluate(
+        (node) =>
+          node instanceof HTMLImageElement &&
+          node.complete &&
+          node.naturalWidth > 0 &&
+          node.src.startsWith('blob:'),
+      ),
+    )
+    .toBe(true);
 });
 test('captures two photos, remembers the room, reloads private photos, and clears them on sign-out', async ({
   page,
@@ -123,6 +254,8 @@ test('unsupported HEIC and too many photos preserve input without reporting save
   await page
     .getByLabel('Choose photos')
     .setInputFiles([await image(page), await image(page), await image(page)]);
+  await expect(page.getByRole('alert')).toContainText('two photos');
+  await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('two photos');
   await expect(
     page.getByRole('button', { name: 'Open Synthetic undecodable item', exact: true }),

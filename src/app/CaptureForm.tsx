@@ -5,6 +5,7 @@ import type { Room } from '../domain/item';
 import { MAX_PHOTOS, preparePhoto } from '../media/processing';
 import type { CaptureAttempt } from '../media/capture';
 import { saveAttempt } from '../media/capture';
+import { PhotoInputs } from './PhotoInputs';
 
 export function CaptureForm({
   services,
@@ -32,17 +33,14 @@ export function CaptureForm({
   const [error, setError] = useState<string>();
   const [locked, setLocked] = useState(false);
   const attempt = useRef<CaptureAttempt | undefined>(undefined);
-  const camera = useRef<HTMLInputElement>(null);
-  const picker = useRef<HTMLInputElement>(null);
   const nameField = useRef<HTMLInputElement>(null);
   const [roomBusy, setRoomBusy] = useState(false);
-  function select(selected: FileList | null, append = false) {
-    if (!selected) return;
+  function select(selected: File[], append = false) {
     setError(undefined);
     setStatus('');
-    const next = append ? [...files, ...Array.from(selected)] : Array.from(selected);
+    const next = append ? [...files, ...selected] : selected;
+    setFiles(next);
     if (next.length > MAX_PHOTOS) {
-      if (!append) setFiles([]);
       setError('Choose at most two photos. Your original files are unchanged.');
       return;
     }
@@ -91,8 +89,8 @@ export function CaptureForm({
       setError('Enter an item name, up to 200 characters.');
       return;
     }
-    if (!files.length && !attempt.current) {
-      setError('Choose at least one photo.');
+    if (files.length > MAX_PHOTOS) {
+      setError('Choose at most two photos, or clear the selection to save without photos.');
       return;
     }
     setBusy(true);
@@ -125,8 +123,6 @@ export function CaptureForm({
       setLocked(false);
       setName('');
       setFiles([]);
-      if (camera.current) camera.current.value = '';
-      if (picker.current) picker.current.value = '';
       setStatus(`Saved ${saved.name}. Ready for the next thing.`);
       await onSaved();
       signal.throwIfAborted();
@@ -152,7 +148,8 @@ export function CaptureForm({
       <p className="eyebrow">One thing at a time</p>
       <h2 id="capture-title">Add a thing</h2>
       <p className="supporting">
-        A name and a photo are enough to start. Keep the room selected as you go.
+        A name is enough to start. Photos are optional now or later. Keep the room selected as you
+        go.
       </p>
       <form
         onSubmit={(event) => {
@@ -206,31 +203,7 @@ export function CaptureForm({
               {roomBusy ? 'Adding…' : 'Add room'}
             </button>
           </div>
-          <div className="photo-inputs">
-            <label>
-              Take a photo
-              <input
-                ref={camera}
-                type="file"
-                accept="image/*,.heic,.heif"
-                capture="environment"
-                onChange={(event) => {
-                  select(event.target.files, true);
-                  event.target.value = '';
-                }}
-              />
-            </label>
-            <label>
-              Choose photos
-              <input
-                ref={picker}
-                type="file"
-                accept="image/*,.heic,.heif"
-                multiple
-                onChange={(event) => select(event.target.files)}
-              />
-            </label>
-          </div>
+          <PhotoInputs onSelect={select} disabled={busy || locked || roomBusy} />
         </fieldset>
         {files.length > 0 && (
           <>
@@ -245,8 +218,6 @@ export function CaptureForm({
               disabled={busy || locked}
               onClick={() => {
                 setFiles([]);
-                if (camera.current) camera.current.value = '';
-                if (picker.current) picker.current.value = '';
                 setError(undefined);
               }}
             >

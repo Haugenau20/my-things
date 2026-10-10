@@ -11,7 +11,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | A01 | Photo-first personal inventory for an international move | Optimize capture and later visual recall |
 | A02 | Individual entries by default, some groups | Quantity exists but one entry has one location/outcome |
 | A03 | Phone capture, optional immediate detail entry, desktop organization | Capture must not require a large form |
-| A04 | Name and photo required; quantity/value/serial optional | Blank optional fields do not mean incomplete review |
+| A04 | Name required; photos may be added later; quantity/value/serial optional | Photo-free entries are saved items, not drafts |
 | A05 | Rooms now; flat numbered boxes when packing | Retain original room separately from current location |
 | A06 | Simple store/take/sell/give-away workflow | No marketplace, buyer, or pickup-management system |
 | A07 | No offline capture requirement | Do not add a persistent local photo-sync system |
@@ -70,6 +70,16 @@ future paid service chosen. No exact budget/free-tier prediction or guarantee th
 free allowances. No claim that this documentation is a deployed or security-audited application.
 
 ## Recording a change
+
+### 2026-10-10 — Photos optional, with later first-photo attachment
+
+The owner explicitly removed the photo requirement to allow desktop entry followed by phone photography.
+A nonblank name and acknowledged record are sufficient. Empty photo lists and null covers use the
+existing schema-1 fields; existing records remain valid and are not rewritten. Selected photos still
+must finish before capture success. The detail view attaches first photos without recreating/demoting
+the saved item. Interrupted attachments and explicit cancellation retain the original item. General
+ready-photo replacement/removal remains future work. Visible camera/library controls use labeled buttons
+over native hidden file inputs; `capture` remains a device-dependent hint, not a desktop camera guarantee.
 
 ### 2026-10-10 — M0 toolchain and authorization scope
 

@@ -8,6 +8,7 @@ import { PhotoSession } from '../media/photo-session';
 import { CaptureForm } from './CaptureForm';
 import { RecoveryPanel } from './RecoveryPanel';
 import { PrivatePhoto } from './PrivatePhoto';
+import { PhotoAttachment } from './PhotoAttachment';
 
 export function InventoryWorkspace({
   services,
@@ -85,8 +86,9 @@ export function InventoryWorkspace({
             items={items.filter(
               (item) =>
                 item.id !== activeAttempt &&
-                item.recordState !== 'ready' &&
-                item.coverPhotoId === null,
+                ((item.recordState !== 'ready' && item.coverPhotoId === null) ||
+                  (item.recordState === 'ready' &&
+                    item.photos.some((photo) => photo.state !== 'ready'))),
             )}
             services={services}
             inventoryId={inventoryId}
@@ -112,7 +114,13 @@ export function InventoryWorkspace({
             <section className="gallery-panel" aria-label="Saved inventory">
               {detail ? (
                 <>
-                  <button className="text-button" onClick={() => setSelected(undefined)}>
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      if (activeAttempt === selected) setActiveAttempt(undefined);
+                      setSelected(undefined);
+                    }}
+                  >
                     Back to gallery
                   </button>
                   <h2>{detail.name}</h2>
@@ -128,6 +136,9 @@ export function InventoryWorkspace({
                     Original room: {roomName(detail.originalRoomId)} · Quantity: {detail.quantity}
                   </p>
                   <div className="detail-photos">
+                    {!detail.photos.some((photo) => photo.state === 'ready') && (
+                      <p className="photo-placeholder">No photo yet</p>
+                    )}
                     {detail.photos
                       .filter((photo) => photo.state === 'ready')
                       .map((photo, index) => (
@@ -140,6 +151,23 @@ export function InventoryWorkspace({
                         />
                       ))}
                   </div>
+                  {(detail.photos.length === 0 || activeAttempt === detail.id) && (
+                    <PhotoAttachment
+                      key={detail.id}
+                      item={detail}
+                      services={services}
+                      inventoryId={inventoryId}
+                      signal={controller.signal}
+                      onSaved={async () => {
+                        setActiveAttempt(undefined);
+                        await reload();
+                      }}
+                      onAttempt={async (id) => {
+                        setActiveAttempt(id);
+                        await reload();
+                      }}
+                    />
+                  )}
                 </>
               ) : (
                 <>
@@ -159,12 +187,16 @@ export function InventoryWorkspace({
                       const cover = item.photos.find((photo) => photo.id === item.coverPhotoId);
                       return (
                         <article key={item.id} className="item-card">
-                          {cover && (
+                          {cover ? (
                             <PrivatePhoto
                               file={cover.thumbnail}
                               session={session}
                               alt={item.name}
                             />
+                          ) : (
+                            <div className="private-photo thumbnail">
+                              <span className="photo-placeholder">No photo yet</span>
+                            </div>
                           )}
                           <button
                             className="item-card-name"

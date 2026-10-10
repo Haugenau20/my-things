@@ -42,15 +42,19 @@ Do not add these without an explicit scope decision. Basic notes are the escape 
 
 1. Open Capture on the phone. Optionally select the current room; keep it selected for subsequent items
    within that capture session, with the selected room always visible.
-2. Take a photo or select existing photos. Enter a short name. Both a nonblank name and at least one
-   successfully stored photo are required for a completed inventory entry.
+2. Enter a short name. Photos are optional: take one, select existing photos, or save the item without
+   photos and attach them later from its detail view on the phone. A nonblank name is required.
 3. Optional details are collapsed by default: quantity, estimated value/currency, serial number, notes,
    category, location, and moving decision/progress.
 4. Choose **Save & next**. Show processing/upload progress and do not claim success before the server
-   acknowledges the required photo files and the completed record.
+   acknowledges the completed record and every selected photo file. An intentional photo-free save
+   completes after record acknowledgment; a failed selected photo is never silently omitted.
 5. Reset the item form but retain the capture room. The item goes to the review inbox by default.
    **Save as reviewed** is an explicit alternative.
 
+Photo-free items are saved inventory entries with a "No photo yet" placeholder, not upload drafts.
+The detail view allows adding first photos to that same item without losing its metadata. Interrupted
+attachments remain visible and retryable while the item stays saved; canceling the attachment preserves it.
 The first selected photo becomes the cover unless changed. One capture creates one item even when several
 photos are selected. There is no automatic one-file-per-item batch import in V1.
 
@@ -128,8 +132,8 @@ fields, including whether the item was previously sold/given away. Permanent del
 from trash, needs explicit confirmation, and removes associated photo objects before removing the final
 item document. A partial cleanup remains retryable; it must not be reported as finished.
 
-Removing a photo from an item cannot leave a ready item with no ready photos. Changing/removing the cover
-selects another ready photo explicitly or deterministically. Replacing a photo uses a new photo ID.
+Items may have no photos. Changing/removing the cover selects another ready photo explicitly or
+deterministically, or clears the cover when none remain. Replacing a photo uses a new photo ID.
 
 ### BAK-01: Export and restore
 
@@ -147,7 +151,7 @@ A static offline HTML gallery is useful but optional, not a release gate. See th
 | Field | Requirement / meaning |
 | --- | --- |
 | Name | Required, trimmed, nonblank |
-| Photos | At least one ready photo for a completed item; multiple supported |
+| Photos | Optional; may be added later; multiple supported |
 | Quantity | Optional entry; defaults to integer 1 |
 | Estimated value | Optional; total for this entry, not per unit; currency required when a value exists |
 | Serial number | Optional; a string, including leading zeros |

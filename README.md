@@ -4,7 +4,7 @@ A private, photo-first inventory for preparing an international move and finding
 Capture individual items on an iPhone, organize them on a Windows computer, decide what to store, take,
 sell, or give away, and browse the things you still own while abroad.
 
-**Repository status: M1 capture deployed; owner/device acceptance pending.** Name + photo
+**Repository status: M1 capture deployed; owner/device acceptance pending.** Name with optional photo
 capture, a sticky room, optimized private photos, gallery/detail views, and interrupted-capture recovery
 are present. Hosting, Firestore indexes/rules, and Storage rules are deployed. Required cross-service
 IAM and exact-origin CORS are applied; the signed-out page and Google redirect start are verified.
@@ -17,7 +17,7 @@ See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.
 
 ## The first version
 
-- Fast phone capture: one or more photos and a name, with optional details and a sticky capture room.
+- Fast capture: a name, optional photos now or later, optional details, and a sticky capture room.
 - A desktop review inbox, photo gallery, compact table, search, filters, and bulk editing.
 - Rooms before packing; numbered boxes during packing; original room retained after an item moves.
 - Simple moving decisions and progress, with completed sales/donations kept in an archive.
@@ -82,7 +82,8 @@ supplies those values. The owner's existing MIT license is preserved.
 
 ## First real acceptance test
 
-Photograph 20 items in two rooms on the iPhone. Review and bulk-edit them on Windows. Pack some into a
+Create 20 items in two rooms, including photo-free entries on Windows that receive photos later on the
+iPhone. Review and bulk-edit them on Windows. Pack some into a
 numbered box without losing their original room. Find them through the gallery. Export all records and
 photos, and restore them into an empty, isolated, administrator-authorized verification inventory.
 Separately, prove that another account

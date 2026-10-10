@@ -204,6 +204,117 @@ describe('M1 capture authorization', () => {
       record.update({ name: 'M2 edit', revision: 3, updatedAt: serverTimestamp() }),
     );
   });
+  it('allows an acknowledged photo-free owner capture but no draft with zero photos', async () => {
+    const data = { ...draft('photo-free'), recordState: 'ready', photos: [] };
+    await assertSucceeds(owner().doc('inventories/main/items/photo-free').set(data));
+    await assertFails(
+      owner()
+        .doc('inventories/main/items/empty-draft')
+        .set({ ...data, recordState: 'draft' }),
+    );
+    await assertFails(owner().doc('inventories/main/items/photo-free').delete());
+    for (const uid of [null, 'unrelated-user']) {
+      const context =
+        uid === null ? environment.unauthenticatedContext() : environment.authenticatedContext(uid);
+      await assertFails(
+        context.firestore().doc('inventories/main/items/foreign-photo-free').set(data),
+      );
+    }
+  });
+  it.each([1, 2])(
+    'allows only revision-checked first-photo attachment and exact completion with %i photos',
+    async (count) => {
+      const id = `attachment-${count}`;
+      const data = draft(id, count);
+      const record = owner().doc(`inventories/main/items/${id}`);
+      await assertSucceeds(record.set({ ...data, recordState: 'ready', photos: [] }));
+      const registration = { photos: data.photos, revision: 2, updatedAt: serverTimestamp() };
+      await assertFails(record.update({ ...registration, name: 'Unexpected edit' }));
+      await assertFails(record.update({ ...registration, revision: 1 }));
+      await assertFails(
+        record.update({
+          ...registration,
+          photos: data.photos.map((photo) => ({ ...photo, state: 'ready' })),
+          coverPhotoId: data.photos[0]!.id,
+        }),
+      );
+      await assertSucceeds(record.update(registration));
+      const completion = {
+        photos: data.photos.map((photo) => ({ ...photo, state: 'ready' })),
+        coverPhotoId: data.photos[0]!.id,
+        revision: 3,
+        updatedAt: serverTimestamp(),
+      };
+      await assertFails(
+        record.update({
+          ...completion,
+          photos: completion.photos.map((photo) => ({
+            ...photo,
+            detail: { ...photo.detail, sha256: 'b'.repeat(64) },
+          })),
+        }),
+      );
+      await assertSucceeds(record.update(completion));
+      await assertFails(
+        record.update({
+          photos: [],
+          coverPhotoId: null,
+          revision: 4,
+          updatedAt: serverTimestamp(),
+        }),
+      );
+    },
+  );
+  it('allows attachment cleanup markers without deleting the original saved item', async () => {
+    const id = 'attachment-discard';
+    const data = draft(id, 2);
+    const record = owner().doc(`inventories/main/items/${id}`);
+    await assertSucceeds(record.set({ ...data, recordState: 'ready', photos: [] }));
+    await assertSucceeds(
+      record.update({ photos: data.photos, revision: 2, updatedAt: serverTimestamp() }),
+    );
+    await assertFails(record.update({ photos: [], revision: 3, updatedAt: serverTimestamp() }));
+    const deleting = data.photos.map((photo) => ({ ...photo, state: 'deleting' }));
+    await assertSucceeds(
+      record.update({ photos: deleting, revision: 3, updatedAt: serverTimestamp() }),
+    );
+    await assertFails(record.delete());
+    await assertSucceeds(record.update({ photos: [], revision: 4, updatedAt: serverTimestamp() }));
+    await assertFails(record.delete());
+  });
+  it('rejects foreign, malformed, partial, and excess first-photo updates', async () => {
+    const id = 'attachment-negative';
+    const data = draft(id, 2);
+    const record = owner().doc(`inventories/main/items/${id}`);
+    await assertSucceeds(record.set({ ...data, recordState: 'ready', photos: [] }));
+    const registration = { photos: data.photos, revision: 2, updatedAt: serverTimestamp() };
+    for (const uid of [null, 'unrelated-user']) {
+      const context =
+        uid === null ? environment.unauthenticatedContext() : environment.authenticatedContext(uid);
+      await assertFails(
+        context.firestore().doc(`inventories/main/items/${id}`).update(registration),
+      );
+    }
+    await assertFails(record.update({ ...registration, photos: [...data.photos, data.photos[0]] }));
+    await assertFails(
+      record.update({
+        ...registration,
+        photos: [
+          data.photos[0],
+          { ...data.photos[1], thumbnail: { ...data.photos[1]!.thumbnail, sha256: 'invalid' } },
+        ],
+      }),
+    );
+    await assertSucceeds(record.update(registration));
+    await assertFails(
+      record.update({
+        photos: [{ ...data.photos[0], state: 'ready' }, data.photos[1]],
+        coverPhotoId: data.photos[0]!.id,
+        revision: 3,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
   it.each([null, 'unrelated-user'])('denies a valid capture for %s', async (uid) => {
     const context =
       uid === null ? environment.unauthenticatedContext() : environment.authenticatedContext(uid);
