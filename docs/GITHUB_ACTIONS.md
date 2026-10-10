@@ -88,13 +88,20 @@ Eight production-configuration cases failed before the helper existed and then p
 typechecking, actionlint 1.7.12 workflow validation and PowerShell parsing passed. The actionlint Windows
 release ZIP was checked against its upstream published SHA-256 before execution. The cloud policy
 command passed all nine synthetic cases with existing local CLI authentication after ADC support was
-added. This is not a GitHub OIDC or service-account deployment test. Full repository and hosted runner
-results will be recorded after completion. Actual GitHub production deployment remains pending Google
-setup, GitHub variables and merge into `main`.
+added. This is not a GitHub OIDC or service-account deployment test. Actual GitHub production deployment
+remains pending Google setup, GitHub variables and merge into `main`.
 
 The first full local run passed lint/typechecking, 148 unit, 100 rules and 27 SDK tests, then stopped
 before browser tests because an emulator health probe exceeded its two-second startup deadline.
 A warming-service regression reproduced rejection before the fix and passed afterward. Readiness
 probes now retry at most three times, with the same demo-only endpoints, two-second per-request
 deadline and a 250 ms wait; persistently unavailable services still deny seeding. Full verification
-is being rerun for this change. No cloud fallback or safety-guard bypass was added.
+was rerun for this change. No cloud fallback or safety-guard bypass was added.
+
+The rerun of `mise exec -- npm run check` passed formatting/lint, TypeScript, 149 unit tests, 100 rules
+tests, 27 SDK integration tests, 26 Chromium browser tests and the local build: **302 tests**. The
+production build, explicit project/inventory deployment preflight and production release preparation
+also passed; no CLI deployment was performed for this pipeline change. The existing large Firebase
+bundle warning remains. `git diff --check` passed. GitHub's hosted `Verify` job separately exercises
+the same command on Ubuntu; consult [PR #11 checks](https://github.com/Haugenau20/my-things/pull/11/checks)
+for its current result. Production deployment is intentionally skipped on this PR.
