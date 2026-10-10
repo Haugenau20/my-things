@@ -1,6 +1,6 @@
 # Portable export and restore contract
 
-Format: `home-inventory-export` | Format version: 1 | Status: proposed implementation contract
+Format: `home-inventory-export` | Format version: 1 | Status: export implemented; restore contract pending
 
 ## 1. Scope
 
@@ -78,6 +78,15 @@ multi-gigabyte Blob in memory. Prefer streaming to a user-selected desktop file 
 supports it. A bounded-memory fallback may split the export into a main metadata ZIP plus numbered photo
 ZIPs; each ZIP contains ordinary logical paths, not an opaque proprietary split-file format. List every
 part in the main manifest and require all parts during restore. Finalize the main manifest last.
+
+The M3 export slice uses stored (uncompressed) standard ZIP entries through fflate 0.8.3. A small export
+is one ZIP; larger exports present numbered photo ZIPs and finalize the metadata/manifest ZIP last.
+The fallback retains one part at a time, with at most 100 MiB uncompressed payload per part, up to
+16 MiB ZIP overhead, at most 64 MiB metadata payload, and 5,000 records per collection. Exceeding a
+limit fails instead of producing a partial success. Downloads need explicit per-part acknowledgment;
+the browser cannot verify filesystem persistence. Native directory streaming remains unimplemented.
+The synthetic 2 GiB exercise validates splitting, not actual Windows browser peak memory or cloud restore.
+See [M3 export evidence](M3_EXPORT.md).
 
 Suggested filenames: `inventory-{exportId}.zip` and, when needed,
 `inventory-{exportId}-photos-001.zip`, `...-002.zip`. Choose a tested part/memory limit during M3; start

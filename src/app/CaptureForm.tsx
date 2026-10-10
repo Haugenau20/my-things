@@ -1,3 +1,4 @@
+import { useMutationState } from './mutation-activity';
 import { useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import { createRoom } from '../data/capture-repository';
@@ -28,13 +29,13 @@ export function CaptureForm({
   const [room, setRoom] = useState('');
   const [roomName, setRoomName] = useState('');
   const [files, setFiles] = useState<File[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useMutationState();
   const [status, setStatus] = useState('');
   const [error, setError] = useState<string>();
   const [locked, setLocked] = useState(false);
   const attempt = useRef<CaptureAttempt | undefined>(undefined);
   const nameField = useRef<HTMLInputElement>(null);
-  const [roomBusy, setRoomBusy] = useState(false);
+  const [roomBusy, setRoomBusy] = useMutationState();
   function select(selected: File[], append = false) {
     setError(undefined);
     setStatus('');
@@ -79,7 +80,7 @@ export function CaptureForm({
       if (!signal.aborted)
         setError('Room creation could not be confirmed. Refresh rooms before retrying.');
     } finally {
-      if (!signal.aborted) setRoomBusy(false);
+      setRoomBusy(false);
     }
   }
   async function save(reviewed: boolean) {
@@ -140,7 +141,7 @@ export function CaptureForm({
         if (attempt.current) await onAttempt(attempt.current.id);
       }
     } finally {
-      if (!signal.aborted) setBusy(false);
+      setBusy(false);
     }
   }
   return (

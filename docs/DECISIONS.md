@@ -71,6 +71,28 @@ free allowances. No claim that this documentation is a deployed or security-audi
 
 ## Recording a change
 
+### 2026-10-10 — M3 full export and bounded ZIP parts
+
+Implement the existing version-1 export contract without changing stored schemas or ownership. Use
+fresh validated server records, exact timestamp pairs, relative photo paths, authenticated checksummed
+bytes, guarded CSV, and ID/revision/settings rechecks. Wait for registered saves and pause mutation
+controls in the exporting tab. A completed manifest never silently excludes pending or missing files.
+
+Pin MIT-licensed fflate 0.8.3 for streaming stored ZIP entries, based on its [official docs](https://github.com/101arrowz/fflate)
+and [release](https://github.com/101arrowz/fflate/releases/tag/v0.8.3). JPEG payloads gain little from ZIP
+compression. Keep fallback payload parts at 100 MiB, ZIP overhead capped at 16 MiB, metadata at 64 MiB,
+and records at 5,000 per collection. Explicitly acknowledge each saved part, release its URL, and
+finalize the main ZIP last. Native directory streaming is future work. Synthetic splitting evidence
+does not claim an actual browser memory ceiling or a real restore. See [M3 export evidence](M3_EXPORT.md).
+
+The dependency audit also found existing Firestore Node gRPC 1.9.x advisories. Pin its transitive Node
+dependency to 1.14.6, retaining Firebase 13.0.0 and its browser SDK. The upstream fixes are recorded in
+[GHSA-m9gg-hp2v-232j](https://github.com/advisories/GHSA-m9gg-hp2v-232j) and
+[GHSA-f596-whhp-79r4](https://github.com/advisories/GHSA-f596-whhp-79r4). The SDK emulator suite verifies
+compatibility; `npm audit --omit=dev` reports zero findings after the override. The full audit still
+reports 11 development-tool dependency findings (4 moderate, 7 high); no force downgrade or unrelated
+toolchain replacement is applied. A zero production audit is not a complete security assessment.
+
 ### 2026-10-10 — M3 cleanup recovery and inspection
 
 Use the existing schema-1 item as the permanent-deletion marker, with ready photos and the trash timestamp

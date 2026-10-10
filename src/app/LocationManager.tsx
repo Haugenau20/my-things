@@ -1,3 +1,4 @@
+import { useMutationState } from './mutation-activity';
 import { useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Item, Room } from '../domain/item';
@@ -34,7 +35,7 @@ function LocationRow({
   const [base, setBase] = useState(value);
   const [sort, setSort] = useState(String(value.sortOrder));
   const [notes, setNotes] = useState('notes' in value ? value.notes : '');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useMutationState();
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -190,7 +191,7 @@ export function LocationManager({
 }) {
   const [room, setRoom] = useState('');
   const [box, setBox] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useMutationState();
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState<'room' | 'box'>();
   async function create(kind: 'room' | 'box', confirmed = false) {

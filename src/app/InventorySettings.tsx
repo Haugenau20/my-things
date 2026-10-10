@@ -1,3 +1,4 @@
+import { useMutationState } from './mutation-activity';
 import { useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Inventory } from '../domain/inventory';
@@ -18,7 +19,7 @@ export function InventorySettings({
   const [name, setName] = useState(inventory.displayName);
   const [currency, setCurrency] = useState(inventory.defaultCurrency ?? '');
   const [base, setBase] = useState(inventory);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useMutationState();
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   async function save() {
