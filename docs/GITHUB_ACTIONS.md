@@ -51,7 +51,7 @@ injection fail before build/authentication/deployment. Private/admin credentials
 this variable. Generated environment and Google credential files are ignored and are not uploaded as
 artifacts. GitHub automatically supplies the limited `GITHUB_TOKEN`; do not create a PAT for this job.
 
-## One-time Google setup, pending specific approval
+## One-time Google setup, applied
 
 The reviewable [PowerShell setup script](../scripts/setup-github-oidc.ps1) targets the existing project
 only. It enables IAM / IAM Credentials / Security Token Service / Resource Manager APIs, creates the
@@ -72,14 +72,16 @@ grant of project Owner/Editor, Auth administration, inventory document access, p
 billing administration or IAM administration to the deployment account. Rules deployment itself is
 privileged: merged workflow/code/rule changes control production authorization and must be reviewed.
 
-Automatic approval review rejected execution because this specific persistent IAM setup was not
-explicitly authorized. **None of these setup changes have been applied.** Obtain the owner's explicit
-approval before running the setup script. It is a one-time script; if a command fails after partial
-setup, inspect the resulting resources and resume the missing steps rather than blindly recreating
-or deleting them. The workflow intentionally does not configure IAM, seed data, alter CORS/Auth/billing,
+The owner explicitly approved this setup and the script completed on 2026-10-10. Read-back checks
+confirmed the provider is active with the exact trust condition above, the service-account policy
+contains only the repository's Workload Identity User binding, and the account has exactly the five
+reviewed project roles. All four setup APIs are enabled and no user-managed service-account keys exist.
+An earlier automatic approval rejection was resolved by that explicit approval before execution.
+Do not rerun the create commands on the existing resources. For future setup changes, inspect the
+resources and apply only approved missing steps. The workflow does not configure IAM, seed data, alter CORS/Auth/billing,
 run restore/cleanup, or provision a database/bucket. The account has no database-creation permission.
 
-Once Google setup is approved/applied and the three variables are added, merge the pipeline PR into
+Once the three variables are added, merge the pipeline PR into
 `main` to enable automatic deployment. This PR builds on the photo-upload fix PR; merge that PR first.
 
 ## Verification evidence
@@ -89,7 +91,7 @@ typechecking, actionlint 1.7.12 workflow validation and PowerShell parsing passe
 release ZIP was checked against its upstream published SHA-256 before execution. The cloud policy
 command passed all nine synthetic cases with existing local CLI authentication after ADC support was
 added. This is not a GitHub OIDC or service-account deployment test. Actual GitHub production deployment
-remains pending Google setup, GitHub variables and merge into `main`.
+remains pending GitHub variables and merge into `main`.
 
 The first full local run passed lint/typechecking, 148 unit, 100 rules and 27 SDK tests, then stopped
 before browser tests because an emulator health probe exceeded its two-second startup deadline.
@@ -103,5 +105,18 @@ tests, 27 SDK integration tests, 26 Chromium browser tests and the local build: 
 production build, explicit project/inventory deployment preflight and production release preparation
 also passed; no CLI deployment was performed for this pipeline change. The existing large Firebase
 bundle warning remains. `git diff --check` passed. GitHub's hosted `Verify` job separately exercises
-the same command on Ubuntu; consult [PR #11 checks](https://github.com/Haugenau20/my-things/pull/11/checks)
-for its current result. Production deployment is intentionally skipped on this PR.
+the same command on Ubuntu. [Run 38081407326](https://github.com/Haugenau20/my-things/actions/runs/38081407326)
+passed for implementation commit `0e5ee74`; subsequent documentation commits run verification again.
+Consult [PR #11 checks](https://github.com/Haugenau20/my-things/pull/11/checks) for the current head result.
+Production deployment is intentionally skipped on this PR.
+
+The following GitHub run, `38081626580`, passed lint, typechecking, unit, rules and SDK checks, then
+hit the restore browser assertion's five-second default while the 18-record restore was still
+verifying destination records/photos. That completion assertion now waits at most 15 seconds; the
+required completion state, data/photo checks, negative authorization cases and test failure behavior
+are unchanged. This is an assertion deadline adjustment, not a test retry or skipped check.
+The local browser rerun also exposed a phone-save assertion matching both the saved status and a
+temporary metadata-loading status. It now selects the expected saved status explicitly, as the
+other capture tests already do.
+After both test corrections, `mise exec -- npm run test:e2e` passed all 26 browser cases;
+`mise exec -- npm run lint`, `mise exec -- npm run typecheck` and `git diff --check` also passed.

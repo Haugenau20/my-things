@@ -363,7 +363,9 @@ test('phone-width capture is usable and supports reviewed saves', async ({ page 
   await page.getByLabel('Item name').fill('Synthetic reviewed phone item');
   await page.getByLabel('Choose photos').setInputFiles(await image(page));
   await page.getByRole('button', { name: 'Save as reviewed', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Saved Synthetic reviewed phone item');
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Saved Synthetic reviewed phone item' }),
+  ).toBeVisible();
   await page
     .getByRole('button', { name: 'Open Synthetic reviewed phone item', exact: true })
     .click();

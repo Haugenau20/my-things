@@ -20,7 +20,8 @@ steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configura
 
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
 See [GitHub Actions setup](docs/GITHUB_ACTIONS.md) for automated PR checks and production deployment
-after successful `main` checks; activation awaits one-time cloud setup and the owner's GitHub variables.
+after successful `main` checks; the approved Google identity setup is applied. Activation awaits the
+owner's three GitHub variables and merge into `main`.
 
 ## The first version
 

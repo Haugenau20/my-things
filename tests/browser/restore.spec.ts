@@ -120,9 +120,10 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   await expect(page.getByRole('button', { name: 'Resume restore', exact: true })).toBeVisible();
   await page.getByLabel('I confirm restore into main in local.').check();
   await page.getByRole('button', { name: 'Resume restore', exact: true }).click();
+  // The seeded archive has 18 records and private photos to verify on a shared CI runner.
   await expect(
     page.getByRole('region', { name: 'Backup restore' }).getByRole('status'),
-  ).toContainText('Restore complete');
+  ).toContainText('Restore complete', { timeout: 15000 });
   await expect(page.getByLabel('Item name')).toBeEnabled();
   await page.getByLabel('Restored item photo preview').selectOption({ label: photoName });
   const restoredPreview = page
