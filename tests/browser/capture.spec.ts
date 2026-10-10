@@ -42,13 +42,17 @@ test('photo controls show camera and library buttons instead of native file butt
   await (await chooser).setFiles(await image(page));
   await expect(page.getByText(/Up to two photos · 1 selected/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Choose photos', exact: true })).toBeVisible();
-  await expect(page.getByLabel('Take a photo')).toBeHidden();
+  await expect(
+    page.getByRole('region', { name: 'Desktop capture', exact: true }).getByLabel('Take a photo'),
+  ).toBeHidden();
 });
 test('saves a name without photos, reloads, and attaches photos to the same item later', async ({
   page,
 }) => {
   await owner(page);
-  await page.getByLabel('Item name').fill('Synthetic desktop entry');
+  await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic desktop entry');
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'Saved Synthetic desktop entry' }),
@@ -79,8 +83,12 @@ test('sequential camera selections add photos instead of replacing the first one
 }) => {
   await owner(page);
   const source = await image(page);
-  await page.getByLabel('Take a photo').setInputFiles(source);
   await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
+    .getByLabel('Take a photo')
+    .setInputFiles(source);
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
     .getByLabel('Take a photo')
     .setInputFiles({ ...source, name: 'synthetic-camera-second.png' });
   await expect(page.getByText(/Up to two photos · 2 selected/)).toBeVisible();
@@ -90,7 +98,7 @@ test('failed attachment cleanup remains retryable and never deletes the saved it
 }) => {
   await owner(page);
   const name = 'Synthetic preserved desktop entry';
-  await page.getByLabel('Item name').fill(name);
+  await page.getByRole('textbox', { name: 'Item name', exact: true }).fill(name);
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: `Saved ${name}` })).toBeVisible();
   await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
@@ -138,7 +146,7 @@ test('reload recovery attaches original files to a saved photo-free item', async
   await owner(page);
   const name = 'Synthetic attachment reselection';
   const source = await image(page);
-  await page.getByLabel('Item name').fill(name);
+  await page.getByRole('textbox', { name: 'Item name', exact: true }).fill(name);
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: `Saved ${name}` })).toBeVisible();
   await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
@@ -187,15 +195,18 @@ test('captures two photos, remembers the room, reloads private photos, and clear
   await page.getByRole('button', { name: 'Add room', exact: true }).click();
   await expect(page.getByLabel('Capture room', { exact: true })).not.toHaveValue('');
   const roomId = await page.getByLabel('Capture room', { exact: true }).inputValue();
-  await page.getByLabel('Item name').fill('Synthetic two-photo lamp');
   await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic two-photo lamp');
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
     .getByLabel('Choose photos')
     .setInputFiles([await image(page), { ...(await image(page)), name: 'synthetic-second.png' }]);
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(
     page.getByRole('status').filter({ hasText: 'Saved Synthetic two-photo lamp' }),
   ).toBeVisible();
-  await expect(page.getByLabel('Item name')).toHaveValue('');
+  await expect(page.getByRole('textbox', { name: 'Item name', exact: true })).toHaveValue('');
   await expect(page.getByLabel('Capture room', { exact: true })).toHaveValue(roomId);
   await page.reload();
   await page.getByRole('button', { name: 'Open Synthetic two-photo lamp', exact: true }).click();
@@ -233,12 +244,19 @@ test('an interrupted upload stays unfinished and can be explicitly discarded aft
         })
       : route.continue(),
   );
-  await page.getByLabel('Item name').fill('Synthetic interrupted capture');
-  await page.getByLabel('Choose photos').setInputFiles(await image(page));
+  await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic interrupted capture');
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
+    .getByLabel('Choose photos')
+    .setInputFiles(await image(page));
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Capture is unfinished' })).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('storage/unauthorized');
-  await expect(page.getByLabel('Item name')).toHaveValue('Synthetic interrupted capture');
+  await expect(page.getByRole('textbox', { name: 'Item name', exact: true })).toHaveValue(
+    'Synthetic interrupted capture',
+  );
   await page.unrouteAll();
   await page.reload();
   const recovery = page.getByRole('region', { name: 'Unfinished captures' });
@@ -256,16 +274,24 @@ test('unsupported HEIC and too many photos preserve input without reporting save
   page,
 }) => {
   await owner(page);
-  await page.getByLabel('Item name').fill('Synthetic undecodable item');
-  await page.getByLabel('Choose photos').setInputFiles({
-    name: 'synthetic.heic',
-    mimeType: 'image/heic',
-    buffer: Buffer.from('synthetic invalid HEIC'),
-  });
+  await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic undecodable item');
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
+    .getByLabel('Choose photos')
+    .setInputFiles({
+      name: 'synthetic.heic',
+      mimeType: 'image/heic',
+      buffer: Buffer.from('synthetic invalid HEIC'),
+    });
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('JPEG');
-  await expect(page.getByLabel('Item name')).toHaveValue('Synthetic undecodable item');
+  await expect(page.getByRole('textbox', { name: 'Item name', exact: true })).toHaveValue(
+    'Synthetic undecodable item',
+  );
   await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
     .getByLabel('Choose photos')
     .setInputFiles([await image(page), await image(page), await image(page)]);
   await expect(page.getByRole('alert')).toContainText('two photos');
@@ -290,8 +316,13 @@ test('reload recovery accepts the original source and acknowledges completion', 
         })
       : route.continue(),
   );
-  await page.getByLabel('Item name').fill('Synthetic recovered lamp');
-  await page.getByLabel('Choose photos').setInputFiles(source);
+  await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic recovered lamp');
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
+    .getByLabel('Choose photos')
+    .setInputFiles(source);
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Capture is unfinished');
   await page.unrouteAll();
@@ -370,22 +401,21 @@ test('fresh JPEG derivatives strip metadata and normalize EXIF orientation witho
   expect(result.detailHash).toBe(result.storedHash);
   expect(result.type).toBe('image/jpeg');
 });
-test('phone-width capture is usable and supports reviewed saves', async ({ page }) => {
+test('phone-width photo capture saves into the review inbox', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await owner(page);
-  await page.getByLabel('Item name').fill('Synthetic reviewed phone item');
-  await page.getByLabel('Choose photos').setInputFiles(await image(page));
-  await page.getByRole('button', { name: 'Save as reviewed', exact: true }).click();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
+  const capture = page.getByRole('region', { name: 'Phone capture', exact: true });
+  await capture.getByLabel('Choose photos', { exact: true }).setInputFiles(await image(page));
+  await capture.getByLabel('Item name', { exact: true }).fill('Synthetic review phone item');
+  await capture.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'Saved Synthetic reviewed phone item' }),
+    capture.getByRole('status').filter({ hasText: 'Saved Synthetic review phone item' }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: 'Open Synthetic reviewed phone item', exact: true })
-    .click();
-  await openFullView(page);
-  await expect(page.getByRole('region', { name: 'Full item view' })).toContainText('Reviewed');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
+  await capture.getByRole('button', { name: 'Close capture', exact: true }).click();
+  await page.getByRole('button', { name: 'Open Synthetic review phone item', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Full item view' })).toContainText('Needs review');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: test.info().outputPath('capture-mobile.png'), fullPage: true });
 });

@@ -11,11 +11,13 @@ test('workspace navigation starts at Things and keeps administrative tools in se
     'page',
   );
   await expect(page.getByText('Backup export', { exact: true })).not.toBeVisible();
-  await expect(page.getByLabel('Item name')).not.toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Item name', exact: true })).not.toBeVisible();
   await expect(page.getByRole('button', { name: '+ Add a thing', exact: false })).toBeEnabled();
   await page.keyboard.press('n');
-  await expect(page.getByLabel('Item name')).toBeFocused();
-  await page.getByLabel('Item name').fill('Synthetic shell navigation');
+  await expect(page.getByRole('textbox', { name: 'Item name', exact: true })).toBeFocused();
+  await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic shell navigation');
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(navigation.getByRole('button', { name: /^Review inbox/ })).toContainText(
     /Review inbox\s*\d+/,
@@ -41,11 +43,15 @@ test('workspace navigation starts at Things and keeps administrative tools in se
   );
   await navigation.getByRole('button', { name: /^Things/ }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
-  await page.getByLabel('Item name').fill('Synthetic retained draft');
+  await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic retained draft');
   await page.getByRole('button', { name: 'Close capture', exact: true }).click();
   await navigation.getByRole('button', { name: /^Review inbox/ }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
-  await expect(page.getByLabel('Item name')).toHaveValue('Synthetic retained draft');
+  await expect(page.getByRole('textbox', { name: 'Item name', exact: true })).toHaveValue(
+    'Synthetic retained draft',
+  );
 });
 
 test('signed-out shell exposes no inventory and the seeded owner can sign in and out', async ({

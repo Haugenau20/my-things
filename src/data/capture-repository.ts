@@ -109,6 +109,9 @@ function identity(item: ReturnType<typeof captureDraft>) {
     })),
   });
 }
+export function matchesCaptureIdentity(item: Item, input: CaptureInput): boolean {
+  return identity(item) === identity(captureDraft(input, Timestamp.now()));
+}
 export async function ensureDraft(
   db: Firestore,
   inventory: string,

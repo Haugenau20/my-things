@@ -75,7 +75,7 @@ export function InventoryBrowser({
   }, [filters.room, onRoomFilter]);
   useEffect(() => {
     if (inspectRequest) {
-      setSelected(inspectRequest.id);
+      setSelected(inspectRequest.id || undefined);
       setFullView(false);
     }
   }, [inspectRequest]);

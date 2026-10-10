@@ -144,3 +144,5 @@ migration from email strings scattered across components. Do not implement eithe
 Any later move to an authenticated server/API must update both authorization and photo access; it is not
 just a frontend hosting change. Any future scheduled cleanup, paid extension, or additional provider
 needs an explicit cost/complexity decision.
+
+The approved phone capture loop adds a dedicated bounded sequential queue in `src/media/phone-capture-queue.ts` and a worker using the existing capture/photo pipeline. The queue holds only memory state and stable IDs; it has no offline/persistent synchronization. Rendering, room preference and Undo live in the phone component, while capture finalization and revision-checked Trash remain in repository modules. Queue mutation registration preserves backup/restore barriers, and auth/session cancellation suppresses late private success.

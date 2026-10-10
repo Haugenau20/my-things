@@ -7,7 +7,9 @@ test('failed permanent photo deletion retains a marker and completes after reloa
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
-  await page.getByLabel('Item name').fill('Synthetic permanent deletion');
+  await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic permanent deletion');
   const data = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 40;
@@ -15,11 +17,14 @@ test('failed permanent photo deletion retains a marker and completes after reloa
     canvas.getContext('2d')!.fillRect(0, 0, 40, 40);
     return canvas.toDataURL('image/png').split(',')[1]!;
   });
-  await page.getByLabel('Choose photos').setInputFiles({
-    name: 'synthetic.png',
-    mimeType: 'image/png',
-    buffer: Buffer.from(data, 'base64'),
-  });
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
+    .getByLabel('Choose photos')
+    .setInputFiles({
+      name: 'synthetic.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(data, 'base64'),
+    });
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await page
     .getByRole('button', { name: 'Open Synthetic permanent deletion', exact: true })
