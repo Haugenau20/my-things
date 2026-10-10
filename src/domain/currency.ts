@@ -1,0 +1,15 @@
+// Pinned with Node 24.21 / ICU's currency table so browser updates cannot change persisted semantics.
+export const CURRENCIES =
+  'AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF CLP CNY COP CRC CUC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HRK HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SLL SOS SRD SSP STN SVC SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF XCD XCG XDR XOF XPF XSU YER ZAR ZMW ZWG ZWL'.split(
+    ' ',
+  );
+const zeroDigits = new Set(
+  'AFN ALL BIF CLP COP DJF GNF HUF IDR IQD IRR ISK JPY KMF KPW KRW LAK LBP MGA MMK PKR PYG RWF SLL SOS SYP UGX VND VUV XAF XOF XPF YER'.split(
+    ' ',
+  ),
+);
+const threeDigits = new Set('BHD JOD KWD LYD OMR TND'.split(' '));
+export function currencyDigits(currency: string): number {
+  if (!CURRENCIES.includes(currency)) throw new Error('Choose a supported currency.');
+  return zeroDigits.has(currency) ? 0 : threeDigits.has(currency) ? 3 : 2;
+}

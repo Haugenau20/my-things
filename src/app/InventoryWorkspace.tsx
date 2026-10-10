@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Inventory } from '../domain/inventory';
-import { isVisible } from '../domain/item';
 import type { Item, Room } from '../domain/item';
+import type { Box } from '../domain/organize';
 import { loadItems, loadRooms } from '../data/capture-repository';
+import { loadBoxes } from '../data/organize-repository';
+import { loadInventory, updateSettings } from '../data/inventory-repository';
 import { PhotoSession } from '../media/photo-session';
 import { CaptureForm } from './CaptureForm';
 import { RecoveryPanel } from './RecoveryPanel';
-import { PrivatePhoto } from './PrivatePhoto';
-import { PhotoAttachment } from './PhotoAttachment';
+import { InventoryBrowser } from './InventoryBrowser';
+import { LocationManager } from './LocationManager';
+import { InventorySettings } from './InventorySettings';
 
 export function InventoryWorkspace({
   services,
@@ -21,31 +24,44 @@ export function InventoryWorkspace({
 }) {
   const [items, setItems] = useState<Item[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [selected, setSelected] = useState<string>();
+  const [boxes, setBoxes] = useState<Box[]>([]);
+  const [settings, setSettings] = useState(inventory);
   const [activeAttempt, setActiveAttempt] = useState<string>();
+  const [manage, setManage] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [browseLocation, setBrowseLocation] = useState<string>();
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(true);
   const [session] = useState(() => new PhotoSession(services.storage));
   const [controller] = useState(() => new AbortController());
   const version = useRef(0);
   const reload = useCallback(async () => {
     const request = ++version.current;
+    setRefreshing(true);
     try {
-      const [nextItems, nextRooms] = await Promise.all([
+      const [nextItems, nextRooms, nextBoxes, nextSettings] = await Promise.all([
         loadItems(services.db, inventoryId),
         loadRooms(services.db, inventoryId),
+        loadBoxes(services.db, inventoryId),
+        loadInventory(services.db, inventoryId, inventory.ownerUid),
       ]);
       if (!controller.signal.aborted && version.current === request) {
         setItems(nextItems);
         setRooms(nextRooms);
+        setBoxes(nextBoxes);
+        setSettings(nextSettings);
         setError(false);
       }
     } catch {
       if (!controller.signal.aborted && version.current === request) setError(true);
     } finally {
-      if (!controller.signal.aborted && version.current === request) setLoading(false);
+      if (!controller.signal.aborted && version.current === request) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  }, [services, inventoryId, controller]);
+  }, [services, inventoryId, inventory.ownerUid, controller]);
   useEffect(() => {
     void reload();
     return () => {
@@ -54,23 +70,26 @@ export function InventoryWorkspace({
       session.dispose();
     };
   }, [reload, controller, session]);
-  const visible = items
-    .filter(isVisible)
-    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-  const detail = visible.find((item) => item.id === selected);
-  const roomName = (id: string | null) =>
-    id ? (rooms.find((value) => value.id === id)?.name ?? 'Unavailable room') : 'Unassigned';
   return (
     <main className="workspace">
       <div className="workspace-heading">
         <div>
           <p className="eyebrow">Your private inventory</p>
-          <h1>{inventory.displayName}</h1>
+          <h1>{settings.displayName}</h1>
           <p className="access-badge">✓ Owner access verified</p>
         </div>
-        <button className="text-button" onClick={() => void reload()}>
-          Refresh inventory
-        </button>
+        <div className="save-actions">
+          <button className="text-button" onClick={() => void reload()}>
+            Refresh inventory
+          </button>
+          <button
+            className="text-button"
+            aria-expanded={manage}
+            onClick={() => setManage((value) => !value)}
+          >
+            Manage locations
+          </button>
+        </div>
       </div>
       {error && (
         <p role="alert" className="error-message">
@@ -95,6 +114,31 @@ export function InventoryWorkspace({
             signal={controller.signal}
             reload={reload}
           />
+          {manage && (
+            <LocationManager
+              rooms={rooms}
+              boxes={boxes}
+              items={items}
+              services={services}
+              inventoryId={inventoryId}
+              reload={reload}
+              browse={(key) => setBrowseLocation(key === browseLocation ? undefined : key)}
+            />
+          )}
+          <details
+            className="inventory-settings"
+            onToggle={(event) => setSettingsOpen(event.currentTarget.open)}
+          >
+            <summary>Inventory settings</summary>
+            {settingsOpen && (
+              <InventorySettings
+                inventory={settings}
+                services={services}
+                inventoryId={inventoryId}
+                reload={reload}
+              />
+            )}
+          </details>
           <div className="inventory-layout">
             <CaptureForm
               services={services}
@@ -111,115 +155,27 @@ export function InventoryWorkspace({
                 await reload();
               }}
             />
-            <section className="gallery-panel" aria-label="Saved inventory">
-              {detail ? (
-                <>
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      if (activeAttempt === selected) setActiveAttempt(undefined);
-                      setSelected(undefined);
-                    }}
-                  >
-                    Back to gallery
-                  </button>
-                  <h2>{detail.name}</h2>
-                  <p>
-                    {detail.currentLocation.kind === 'room'
-                      ? roomName(detail.currentLocation.roomId)
-                      : detail.currentLocation.kind === 'box'
-                        ? 'In a box'
-                        : 'Unassigned'}{' '}
-                    · {detail.reviewStatus === 'reviewed' ? 'Reviewed' : 'Needs review'}
-                  </p>
-                  <p className="supporting">
-                    Original room: {roomName(detail.originalRoomId)} · Quantity: {detail.quantity}
-                  </p>
-                  <div className="detail-photos">
-                    {!detail.photos.some((photo) => photo.state === 'ready') && (
-                      <p className="photo-placeholder">No photo yet</p>
-                    )}
-                    {detail.photos
-                      .filter((photo) => photo.state === 'ready')
-                      .map((photo, index) => (
-                        <PrivatePhoto
-                          key={photo.id}
-                          file={photo.detail}
-                          session={session}
-                          detail
-                          alt={`${detail.name} · photo ${index + 1}`}
-                        />
-                      ))}
-                  </div>
-                  {(detail.photos.length === 0 || activeAttempt === detail.id) && (
-                    <PhotoAttachment
-                      key={detail.id}
-                      item={detail}
-                      services={services}
-                      inventoryId={inventoryId}
-                      signal={controller.signal}
-                      onSaved={async () => {
-                        setActiveAttempt(undefined);
-                        await reload();
-                      }}
-                      onAttempt={async (id) => {
-                        setActiveAttempt(id);
-                        await reload();
-                      }}
-                    />
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="gallery-heading">
-                    <h2>Your things</h2>
-                    <span>{visible.length} saved</span>
-                  </div>
-                  {!visible.length && (
-                    <div className="empty-gallery">
-                      <span aria-hidden="true">◌</span>
-                      <h3>A little space to get started.</h3>
-                      <p>Your saved things will appear here.</p>
-                    </div>
-                  )}
-                  <div className="gallery-grid">
-                    {visible.map((item) => {
-                      const cover = item.photos.find((photo) => photo.id === item.coverPhotoId);
-                      return (
-                        <article key={item.id} className="item-card">
-                          {cover ? (
-                            <PrivatePhoto
-                              file={cover.thumbnail}
-                              session={session}
-                              alt={item.name}
-                            />
-                          ) : (
-                            <div className="private-photo thumbnail">
-                              <span className="photo-placeholder">No photo yet</span>
-                            </div>
-                          )}
-                          <button
-                            className="item-card-name"
-                            aria-label={`Open ${item.name}`}
-                            onClick={() => setSelected(item.id)}
-                          >
-                            {item.name}
-                          </button>
-                          <span className="item-card-meta">
-                            {item.currentLocation.kind === 'room'
-                              ? roomName(item.currentLocation.roomId)
-                              : item.currentLocation.kind === 'box'
-                                ? 'In a box'
-                                : 'Unassigned'}{' '}
-                            · {item.reviewStatus === 'reviewed' ? 'Reviewed' : 'Needs review'}
-                          </span>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </section>
+            <InventoryBrowser
+              items={items}
+              rooms={rooms}
+              boxes={boxes}
+              services={services}
+              inventoryId={inventoryId}
+              session={session}
+              signal={controller.signal}
+              activeAttempt={activeAttempt}
+              setActiveAttempt={setActiveAttempt}
+              reload={reload}
+              defaultCurrency={settings.defaultCurrency}
+              metadataReady={!refreshing && !error}
+              browseLocation={browseLocation}
+              setDefaultCurrency={async (currency) => {
+                await updateSettings(services.db, inventoryId, settings, {
+                  defaultCurrency: currency,
+                });
+                await reload();
+              }}
+            />
           </div>
         </>
       )}

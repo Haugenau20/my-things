@@ -19,7 +19,7 @@ service cloud.firestore {
         && data.displayName is string
         && data.displayName.size() > 0 && data.displayName.size() <= 100
         && data.displayName.matches('.*[^\\s].*')
-        && (data.defaultCurrency == null || (data.defaultCurrency is string && data.defaultCurrency.matches('[A-Z]{3}')))
+        && (data.defaultCurrency == null || currency(data.defaultCurrency))
         && data.createdAt is timestamp && data.updatedAt == request.time;
     }
 
@@ -52,7 +52,12 @@ service cloud.firestore {
         && ((data.currentLocation.keys().hasOnly(['kind']) && data.currentLocation.kind == 'unassigned' && data.originalRoomId == null)
           || (data.currentLocation.keys().hasOnly(['kind','roomId']) && data.currentLocation.kind == 'room'
             && id(data.currentLocation.roomId) && data.originalRoomId == data.currentLocation.roomId
-            && get(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(data.currentLocation.roomId)).data.archivedAt == null));
+            && assignment(inventoryId,'rooms',data.currentLocation.roomId)));
+    }
+    function assignment(inventoryId, collection, locationId) {
+      let before = get(/databases/$(database)/documents/inventories/$(inventoryId)/$(collection)/$(locationId)).data;
+      let after = getAfter(/databases/$(database)/documents/inventories/$(inventoryId)/$(collection)/$(locationId)).data;
+      return before.archivedAt == null && after.archivedAt == null && after.revision == before.revision + 1;
     }
     function newCapture(data, inventoryId, itemId) {
       return id(itemId) && data.keys().hasOnly(['schemaVersion','revision','name','quantity','estimatedValue','serialNumber','notes','category',
@@ -103,6 +108,62 @@ service cloud.firestore {
         && data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 100000 && data.revision == 1
         && data.createdAt == request.time && data.updatedAt == request.time && data.archivedAt == null;
     }
+    function currency(value) {
+      return value is string && value.matches('AED|AFN|ALL|AMD|ANG|AOA|ARS|AUD|AWG|AZN|BAM|BBD|BDT|BGN|BHD|BIF|BMD|BND|BOB|BRL|BSD|BTN|BWP|BYN|BZD|CAD|CDF|CHF|CLP|CNY|COP|CRC|CUC|CUP|CVE|CZK|DJF|DKK|DOP|DZD|EGP|ERN|ETB|EUR|FJD|FKP|GBP|GEL|GHS|GIP|GMD|GNF|GTQ|GYD|HKD|HNL|HRK|HTG|HUF|IDR|ILS|INR|IQD|IRR|ISK|JMD|JOD|JPY|KES|KGS|KHR|KMF|KPW|KRW|KWD|KYD|KZT|LAK|LBP|LKR|LRD|LSL|LYD|MAD|MDL|MGA|MKD|MMK|MNT|MOP|MRU|MUR|MVR|MWK|MXN|MYR|MZN|NAD|NGN|NIO|NOK|NPR|NZD|OMR|PAB|PEN|PGK|PHP|PKR|PLN|PYG|QAR|RON|RSD|RUB|RWF|SAR|SBD|SCR|SDG|SEK|SGD|SHP|SLE|SLL|SOS|SRD|SSP|STN|SVC|SYP|SZL|THB|TJS|TMT|TND|TOP|TRY|TTD|TWD|TZS|UAH|UGX|USD|UYU|UZS|VES|VND|VUV|WST|XAF|XCD|XCG|XDR|XOF|XPF|XSU|YER|ZAR|ZMW|ZWG|ZWL');
+    }
+    function money(data) {
+      return data == null || (data is map && data.keys().hasOnly(['amountMinor','currency'])
+        && data.amountMinor is int && data.amountMinor >= 0 && data.amountMinor <= 9007199254740991 && currency(data.currency));
+    }
+    function readyPhotos(data) {
+      return data.photos.size() == 0 || (data.photos[0].state == 'ready' && (data.photos.size() == 1 || data.photos[1].state == 'ready'));
+    }
+    function editedLocation(data, inventoryId) {
+      let loc = data.currentLocation;
+      return loc is map && ((loc.keys().hasOnly(['kind']) && loc.kind == 'unassigned')
+        || (loc.keys().hasOnly(['kind','roomId']) && loc.kind == 'room' && id(loc.roomId)
+          && ((loc == resource.data.currentLocation && !(resource.data.deletedAt != null && data.deletedAt == null)) || assignment(inventoryId,'rooms',loc.roomId)))
+        || (loc.keys().hasOnly(['kind','boxId']) && loc.kind == 'box' && id(loc.boxId)
+          && ((loc == resource.data.currentLocation && !(resource.data.deletedAt != null && data.deletedAt == null)) || assignment(inventoryId,'boxes',loc.boxId))))
+        && (data.originalRoomId == null || (id(data.originalRoomId)
+          && (data.originalRoomId == resource.data.originalRoomId || exists(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(data.originalRoomId)))))
+        && (loc == resource.data.currentLocation || loc.kind != 'room' || resource.data.originalRoomId != null || data.originalRoomId == loc.roomId);
+    }
+    function workflow(data) {
+      let before = resource.data;
+      return data.decision in ['undecided','store','take','sell','give_away'] && data.progress in ['not_started','in_progress','completed']
+        && (data.decision != 'undecided' || data.progress == 'not_started')
+        && (data.progress == 'completed' ? (data.completedAt is timestamp &&
+          (before.progress == 'completed' && before.decision == data.decision ? data.completedAt == before.completedAt : data.completedAt == request.time)) : data.completedAt == null)
+        && (data.decision == before.decision || data.progress == 'not_started')
+        && (!(data.decision in ['sell','give_away']) || data.progress != 'completed' || data.currentLocation.kind == 'unassigned');
+    }
+    function metadataEdit(data, inventoryId) {
+      let before = resource.data;
+      let changed = data.diff(before).affectedKeys();
+      return before.recordState == 'ready' && readyPhotos(before) && data.schemaVersion == 1
+        && changed.hasOnly(['revision','updatedAt','name','quantity','estimatedValue','serialNumber','notes','category','originalRoomId','currentLocation','reviewStatus','decision','progress','completedAt','deletedAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
+        && data.quantity is int && data.quantity >= 1 && data.quantity <= 100000 && money(data.estimatedValue)
+        && (data.serialNumber == null || (data.serialNumber is string && data.serialNumber.size() <= 200))
+        && data.notes is string && data.notes.size() <= 10000 && (data.category == null || (data.category is string && data.category.size() <= 100))
+        && data.reviewStatus in ['needs_review','reviewed'] && editedLocation(data,inventoryId) && workflow(data)
+        && (changed.hasAny(['deletedAt']) ? (changed.hasOnly(['revision','updatedAt','deletedAt'])
+          && (before.deletedAt == null ? data.deletedAt == request.time : data.deletedAt == null)) : before.deletedAt == null);
+    }
+    function validLocationRecord(data, box) {
+      return data.schemaVersion == 1 && (box ? data.keys().hasOnly(['schemaVersion','label','sortOrder','revision','notes','createdAt','updatedAt','archivedAt'])
+          && data.label is string && data.label.size() > 0 && data.label.size() <= 100 && data.label.matches('.*[^\\s].*')
+          && data.notes is string && data.notes.size() <= 10000
+        : data.keys().hasOnly(['schemaVersion','name','sortOrder','revision','createdAt','updatedAt','archivedAt'])
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 100 && data.name.matches('.*[^\\s].*'))
+        && data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 100000;
+    }
+    function editLocation(data, box) {
+      return validLocationRecord(data,box) && data.revision == resource.data.revision + 1 && data.revision <= 9007199254740991
+        && data.updatedAt == request.time && data.diff(resource.data).affectedKeys().hasOnly(box ? ['label','notes','sortOrder','archivedAt','revision','updatedAt'] : ['name','sortOrder','archivedAt','revision','updatedAt'])
+        && (data.archivedAt == resource.data.archivedAt || data.archivedAt == null || (resource.data.archivedAt == null && data.archivedAt == request.time));
+    }
     match /inventories/{inventoryId} {
       allow get: if owns(inventoryId);
       allow update: if owns(inventoryId) && validSettings();
@@ -113,19 +174,26 @@ service cloud.firestore {
         allow create: if owns(inventoryId) && newCapture(request.resource.data,inventoryId,itemId);
         allow update: if owns(inventoryId) && request.resource.data.revision == resource.data.revision + 1
           && request.resource.data.updatedAt == request.time
-          && (completion(request.resource.data,inventoryId,itemId) || discard(request.resource.data)
-            || firstPhotos(request.resource.data,inventoryId,itemId));
+          && request.resource.data.revision <= 9007199254740991
+          && (request.resource.data.diff(resource.data).affectedKeys().hasAny(['photos','coverPhotoId','recordState'])
+            ? (completion(request.resource.data,inventoryId,itemId) || discard(request.resource.data) || firstPhotos(request.resource.data,inventoryId,itemId))
+            : metadataEdit(request.resource.data,inventoryId));
         allow delete: if owns(inventoryId) && resource.data.recordState == 'deleting'
           && resource.data.coverPhotoId == null && resource.data.deletedAt == null;
       }
       match /rooms/{roomId} {
         allow get, list: if owns(inventoryId);
         allow create: if owns(inventoryId) && newRoom(request.resource.data,roomId);
-        allow update, delete: if false;
+        allow update: if owns(inventoryId) && editLocation(request.resource.data,false);
+        allow delete: if false;
       }
       match /boxes/{boxId} {
         allow get, list: if owns(inventoryId);
-        allow write: if false;
+        allow create: if owns(inventoryId) && id(boxId) && validLocationRecord(request.resource.data,true)
+          && request.resource.data.revision == 1 && request.resource.data.archivedAt == null
+          && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+        allow update: if owns(inventoryId) && editLocation(request.resource.data,true);
+        allow delete: if false;
       }
     }
     match /{document=**} {

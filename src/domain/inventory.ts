@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 import { z } from 'zod';
+import { CURRENCIES } from './currency';
 
 const inventorySchema = z.strictObject({
   schemaVersion: z.literal(1),
@@ -8,6 +9,7 @@ const inventorySchema = z.strictObject({
   defaultCurrency: z
     .string()
     .regex(/^[A-Z]{3}$/)
+    .refine((value) => CURRENCIES.includes(value))
     .nullable(),
   createdAt: z.instanceof(Timestamp),
   updatedAt: z.instanceof(Timestamp),

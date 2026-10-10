@@ -2,15 +2,20 @@
 
 Status: M1 owner-policy rules are emulator-tested and deployed; this is not a complete production audit.
 Validated capture drafts/finalization/discard and room creation are allowed for the bound owner. M2
-editing/boxes and Storage replacements remain closed. Required IAM/CORS and signed-out OAuth startup
+metadata editing, workflow/trash transitions, rooms, and boxes now have constrained, emulator-tested owner
+rules. Storage replacements remain closed. Required IAM/CORS and signed-out OAuth startup
 are verified; owner login and separate-account rejection are owner-verified. Device capture and actual
 photo-token behavior remain pending. See
 [deployment evidence](M1_RELEASE.md). IAP, YubiKey integration, and custom WebAuthn are explicitly excluded.
 
 Optional-photo capture also permits acknowledged ready records with no photos and tightly constrained
 first-photo registration/completion/cancellation patches on photo-free saved items. Storage still checks
-the inventory owner and exact pending photo metadata on the item. No general metadata-edit or ready-photo
-replacement permission is introduced. See [optional-photo evidence](M1_OPTIONAL_PHOTOS.md).
+the inventory owner and exact pending photo metadata on the item. Ready-photo replacement remains
+closed. See [optional-photo evidence](M1_OPTIONAL_PHOTOS.md). M2 partial metadata edits cannot modify
+photo paths or state. Capture/move/owned-restore writes must increment an active destination's revision
+in the same transaction. The application checks all current contents before archive and compares that
+revision; rules cannot query collection-wide emptiness. Owner-only rules still deny foreign identities
+regardless of whether their request otherwise has valid fields. See [M2 evidence](M2_ORGANIZE.md).
 
 ## 1. What is protected
 

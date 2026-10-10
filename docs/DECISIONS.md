@@ -71,6 +71,24 @@ free allowances. No claim that this documentation is a deployed or security-audi
 
 ## Recording a change
 
+### 2026-10-10 — M2 organization and archive concurrency
+
+The owner authorized continued implementation while away, including the next phase. Keep the outstanding
+actual-device gate explicit. M2 uses existing schema-1 fields, partial patches and expected revisions;
+no live migration is required. Capture/move/owned-restore transactions increment the destination's
+existing revision, and rules require the paired write. Archive inspection compares its pre-inspection
+revision, blocking concurrent incoming assignments and pending captures. Collection-wide emptiness
+remains an application invariant. Archived locations may be explicitly reactivated before restoring an
+owned item that retains one, preserving all item fields. Bulk metadata writes are serial after two
+concurrent shared-destination transactions caused avoidable emulator contention; uploads/downloads keep
+their existing independent bounds. Every item reports its own result.
+
+Pin supported currencies and minor-unit precision from the selected Node/ICU runtime so browser updates
+cannot reinterpret stored amounts or disagree with rules. Parse decimal text through integers, reject
+excess precision/unsafe amounts, and never combine currencies. Input length is bounded before integer
+parsing. Defaults remain unset unless deliberately chosen and do not update existing item values.
+Review any future precision change as a data-semantics change. See [M2 evidence](M2_ORGANIZE.md).
+
 ### 2026-10-10 — Photos optional, with later first-photo attachment
 
 The owner explicitly removed the photo requirement to allow desktop entry followed by phone photography.

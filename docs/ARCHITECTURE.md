@@ -4,6 +4,9 @@ Status: V1 implementation design with M0 foundation and M1 capture deployed. Req
 trusted owner bootstrap are applied; production end-user signup/deletion are disabled. The owner verified
 their login and another account's rejection; actual device capture still needs manual evidence. See
 [M1 deployment evidence](M1_RELEASE.md) and [M1 setup](M1_SETUP.md).
+M2 organization uses focused rendering components in `src/app`, domain commands/value helpers in
+`src/domain`, and partial revision-checked operations in `src/data/organize-repository.ts`. It adds no
+router, global state dependency, or backend service. See [M2 evidence](M2_ORGANIZE.md).
 
 ## 1. Components
 
