@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Item, Room } from '../domain/item';
 import { DEFAULT_FILTERS, filterItems, formatMoney, isDisposed } from '../domain/organize';
@@ -17,6 +17,7 @@ import type { ItemGroup } from '../domain/browse';
 import { bulkEdit, createBox } from '../data/organize-repository';
 import type { BulkResult } from '../data/organize-repository';
 import { useMutationState } from './mutation-activity';
+import { clickSelection } from '../domain/selection';
 
 export function InventoryBrowser({
   items,
@@ -63,6 +64,24 @@ export function InventoryBrowser({
   const [groupBusy, setGroupBusy] = useMutationState();
   const [groupResults, setGroupResults] = useState<BulkResult[]>([]);
   const [groupError, setGroupError] = useState('');
+  const [bulkHeight, setBulkHeight] = useState(0);
+  const gallery = useRef<HTMLElement>(null);
+  const selectionAnchor = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if (
+        event.key === 'Escape' &&
+        !event.defaultPrevented &&
+        gallery.current &&
+        gallery.current.offsetParent !== null
+      ) {
+        setSelection(new Set());
+        selectionAnchor.current = undefined;
+      }
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, []);
   const [lastBrowse, setLastBrowse] = useState(browseLocation);
   const scroll = useRef(0);
   const [lastView, setLastView] = useState(workspaceView);
@@ -93,6 +112,9 @@ export function InventoryBrowser({
     (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis() || a.id.localeCompare(b.id),
   );
   const groups = groupVisibleItems(visible, grouping, rooms, boxes);
+  useEffect(() => {
+    selectionAnchor.current = undefined;
+  }, [filters, workspaceView, browseLocation]);
   const detail = items.find((item) => item.id === selected && item.recordState === 'ready');
   const roomName = (id: string | null) =>
     id
@@ -108,13 +130,13 @@ export function InventoryBrowser({
         ? (boxes.find((box) => box.id === item.boxId)?.label ?? 'Unavailable box')
         : 'Not packed';
   const locationName = (item: Item) => roomName(item.roomId) + ' · ' + boxName(item);
-  function toggle(id: string, checked: boolean) {
-    setSelection((current) => {
-      const next = new Set(current);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
+  function toggle(id: string, checked: boolean, shift = false) {
+    const order = grid
+      ? groups.flatMap((group) => group.items.map((item) => item.id))
+      : visible.map((item) => item.id);
+    const anchor = selectionAnchor.current;
+    setSelection((current) => clickSelection(current, id, checked, anchor, order, shift));
+    if (!shift || !order.includes(selectionAnchor.current ?? '')) selectionAnchor.current = id;
   }
   function open(id: string) {
     scroll.current = window.scrollY;
@@ -175,7 +197,12 @@ export function InventoryBrowser({
   }
   const label = (value: string) => value.replaceAll('_', ' ');
   return (
-    <section className="gallery-panel" aria-label="Saved inventory">
+    <section
+      ref={gallery}
+      className="gallery-panel"
+      aria-label="Saved inventory"
+      style={{ paddingBottom: bulkHeight ? bulkHeight + 48 : undefined }}
+    >
       {announcement && <p role="status">{announcement}</p>}
       {detail ? (
         <>
@@ -346,6 +373,14 @@ export function InventoryBrowser({
             services={services}
             inventoryId={inventoryId}
             signal={signal}
+            isTrash={filters.trash}
+            filteredCount={visible.length}
+            selectAll={() => setSelection(new Set(visible.map((item) => item.id)))}
+            clear={() => {
+              setSelection(new Set());
+              selectionAnchor.current = undefined;
+            }}
+            reserve={setBulkHeight}
             finished={async (results) => {
               setSelection(
                 new Set(
@@ -435,7 +470,7 @@ export function InventoryBrowser({
                         selecting={selection.size > 0}
                         disabled={!metadataReady || groupBusy}
                         open={() => open(item.id)}
-                        toggle={(checked) => toggle(item.id, checked)}
+                        toggle={(checked, shift) => toggle(item.id, checked, shift)}
                       />
                     ))}
                   </div>
@@ -477,7 +512,13 @@ export function InventoryBrowser({
                           aria-label={`Select ${item.name}`}
                           disabled={!metadataReady}
                           checked={selection.has(item.id)}
-                          onChange={(event) => toggle(item.id, event.target.checked)}
+                          onChange={(event) =>
+                            toggle(
+                              item.id,
+                              event.target.checked,
+                              event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey,
+                            )
+                          }
                         />
                       </td>
                       <td>
