@@ -1,3 +1,4 @@
+import { openFullView } from './fixtures';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
@@ -50,7 +51,8 @@ test('saves a name without photos, reloads, and attaches photos to the same item
   ).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Open Synthetic desktop entry', exact: true }).click();
-  const detail = page.getByRole('region', { name: 'Saved inventory' });
+  await openFullView(page);
+  const detail = page.getByRole('region', { name: 'Full item view' });
   await expect(detail.getByText('No photo yet', { exact: true })).toBeVisible();
   await detail
     .getByLabel('Choose photos')
@@ -65,6 +67,7 @@ test('saves a name without photos, reloads, and attaches photos to the same item
     page.getByRole('button', { name: 'Open Synthetic desktop entry', exact: true }),
   ).toHaveCount(1);
   await page.getByRole('button', { name: 'Open Synthetic desktop entry', exact: true }).click();
+  await openFullView(page);
   await expect(page.getByRole('img', { name: /Synthetic desktop entry · photo/ })).toHaveCount(2);
 });
 test('sequential camera selections add photos instead of replacing the first one', async ({
@@ -87,6 +90,7 @@ test('failed attachment cleanup remains retryable and never deletes the saved it
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: `Saved ${name}` })).toBeVisible();
   await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
+  await openFullView(page);
   await page.route('**/127.0.0.1:19199/**', (route) =>
     route.request().method() === 'POST'
       ? route.fulfill({
@@ -96,7 +100,7 @@ test('failed attachment cleanup remains retryable and never deletes the saved it
         })
       : route.continue(),
   );
-  const detail = page.getByRole('region', { name: 'Saved inventory' });
+  const detail = page.getByRole('region', { name: 'Full item view' });
   await detail.getByLabel('Choose photos').setInputFiles(await image(page));
   await detail.getByRole('button', { name: 'Save photos', exact: true }).click();
   await expect(detail.getByRole('alert')).toContainText('Your item remains saved');
@@ -123,6 +127,7 @@ test('failed attachment cleanup remains retryable and never deletes the saved it
   await expect(recovery).toHaveCount(0);
   await expect(page.getByRole('button', { name: `Open ${name}`, exact: true })).toHaveCount(1);
   await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
+  await openFullView(page);
   await expect(detail.getByText('No photo yet', { exact: true })).toBeVisible();
 });
 test('reload recovery attaches original files to a saved photo-free item', async ({ page }) => {
@@ -133,6 +138,7 @@ test('reload recovery attaches original files to a saved photo-free item', async
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: `Saved ${name}` })).toBeVisible();
   await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
+  await openFullView(page);
   await page.route('**/127.0.0.1:19199/**', (route) =>
     route.request().method() === 'POST'
       ? route.fulfill({
@@ -142,7 +148,7 @@ test('reload recovery attaches original files to a saved photo-free item', async
         })
       : route.continue(),
   );
-  const detail = page.getByRole('region', { name: 'Saved inventory' });
+  const detail = page.getByRole('region', { name: 'Full item view' });
   await detail.getByLabel('Choose photos').setInputFiles(source);
   await detail.getByRole('button', { name: 'Save photos', exact: true }).click();
   await expect(detail.getByRole('alert')).toContainText('Your item remains saved');
@@ -154,6 +160,7 @@ test('reload recovery attaches original files to a saved photo-free item', async
   await expect(recovery).toHaveCount(0);
   await expect(page.getByRole('button', { name: `Open ${name}`, exact: true })).toHaveCount(1);
   await page.getByRole('button', { name: `Open ${name}`, exact: true }).click();
+  await openFullView(page);
   const photo = page.getByRole('img', { name: `${name} · photo 1`, exact: true });
   await expect(photo).toBeVisible();
   await expect
@@ -188,6 +195,7 @@ test('captures two photos, remembers the room, reloads private photos, and clear
   await expect(page.getByLabel('Capture room', { exact: true })).toHaveValue(roomId);
   await page.reload();
   await page.getByRole('button', { name: 'Open Synthetic two-photo lamp', exact: true }).click();
+  await openFullView(page);
   await expect(page.getByRole('heading', { name: 'Synthetic two-photo lamp' })).toBeVisible();
   const photos = page.getByRole('img', { name: /Synthetic two-photo lamp · photo/ });
   await expect(photos).toHaveCount(2);
@@ -370,7 +378,8 @@ test('phone-width capture is usable and supports reviewed saves', async ({ page 
   await page
     .getByRole('button', { name: 'Open Synthetic reviewed phone item', exact: true })
     .click();
-  await expect(page.getByRole('region', { name: 'Saved inventory' })).toContainText('Reviewed');
+  await openFullView(page);
+  await expect(page.getByRole('region', { name: 'Full item view' })).toContainText('Reviewed');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );

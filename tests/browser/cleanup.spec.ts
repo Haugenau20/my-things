@@ -1,3 +1,4 @@
+import { openFullView } from './fixtures';
 import { expect, test } from '@playwright/test';
 
 test('failed permanent photo deletion retains a marker and completes after reload/retry', async ({
@@ -23,6 +24,7 @@ test('failed permanent photo deletion retains a marker and completes after reloa
   await page
     .getByRole('button', { name: 'Open Synthetic permanent deletion', exact: true })
     .click();
+  await openFullView(page);
   await page.getByRole('button', { name: 'Move to trash', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm move to trash', exact: true }).click();
   await page.getByRole('button', { name: 'Delete permanently', exact: true }).click();
