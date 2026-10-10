@@ -46,8 +46,16 @@ overflow. All records/files/screenshots are synthetic emulator fixtures.
 The initial marker authorization and absent browser controls failed before implementation. A final
 formatting check found one browser file; formatting was corrected and the full checklist reran green.
 The existing shared Firebase chunk is still 591.77 kB (176.82 kB gzip), with Vite's size warning.
-Production preflight/deployment evidence will be recorded separately; these tests do not establish
-actual-device or cloud cleanup success.
+
+## Production release
+
+Source commit `b176412` passed production build, explicit production destination preflight, and ignored
+release preparation. Firebase CLI deployed Firestore rules and Hosting successfully on 2026-10-10 under
+the owner's standing deployment authorization. An isolated signed-out Chromium session showed the Google
+button and started the Google redirect without console/page errors. Anonymous requests for the root,
+item collection, and Storage item-prefix listing all returned 403. No production inventory records or
+photos were read, written, or deleted. Storage rules, IAM, CORS, Auth, billing, and infrastructure remain
+unchanged. These checks do not establish authenticated cloud deletion or actual-device success.
 
 ## Outstanding M3 work
 
