@@ -158,3 +158,20 @@ Orphan inspection is an explicit read-only owner preview. All item states supply
 unreferenced files are skipped, unknown paths/metadata are flagged, and changed item IDs/revisions
 invalidate the result. Listing is bounded and canceled/failed scans do not report completeness. There
 is no automatic orphan cleanup or deletion action. A preview is not a backup or an atomic snapshot.
+
+Restore retains the destination's administratively seeded owner binding. Reports/claims inherit that
+same check; anonymous and unrelated users cannot read/write them. Historical creation requires an
+active owner report and paired absent-target claim. Ordinary creation times remain immutable.
+Unfinished reports freeze ordinary Firestore mutations; only pending claimed items may attach fully
+validated photos and finalize cover/trash history. Report identity/counts and claim source hashes are
+immutable during recovery. No new cloud service or imported authorization authority is introduced.
+
+Transactions use projected `getAfter`/`existsAfter` state to pair counters, claims and records;
+see [Firestore Rules reference](https://firebase.google.com/docs/reference/rules/rules.firestore).
+Rules cannot prove collection-wide emptiness, all claim counts, archive SHA-256 or Storage existence.
+The application inspects emptiness before locking, reinspects after locking, compares every existing
+record with this operation's claims and verifies all private files before completion. An authorized
+owner bypassing the app can violate bookkeeping or delete valid files; this is an integrity boundary,
+never access for others. Unexpected or changed data blocks recovery without overwrites/deletion.
+Refresh old app tabs before import: rules block their writes, but older export clients do not understand
+restore reports. Deploying the report collection does not migrate or rewrite existing records.

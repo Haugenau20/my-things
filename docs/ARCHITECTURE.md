@@ -130,6 +130,13 @@ label the site a PWA. No guarantee of upload execution after a browser is suspen
 
 ## 7. Evolution seams
 
+Backup modules live in `src/backup`: export serialization/ZIP parts, a bounded ZIP32 reader, strict
+portable validation, restore orchestration and a small transaction repository. `ExportPanel` and
+`RestorePanel` render progress/download/confirmation flows. A workspace barrier waits for saves before
+backup work. Persistent owner-only reports freeze ordinary writes across reloads while restore resumes
+only matching claimed records. Storage paths derive from the already-authorized destination. No backend
+process, filesystem API, service worker or authorization provider is added. See [M3 restore](M3_RESTORE.md).
+
 Keep Firebase access behind small modules and bind the inventory by a stable ID. A future client could
 use the same backend. Future sharing would require a deliberate authorization-policy change, not a
 migration from email strings scattered across components. Do not implement either feature now.

@@ -192,3 +192,20 @@ it never deploys, changes IAM/CORS, seeds ownership, or changes billing. See [M1
 Add an entry with date, problem, decision, consequences, affected schemas/docs, test evidence, and rollback
 or migration needs. Changes to privacy, data loss, scope, or paid infrastructure need explicit owner
 agreement. Ordinary package choices and numeric limits may be adjusted with documented evidence.
+
+### 2026-10-10 — M3 validation and restore recovery
+
+Use the existing portable format/schema version 1 without rewriting live records. Add optional owner-only
+restore reports/claims as operational state; archives never carry them or ownership authority. Stage
+historical ready scalar items under a pending claim, reuse existing first-photo registration/verification,
+and apply cover/trash history after byte verification. A persistent report freezes ordinary writes and
+full export until final inspection. Transactions pair absent creates with immutable claims; resume only
+the same exact manifest and refuse collisions/changed records. Never automatically wipe an interrupted
+destination. A zero-claim report may be released while preserving all data.
+
+Support ordinary ZIP32 stored/DEFLATE exports, with 116 MiB ZIP, 100 MiB uncompressed part, 64 MiB total
+metadata, existing derivative limits and 1 KiB inflate input steps. Reject unsupported ZIP features.
+Firestore truncates sub-microsecond timestamps; validation rejects unrepresentable historical precision
+before writing. No existing item/root schema, privacy policy or cloud service changes; deployment performs
+no migration. Rollback to an older client during an unfinished import is unsafe: retain report-aware
+client/rules until completion or an explicitly reviewed administrative recovery. See [M3 restore](M3_RESTORE.md).

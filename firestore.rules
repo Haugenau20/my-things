@@ -168,37 +168,162 @@ service cloud.firestore {
         && data.updatedAt == request.time && data.diff(resource.data).affectedKeys().hasOnly(box ? ['label','notes','sortOrder','archivedAt','revision','updatedAt'] : ['name','sortOrder','archivedAt','revision','updatedAt'])
         && (data.archivedAt == resource.data.archivedAt || data.archivedAt == null || (resource.data.archivedAt == null && data.archivedAt == request.time));
     }
+    function restorePath(inventoryId) { return /databases/$(database)/documents/inventories/$(inventoryId)/restores/active; }
+    function unlocked(inventoryId) {
+      return !existsAfter(restorePath(inventoryId)) || getAfter(restorePath(inventoryId)).data.state == 'completed';
+    }
+    function restoring(inventoryId) { return get(restorePath(inventoryId)).data.state == 'restoring'; }
+    function claimPath(inventoryId, kind, recordId) {
+      return /databases/$(database)/documents/inventories/$(inventoryId)/restores/active/records/$(kind + '_' + recordId);
+    }
+    function restoreClaim(inventoryId, kind, recordId) {
+      let claim = getAfter(claimPath(inventoryId,kind,recordId)).data;
+      let operation = get(restorePath(inventoryId)).data;
+      return operation.state == 'restoring' && claim.operationId == operation.operationId
+        && claim.kind == kind && claim.recordId == recordId;
+    }
+    function pendingRestoreItem(inventoryId, itemId) {
+      return restoring(inventoryId) && get(claimPath(inventoryId,'item',itemId)).data.state == 'pending'
+        && get(claimPath(inventoryId,'item',itemId)).data.operationId == get(restorePath(inventoryId)).data.operationId;
+    }
+    function restoredLocation(data, inventoryId, kind, recordId) {
+      return restoreClaim(inventoryId,kind,recordId) && id(recordId) && validLocationRecord(data,kind == 'box')
+        && data.revision == 1 && data.createdAt is timestamp && data.updatedAt == request.time
+        && (data.archivedAt == null || data.archivedAt is timestamp);
+    }
+    function historicalLocation(data, inventoryId) {
+      let loc = data.currentLocation;
+      return loc is map && ((loc.keys().hasOnly(['kind']) && loc.kind == 'unassigned')
+        || (loc.keys().hasOnly(['kind','roomId']) && loc.kind == 'room' && id(loc.roomId)
+          && exists(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(loc.roomId)))
+        || (loc.keys().hasOnly(['kind','boxId']) && loc.kind == 'box' && id(loc.boxId)
+          && exists(/databases/$(database)/documents/inventories/$(inventoryId)/boxes/$(loc.boxId))))
+        && (data.originalRoomId == null || (id(data.originalRoomId)
+          && exists(/databases/$(database)/documents/inventories/$(inventoryId)/rooms/$(data.originalRoomId))));
+    }
+    function restoredItem(data, inventoryId, itemId) {
+      return restoreClaim(inventoryId,'item',itemId) && id(itemId)
+        && getAfter(claimPath(inventoryId,'item',itemId)).data.state == 'pending'
+        && data.keys().hasOnly(['schemaVersion','revision','name','quantity','estimatedValue','serialNumber','notes','category',
+          'originalRoomId','currentLocation','reviewStatus','decision','progress','completedAt','recordState','coverPhotoId','photos','createdAt','updatedAt','deletedAt'])
+        && data.schemaVersion == 1 && data.revision == 1 && data.createdAt is timestamp && data.updatedAt == request.time
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200 && data.name.matches('.*[^\\s].*')
+        && data.quantity is int && data.quantity >= 1 && data.quantity <= 100000 && money(data.estimatedValue)
+        && (data.serialNumber == null || (data.serialNumber is string && data.serialNumber.size() <= 200))
+        && data.notes is string && data.notes.size() <= 10000 && (data.category == null || (data.category is string && data.category.size() <= 100))
+        && data.reviewStatus in ['needs_review','reviewed'] && historicalLocation(data,inventoryId)
+        && data.decision in ['undecided','store','take','sell','give_away'] && data.progress in ['not_started','in_progress','completed']
+        && (data.decision != 'undecided' || data.progress == 'not_started')
+        && (data.progress == 'completed' ? data.completedAt is timestamp : data.completedAt == null)
+        && (!(data.decision in ['sell','give_away']) || data.progress != 'completed' || data.currentLocation.kind == 'unassigned')
+        && data.recordState == 'ready' && data.photos == [] && data.coverPhotoId == null && data.deletedAt == null;
+    }
+    function restoredItemFinal(data, inventoryId, itemId) {
+      let before = get(claimPath(inventoryId,'item',itemId)).data;
+      let after = getAfter(claimPath(inventoryId,'item',itemId)).data;
+      return pendingRestoreItem(inventoryId,itemId) && before.state == 'pending' && after.state == 'verified'
+        && resource.data.recordState == 'ready' && readyPhotos(resource.data)
+        && data.diff(resource.data).affectedKeys().hasOnly(['deletedAt','coverPhotoId','revision','updatedAt'])
+        && data.deletedAt == after.deletedAt && data.coverPhotoId == after.coverPhotoId
+        && (data.photos.size() == 0 ? data.coverPhotoId == null : (data.coverPhotoId == data.photos[0].id || (data.photos.size() == 2 && data.coverPhotoId == data.photos[1].id)));
+    }
+    function restoreTotal(data) { return data.counts.items + data.counts.rooms + data.counts.boxes; }
+    function validRestore(data) {
+      return data.keys().hasOnly(['schemaVersion','revision','operationId','exportId','manifestSha256','state','counts','claimedRecords','completedRecords','createdAt','updatedAt'])
+        && data.schemaVersion == 1 && id(data.operationId) && id(data.exportId) && data.manifestSha256 is string && data.manifestSha256.matches('[a-f0-9]{64}')
+        && data.counts is map && data.counts.keys().hasOnly(['items','rooms','boxes','photos','photoFiles'])
+        && data.counts.items is int && data.counts.items >= 0 && data.counts.items <= 5000
+        && data.counts.rooms is int && data.counts.rooms >= 0 && data.counts.rooms <= 5000
+        && data.counts.boxes is int && data.counts.boxes >= 0 && data.counts.boxes <= 5000
+        && data.counts.photos is int && data.counts.photos >= 0 && data.counts.photos <= data.counts.items * 2 && data.counts.photoFiles == data.counts.photos * 2
+        && data.claimedRecords is int && data.completedRecords is int && data.completedRecords >= 0 && data.completedRecords <= data.claimedRecords && data.claimedRecords <= restoreTotal(data)
+        && data.state in ['restoring','interrupted','completed'] && data.createdAt is timestamp && data.updatedAt == request.time
+        && (data.state != 'completed' || (data.completedRecords == restoreTotal(data) && data.claimedRecords == restoreTotal(data)));
+    }
+    function validRestoreClaim(data, recordKey) {
+      return data.keys().hasOnly(['schemaVersion','revision','operationId','kind','recordId','recordSha256','state','deletedAt','coverPhotoId','createdAt','updatedAt'])
+        && data.schemaVersion == 1 && id(data.operationId) && data.kind in ['item','room','box'] && id(data.recordId) && recordKey == data.kind + '_' + data.recordId
+        && data.recordSha256 is string && data.recordSha256.matches('[a-f0-9]{64}') && data.state in ['pending','verified']
+        && (data.deletedAt == null || data.deletedAt is timestamp) && (data.coverPhotoId == null || id(data.coverPhotoId))
+        && (data.kind == 'item' || (data.deletedAt == null && data.coverPhotoId == null && data.state == 'verified'))
+        && data.createdAt is timestamp && data.updatedAt == request.time;
+    }
+    function claimedCollection(kind) { return kind == 'item' ? 'items' : (kind == 'room' ? 'rooms' : 'boxes'); }
+    function newRestoreClaim(data, inventoryId, recordKey) {
+      let operation = get(restorePath(inventoryId)).data;
+      let after = getAfter(restorePath(inventoryId)).data;
+      let collection = claimedCollection(data.kind);
+      let target = /databases/$(database)/documents/inventories/$(inventoryId)/$(collection)/$(data.recordId);
+      return validRestoreClaim(data,recordKey) && operation.state == 'restoring' && data.operationId == operation.operationId
+        && data.revision == 1 && data.createdAt == request.time && data.state == (data.kind == 'item' ? 'pending' : 'verified')
+        && !exists(target) && getAfter(target).data.revision == 1 && getAfter(target).data.updatedAt == request.time
+        && after.claimedRecords == operation.claimedRecords + 1
+        && after.completedRecords == operation.completedRecords + (data.kind == 'item' ? 0 : 1);
+    }
+    function finishedRestoreClaim(data, inventoryId, recordKey) {
+      let before = resource.data;
+      let operation = get(restorePath(inventoryId)).data;
+      let after = getAfter(restorePath(inventoryId)).data;
+      let item = getAfter(/databases/$(database)/documents/inventories/$(inventoryId)/items/$(data.recordId)).data;
+      return validRestoreClaim(data,recordKey) && before.kind == 'item' && before.state == 'pending' && data.state == 'verified'
+        && operation.state == 'restoring' && data.operationId == operation.operationId
+        && data.diff(before).affectedKeys().hasOnly(['state','revision','updatedAt']) && data.revision == before.revision + 1
+        && item.recordState == 'ready' && readyPhotos(item) && item.deletedAt == data.deletedAt && item.coverPhotoId == data.coverPhotoId
+        && after.completedRecords == operation.completedRecords + 1 && after.claimedRecords == operation.claimedRecords;
+    }
     match /inventories/{inventoryId} {
       allow get: if owns(inventoryId);
-      allow update: if owns(inventoryId) && validSettings();
+      allow update: if owns(inventoryId) && unlocked(inventoryId) && validSettings();
       allow list, create, delete: if false;
 
       match /items/{itemId} {
         allow get, list: if owns(inventoryId);
-        allow create: if owns(inventoryId) && newCapture(request.resource.data,inventoryId,itemId);
+        allow create: if owns(inventoryId) && (unlocked(inventoryId)
+          ? newCapture(request.resource.data,inventoryId,itemId) : restoredItem(request.resource.data,inventoryId,itemId));
         allow update: if owns(inventoryId) && request.resource.data.revision == resource.data.revision + 1
           && request.resource.data.updatedAt == request.time
           && request.resource.data.revision <= 9007199254740991
-          && (request.resource.data.diff(resource.data).affectedKeys().hasAny(['photos','coverPhotoId','recordState'])
+          && (unlocked(inventoryId) ? (request.resource.data.diff(resource.data).affectedKeys().hasAny(['photos','coverPhotoId','recordState'])
             ? (permanentMarker(request.resource.data) || completion(request.resource.data,inventoryId,itemId) || discard(request.resource.data) || firstPhotos(request.resource.data,inventoryId,itemId))
-            : metadataEdit(request.resource.data,inventoryId));
-        allow delete: if owns(inventoryId) && resource.data.recordState == 'deleting'
+            : metadataEdit(request.resource.data,inventoryId))
+          : (pendingRestoreItem(inventoryId,itemId) && (firstPhotos(request.resource.data,inventoryId,itemId) || restoredItemFinal(request.resource.data,inventoryId,itemId))));
+        allow delete: if owns(inventoryId) && unlocked(inventoryId) && resource.data.recordState == 'deleting'
           && ((resource.data.coverPhotoId == null && resource.data.deletedAt == null)
             || (resource.data.deletedAt is timestamp && readyPhotos(resource.data)));
       }
       match /rooms/{roomId} {
         allow get, list: if owns(inventoryId);
-        allow create: if owns(inventoryId) && newRoom(request.resource.data,roomId);
-        allow update: if owns(inventoryId) && editLocation(request.resource.data,false);
+        allow create: if owns(inventoryId) && (unlocked(inventoryId) ? newRoom(request.resource.data,roomId) : restoredLocation(request.resource.data,inventoryId,'room',roomId));
+        allow update: if owns(inventoryId) && unlocked(inventoryId) && editLocation(request.resource.data,false);
         allow delete: if false;
       }
       match /boxes/{boxId} {
         allow get, list: if owns(inventoryId);
-        allow create: if owns(inventoryId) && id(boxId) && validLocationRecord(request.resource.data,true)
+        allow create: if owns(inventoryId) && (unlocked(inventoryId) ? (id(boxId) && validLocationRecord(request.resource.data,true)
           && request.resource.data.revision == 1 && request.resource.data.archivedAt == null
-          && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
-        allow update: if owns(inventoryId) && editLocation(request.resource.data,true);
+          && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time)
+          : restoredLocation(request.resource.data,inventoryId,'box',boxId));
+        allow update: if owns(inventoryId) && unlocked(inventoryId) && editLocation(request.resource.data,true);
         allow delete: if false;
+      }
+      match /restores/active {
+        allow get: if owns(inventoryId);
+        allow list: if false;
+        allow create: if owns(inventoryId) && validRestore(request.resource.data) && request.resource.data.revision == 1
+          && request.resource.data.state == 'restoring' && request.resource.data.claimedRecords == 0 && request.resource.data.completedRecords == 0
+          && request.resource.data.createdAt == request.time;
+        allow update: if owns(inventoryId) && validRestore(request.resource.data) && resource.data.state != 'completed'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revision','updatedAt','state','claimedRecords','completedRecords'])
+          && request.resource.data.revision == resource.data.revision + 1 && request.resource.data.revision <= 9007199254740991
+          && request.resource.data.claimedRecords >= resource.data.claimedRecords && request.resource.data.claimedRecords <= resource.data.claimedRecords + 1
+          && request.resource.data.completedRecords >= resource.data.completedRecords && request.resource.data.completedRecords <= resource.data.completedRecords + 1;
+        allow delete: if owns(inventoryId) && resource.data.state == 'interrupted' && resource.data.claimedRecords == 0;
+        match /records/{recordKey} {
+          allow get, list: if owns(inventoryId);
+          allow create: if owns(inventoryId) && newRestoreClaim(request.resource.data,inventoryId,recordKey);
+          allow update: if owns(inventoryId) && finishedRestoreClaim(request.resource.data,inventoryId,recordKey);
+          allow delete: if false;
+        }
       }
     }
     match /{document=**} {

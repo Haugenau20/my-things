@@ -123,7 +123,9 @@ gates are recorded in [M1 capture evidence](M1_CAPTURE.md). Chromium at phone wi
 iPhone test. M2 organization evidence is recorded in [M2 organization](M2_ORGANIZE.md); its synthetic
 workflow does not replace the real twenty-item test. M3 permanent-deletion and inspection evidence is
 recorded in [M3 recovery](M3_RECOVERY.md). Export evidence and bounded splitting are recorded in
-[M3 export](M3_EXPORT.md); restore and cloud restore proof remain future work.
+[M3 export](M3_EXPORT.md) and [M3 restore](M3_RESTORE.md). Synthetic restore tests cover multipart history,
+interrupted uploads/reload/resume, collision refusal, changed imported records, root authority retention
+and actual Chromium JPEG reopening. Device acceptance and isolated cloud recovery proof remain pending.
 
 For each release, record commit ID, environments, device/browser versions, automated commands/results,
 manual scenarios run, export/restore outcome, known limitations, and who approved deployment. Separate

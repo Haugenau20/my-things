@@ -1,6 +1,6 @@
 # Portable export and restore contract
 
-Format: `home-inventory-export` | Format version: 1 | Status: export implemented; restore contract pending
+Format: `home-inventory-export` | Format version: 1 | Status: export, validation and resumable restore implemented; real cloud recovery gate pending
 
 ## 1. Scope
 
@@ -114,17 +114,36 @@ wipe it. Importing an archive is an explicit operation, never a side effect of o
    references, allowed paths/content types, counts, uncompressed sizes, and every payload checksum.
 2. Show a dry-run summary and explicit destination/environment. No cloud writes before validation and
    confirmation. Reject unsupported future versions; never guess and drop fields.
-3. Recreate rooms/boxes and prepare item drafts. Upload exact exported bytes under destination paths,
+3. Recreate rooms/boxes and prepare staged item records under an active recovery report. Upload exact exported bytes under destination paths,
    then finalize items after verification. Preserve stable record/photo IDs and historical timestamps;
    reset destination revisions and update times as described in [Data model](DATA_MODEL.md).
 4. Restore display name/default currency only with confirmation. Do not overwrite the root owner, root
    schema policy, or root creation metadata.
 5. Verify counts, references, and checksums, then report success. Reopen the gallery and spot-check images.
 
-V1 may require cleaning an interrupted import and restarting, rather than implementing resumable merge.
-Mark/report imported objects and IDs in an operation report. Before cleanup, verify that the destination
-contains only that interrupted import; never treat an arbitrary nonempty inventory as disposable. Do not
-report the partial result as a complete restore. A more advanced resumable importer is optional.
+Resume only this operation's interrupted import, identified by the exact manifest SHA-256, export ID,
+expected counts and per-record claims. Ordinary mutations and full exports are blocked while the report
+is unfinished. Reinspect every record and object; refuse unrelated records, changed historical fields,
+unexpected objects or changed file bytes. A transaction creates a claim and its absent target together;
+existing records cannot be adopted. Never wipe an interrupted destination. Only an interrupted report
+with zero claimed records can be explicitly released, preserving all data. Once any record is claimed,
+recovery requires the same validated archive or separate administrator review. A completed report is
+retained and cannot be replaced by a different archive in this implementation.
+Refresh all open app tabs before importing; an older deployed client does not understand this report.
+
+The reader supports ordinary ZIP32 stored and DEFLATE files with the export's exact ASCII payload names.
+It rejects encryption, ZIP64, multi-disk archives, directories/symlinks, extra fields/comments, unexpected
+members, inconsistent headers, overlapping/unindexed ranges and excessive expansion. Each selected ZIP
+is limited to 116 MiB, its uncompressed payload to 100 MiB; metadata totals at most 64 MiB. Photos are read
+separately within their derivative limits. DEFLATE input advances in 1 KiB chunks with declared output
+bounds; the whole collection is never decompressed at once. JPEG checks validate hashes, start/end
+markers and header dimensions, not every possible codec behavior. Image reopening remains part of
+browser/device acceptance. JSON is authoritative; CSV is not imported or executed as formulas.
+
+Timestamp pairs remain exact. Imported nanoseconds must be a multiple of 1,000, because Firestore stores
+microsecond precision; reject finer precision before any write instead of silently truncating history.
+See [Firestore supported data types](https://firebase.google.com/docs/firestore/manage-data/data-types).
+Existing server-read exports satisfy this requirement. See [M3 restore evidence](M3_RESTORE.md).
 
 ## 6. Import/export safety
 

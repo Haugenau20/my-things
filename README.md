@@ -4,7 +4,7 @@ A private, photo-first inventory for preparing an international move and finding
 Capture individual items on an iPhone, organize them on a Windows computer, decide what to store, take,
 sell, or give away, and browse the things you still own while abroad.
 
-**Repository status: M2 organization verified and deployed; actual-device acceptance pending.** Name with optional photo
+**Repository status: M3 implementation verified in emulators; device and cloud recovery acceptance pending.** Name with optional photo
 capture, a sticky room, optimized private photos, gallery/detail views, and interrupted-capture recovery
 are present. Hosting, Firestore indexes/rules, and Storage rules are deployed. Required cross-service
 IAM and exact-origin CORS are applied; the signed-out page and Google redirect start are verified.
@@ -12,7 +12,8 @@ Trusted owner bootstrap is complete and public signup is disabled. The owner ver
 and another account's rejection; actual iPhone/Windows capture checks remain pending. Review, metadata
 editing, rooms/boxes, search, filters, bulk actions, moving outcomes, and reversible trash are implemented
 for M2. M3 adds deployed recoverable permanent deletion and read-only orphan inspection, plus full
-ZIP export with verified photo bytes. Restore remains in progress. See [M3 export evidence](docs/M3_EXPORT.md),
+ZIP export with verified photo bytes, strict archive validation, and resumable restore into an empty
+already-authorized inventory. See [M3 restore evidence](docs/M3_RESTORE.md), [M3 export evidence](docs/M3_EXPORT.md),
 [M3 recovery evidence](docs/M3_RECOVERY.md), [M2 evidence](docs/M2_ORGANIZE.md),
 [deployment evidence](docs/M1_RELEASE.md), [M1 evidence and release
 steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.

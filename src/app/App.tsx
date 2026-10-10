@@ -165,6 +165,7 @@ export function App({
           inventory={access.inventory}
           inventoryId={config.inventoryId}
           services={services}
+          environment={config.environment}
         />
       ) : (
         <main className="shell">
