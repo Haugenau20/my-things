@@ -9,6 +9,8 @@ import type { RulesTestContext, RulesTestEnvironment } from '@firebase/rules-uni
 import { getBytes, ref, uploadBytes } from 'firebase/storage';
 import type { FirebaseStorage } from 'firebase/storage';
 import { assertLocalTarget } from '../../scripts/safety';
+import { Timestamp, serverTimestamp } from 'firebase/firestore';
+import { captureDraft, photoPath } from '../../src/domain/item';
 
 let environment: RulesTestEnvironment;
 const photo = 'inventories/main/items/synthetic-item/photos/synthetic-photo/detail.jpg';
@@ -45,6 +47,19 @@ beforeAll(async () => {
       await db.doc(`inventories/main/${collection}/synthetic-record`).set({ schemaVersion: 1 });
     }
     await uploadBytes(ref(storage(context), photo), bytes, { contentType: 'image/jpeg' });
+    for (const id of ['test-upload', 'test-invalid', 'test-token']) {
+      await db.doc(`inventories/main/items/${id}`).set({
+        recordState: 'draft',
+        photos: [
+          {
+            id: 'synthetic-photo',
+            state: 'pending',
+            detail: { byteSize: 4 },
+            thumbnail: { byteSize: 4 },
+          },
+        ],
+      });
+    }
   });
 });
 afterAll(async () => {
@@ -126,7 +141,7 @@ describe('Firestore owner policy', () => {
     await assertFails(db.doc('inventories/main/members/synthetic-owner').get());
     await assertFails(db.doc('inventories/main/items/synthetic-record/hidden/data').get());
   });
-  it('keeps all unimplemented child write operations closed in M0', async () => {
+  it('denies malformed child records and unimplemented edits', async () => {
     const db = context('synthetic-owner').firestore();
     for (const collection of ['items', 'rooms', 'boxes']) {
       await assertFails(db.doc(`inventories/main/${collection}/new`).set({ schemaVersion: 1 }));
@@ -135,6 +150,208 @@ describe('Firestore owner policy', () => {
       );
       await assertFails(db.doc(`inventories/main/${collection}/synthetic-record`).delete());
     }
+  });
+});
+
+describe('M1 capture authorization', () => {
+  const owner = () => environment.authenticatedContext('synthetic-owner').firestore();
+  const draft = (id: string, count = 1) => ({
+    ...captureDraft(
+      {
+        name: 'Synthetic lamp',
+        roomId: null,
+        reviewStatus: 'needs_review',
+        photos: Array.from({ length: count }, (_, index) => {
+          const photoId = `photo-${index}`;
+          const file = (variant: 'detail' | 'thumb') => ({
+            storagePath: photoPath('main', id, photoId, variant),
+            contentType: 'image/jpeg' as const,
+            byteSize: 4,
+            width: 10,
+            height: 8,
+            sha256: 'a'.repeat(64),
+          });
+          return {
+            id: photoId,
+            state: 'pending' as const,
+            detail: file('detail'),
+            thumbnail: file('thumb'),
+          };
+        }),
+      },
+      Timestamp.now(),
+    ),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  it.each([1, 2])('allows owner draft and exact completion with %i photos', async (count) => {
+    const id = `valid-capture-${count}`;
+    const data = draft(id, count);
+    const record = owner().doc(`inventories/main/items/${id}`);
+    await assertSucceeds(record.set(data));
+    await assertFails(record.delete());
+    await assertSucceeds(
+      record.update({
+        revision: 2,
+        updatedAt: serverTimestamp(),
+        recordState: 'ready',
+        coverPhotoId: data.photos[0]!.id,
+        photos: data.photos.map((photo) => ({ ...photo, state: 'ready' })),
+      }),
+    );
+    await assertFails(record.delete());
+    await assertFails(
+      record.update({ name: 'M2 edit', revision: 3, updatedAt: serverTimestamp() }),
+    );
+  });
+  it.each([null, 'unrelated-user'])('denies a valid capture for %s', async (uid) => {
+    const context =
+      uid === null ? environment.unauthenticatedContext() : environment.authenticatedContext(uid);
+    await assertFails(
+      context
+        .firestore()
+        .doc('inventories/main/items/foreign-capture')
+        .set(draft('foreign-capture')),
+    );
+  });
+  it.each([
+    'name',
+    'quantity',
+    'schema',
+    'extra',
+    'path',
+    'hash',
+    'dimensions',
+    'duplicates',
+    'ready',
+    'empty',
+    'location',
+  ])('rejects invalid capture %s', async (kind) => {
+    const id = `invalid-${kind}`;
+    const data = draft(id);
+    const first = data.photos[0]!;
+    const patches: Record<string, object> = {
+      name: { name: '   ' },
+      quantity: { quantity: 0 },
+      schema: { schemaVersion: 2 },
+      extra: { unexpected: true },
+      path: {
+        photos: [
+          {
+            ...first,
+            detail: {
+              ...first.detail,
+              storagePath: 'inventories/foreign/items/id/photos/id/detail.jpg',
+            },
+          },
+        ],
+      },
+      hash: { photos: [{ ...first, detail: { ...first.detail, sha256: 'x' } }] },
+      dimensions: { photos: [{ ...first, thumbnail: { ...first.thumbnail, width: 401 } }] },
+      duplicates: { photos: [first, first] },
+      ready: { recordState: 'ready', coverPhotoId: first.id },
+      empty: { photos: [] },
+      location: { currentLocation: { kind: 'unassigned', roomId: 'missing' } },
+    };
+    await assertFails(
+      owner()
+        .doc(`inventories/main/items/${id}`)
+        .set({ ...data, ...patches[kind] }),
+    );
+  });
+  it('denies stale revision, changed bytes, and partial-photo finalization', async () => {
+    const id = 'contested-capture';
+    const data = draft(id, 2);
+    const record = owner().doc(`inventories/main/items/${id}`);
+    await assertSucceeds(record.set(data));
+    const final = {
+      revision: 2,
+      updatedAt: serverTimestamp(),
+      recordState: 'ready',
+      coverPhotoId: data.photos[0]!.id,
+      photos: data.photos.map((photo) => ({ ...photo, state: 'ready' })),
+    };
+    await assertFails(record.update({ ...final, revision: 1 }));
+    await assertFails(record.update({ ...final, photos: [final.photos[0], data.photos[1]] }));
+    await assertFails(
+      record.update({
+        ...final,
+        photos: final.photos.map((photo) => ({
+          ...photo,
+          detail: { ...photo.detail, sha256: 'b'.repeat(64) },
+        })),
+      }),
+    );
+  });
+  it('rejects a third photo and invalid metadata in the second photo', async () => {
+    const data = draft('photo-limit', 2);
+    const first = data.photos[0]!;
+    const second = data.photos[1]!;
+    await assertFails(
+      owner()
+        .doc('inventories/main/items/photo-limit')
+        .set({ ...data, photos: [...data.photos, { ...first, id: 'photo-2' }] }),
+    );
+    await assertFails(
+      owner()
+        .doc('inventories/main/items/photo-limit')
+        .set({
+          ...data,
+          photos: [first, { ...second, thumbnail: { ...second.thumbnail, sha256: 'invalid' } }],
+        }),
+    );
+  });
+  it('allows explicit draft discard only after the durable deleting marker', async () => {
+    const id = 'discard-capture';
+    const record = owner().doc(`inventories/main/items/${id}`);
+    await assertSucceeds(record.set(draft(id)));
+    await assertFails(record.delete());
+    await assertSucceeds(
+      record.update({ recordState: 'deleting', revision: 2, updatedAt: serverTimestamp() }),
+    );
+    await assertSucceeds(record.delete());
+  });
+  it('allows minimal room creation and rejects missing/archived room capture', async () => {
+    const room = {
+      schemaVersion: 1,
+      name: 'Synthetic room',
+      sortOrder: 0,
+      revision: 1,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      archivedAt: null,
+    };
+    await assertSucceeds(owner().doc('inventories/main/rooms/capture-room').set(room));
+    const capture = (id: string, roomId: string) => ({
+      ...draft(id),
+      originalRoomId: roomId,
+      currentLocation: { kind: 'room', roomId },
+    });
+    await assertSucceeds(
+      owner()
+        .doc('inventories/main/items/room-capture')
+        .set(capture('room-capture', 'capture-room')),
+    );
+    await assertFails(
+      owner()
+        .doc('inventories/main/items/missing-room')
+        .set(capture('missing-room', 'absent-room')),
+    );
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc('inventories/main/rooms/archived-room')
+        .set({ ...room, createdAt: timestamp, updatedAt: timestamp, archivedAt: timestamp });
+    });
+    await assertFails(
+      owner()
+        .doc('inventories/main/items/archived-room')
+        .set(capture('archived-room', 'archived-room')),
+    );
+    await assertFails(
+      owner().doc('inventories/main/rooms/capture-room').update({ name: 'M2 rename' }),
+    );
+    await assertFails(owner().doc('inventories/main/rooms/capture-room').delete());
   });
 });
 
@@ -232,6 +449,41 @@ describe('Storage owner policy', () => {
       owner().storage('gs://demo-inventory.firebasestorage.app').ref(photo).updateMetadata({
         contentType: 'text/html',
       }),
+    );
+  });
+  it('denies metadata updates and changed photo bytes at existing paths', async () => {
+    const reference = owner().storage('gs://demo-inventory.firebasestorage.app').ref(photo);
+    await assertFails(reference.updateMetadata({ cacheControl: 'private, no-store, max-age=0' }));
+    await assertFails(
+      uploadBytes(ref(storage(owner()), photo), new Uint8Array([1, 2, 3, 4]), {
+        contentType: 'image/jpeg',
+        cacheControl: 'private, no-store, max-age=0',
+      }),
+    );
+  });
+  it('denies uploads without a pending capture and after discard begins', async () => {
+    const path = 'inventories/main/items/discarding/photos/synthetic-photo/detail.jpg';
+    await assertFails(
+      uploadBytes(ref(storage(owner()), path), bytes, { contentType: 'image/jpeg' }),
+    );
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc('inventories/main/items/discarding')
+        .set({
+          recordState: 'deleting',
+          photos: [
+            {
+              id: 'synthetic-photo',
+              state: 'pending',
+              detail: { byteSize: 4 },
+              thumbnail: { byteSize: 4 },
+            },
+          ],
+        });
+    });
+    await assertFails(
+      uploadBytes(ref(storage(owner()), path), bytes, { contentType: 'image/jpeg' }),
     );
   });
 });

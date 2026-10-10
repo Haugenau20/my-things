@@ -115,7 +115,8 @@ Emulator binaries use ignored `.firebase-emulators/` so CLI upgrades cannot repl
 running Java files. First startup downloads them. Run suites sequentially, not concurrently.
 
 Normal application data stays in memory; Auth persists only in the browser tab's session. Sign-out is
-broadcast to other same-origin app tabs. Capture, data editing, and cloud Google sign-in remain M1+.
+broadcast to other same-origin app tabs. M1 capture/gallery/recovery and cloud Google redirect sign-in
+are implemented. Organization remains M2; cloud/device verification remains pending.
 
 M0 loads `.env.local` for local commands and dedicated `.env.development.local` or
 `.env.production.local` files for cloud builds. These do not inherit local emulator values. Process
@@ -123,8 +124,8 @@ M0 loads `.env.local` for local commands and dedicated `.env.development.local` 
 values are hard failures. Cloud examples intentionally contain blank project/configuration values.
 Production builds require `APP_PRODUCTION_PROJECT_ID` to match the actual Web configuration; no cloud
 development project is required. Optional development builds require both explicit, distinct IDs if a
-second project is ever authorized. M0 cloud builds are static shells only: cloud SDK initialization and
-Google sign-in are deferred to M1. The default CLI alias remains `demo-inventory`; cloud commands must
+second project is ever authorized. Cloud builds now initialize the Firebase client SDK and enable
+Google redirect sign-in. They must not be used as automated-test targets. The default CLI alias remains `demo-inventory`; cloud commands must
 select the intended project explicitly.
 
 When updating the toolchain, select a currently supported Node.js LTS release compatible with the chosen Vite and
@@ -165,14 +166,16 @@ is not activated in your shell.
 | `npm run build:dev` | Optional separate cloud-development build; unavailable in the owner's single-project workflow |
 | `npm run build:prod` | Build with explicit production config; reject demo/development IDs |
 | `npm run deploy:check -- production PROJECT_ID main` | Validate baked-in environment/project/inventory against an explicit destination; does not deploy |
+| `npm run release:prepare` | Validate the production build/configuration fingerprint and write ignored exact-origin CSP/CORS settings for review; no cloud action |
 | `npm run check` | Run lint, typecheck, unit, rules, integration, browser, and local build sequentially |
 
 A build writes `dist/build-environment.json`. Deployment preflight rejects local builds and mismatched
 environment/project/inventory values. No deployment command is provided in M0; a manual Firebase CLI
 invocation can bypass this check, so the approved release workflow must run it before deploying.
-The Hosting CSP is deliberately local-only in M0. M1 must review actual OAuth/API domains and extend
-the header policy before any authorized cloud deployment. The CORS template under `docs/templates/`
-is not applied automatically and requires the actual origin.
+The root Hosting CSP remains local-only. M1's `release:prepare` generates a separate ignored production
+Firebase configuration with the required Auth/Firestore/Storage endpoints and same-origin auth frames.
+Its exact-origin CORS file is never applied automatically. Follow [M1 release steps](M1_CAPTURE.md);
+the cloud CSP, OAuth, CORS, IAM, and device gate still need actual verification after authorization.
 
 ## 6. Commit configuration, not secrets
 

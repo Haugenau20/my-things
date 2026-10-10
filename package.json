@@ -24,6 +24,7 @@
     "build:dev": "node scripts/build.mjs development",
     "build:prod": "node scripts/build.mjs production",
     "deploy:check": "node scripts/deploy-check.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run test:rules && npm run test:integration && npm run test:e2e && npm run build"
   },
   "dependencies": {

@@ -35,7 +35,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | D07 | Value is total entry value in integer minor units | Never reinterpret existing amounts through default changes |
 | D08 | No currency selected; null default permitted | Choose at first value entry or in settings |
 | D09 | JPEG detail 2,000 px / thumbnail 400 px; no cloud originals | Validate readability and real device formats before mass use |
-| D10 | 10 photos/item; bounded file sizes and processing concurrency | Adjust after measured device/memory tests |
+| D10 | 2 photos/item; bounded file sizes and processing concurrency | Full embedded-metadata rules validation exceeded the expression budget at higher counts in M1 |
 | D11 | Embedded bounded photo metadata, item revisions, staged recovery | Avoid a new backend merely to obtain cross-service transactions |
 | D12 | In-memory metadata search; 250-document reads; 5,000-item test target | Measure before adding server search/pagination complexity |
 | D13 | Simple category plus notes; no tag/custom-field engine | Add only after a repeated real need appears |
@@ -87,6 +87,30 @@ remaining manual checks are recorded in [M1 setup](M1_SETUP.md). App Check was c
 deferred; Analytics remains absent from the application. Real Web settings stay in ignored production
 configuration. Backup proof still requires an empty, isolated, administrator-authorized destination;
 it must never overwrite the main inventory, and emulator checks are not real cloud recovery evidence.
+
+### 2026-10-10 — M1 capture validation and bounded photos
+
+The initial ten-entry default exceeded Firestore's 1,000-expression limit during full validation of
+every embedded photo field. A three-entry version also exceeded the limit on the positive three-photo
+capture test. Two entries passed full draft/completion authorization tests, including validation of
+the second photo and rejection of a third entry. Keep strict validation and reduce D10 to two entries
+before any real application inventory has been created. This is an editable numeric default; schema
+version 1 and export structure remain unchanged. No real-data migration or cleanup was performed.
+Increasing the limit requires a measured, tested rules/data-model change, not removal of field checks.
+
+M1 permits exact acknowledged draft creation/finalization and explicit unfinished-capture discard.
+Room creation is the minimal implementation needed by sticky capture; room edits and boxes stay M2.
+Storage creation requires matching pending metadata and byte size in a draft, and existing objects
+cannot be overwritten or have their metadata changed. Retries verify existing files and reuse them.
+Private photo display holds at most 24 MiB of encoded data, with two concurrent downloads and URL
+revocation when the last mounted viewer leaves or the authorized session ends. Source decoding is
+sequential; uploads are bounded to two. Actual decoded browser memory is not a 24 MiB guarantee.
+
+Native browser HEIC decoding is attempted. No conversion dependency is justified until the real-device
+spike; failure explains JPEG/PNG reselection and leaves the source untouched. Cloud sign-in uses the
+default firebaseapp.com Hosting origin so the helper and app share an origin. Release preparation
+writes ignored exact-origin CORS/Hosting settings and validates the built configuration fingerprint;
+it never deploys, changes IAM/CORS, seeds ownership, or changes billing. See [M1 evidence](M1_CAPTURE.md).
 
 Add an entry with date, problem, decision, consequences, affected schemas/docs, test evidence, and rollback
 or migration needs. Changes to privacy, data loss, scope, or paid infrastructure need explicit owner

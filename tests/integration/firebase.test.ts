@@ -11,6 +11,14 @@ import { loadInventory } from '../../src/data/inventory-repository';
 import { LOCAL_ACCOUNTS } from '../../src/data/local-accounts';
 import { seedLocal } from '../../scripts/seed';
 import { assertLocalTarget } from '../../scripts/safety';
+import { captureDraft, photoPath } from '../../src/domain/item';
+import type { CaptureInput } from '../../src/domain/item';
+import { Timestamp } from 'firebase/firestore';
+import { ref, uploadBytes } from 'firebase/storage';
+import { sha256 } from '../../src/media/processing';
+import { ensureDraft, loadItems, createRoom } from '../../src/data/capture-repository';
+import { saveAttempt, recoverAttempt, discardAttempt } from '../../src/media/capture';
+import type { CaptureAttempt } from '../../src/media/capture';
 
 let environment: RulesTestEnvironment;
 const env = {
@@ -85,6 +93,130 @@ describe('real client SDK and trusted synthetic seed', () => {
       LOCAL_ACCOUNTS.unrelated.password,
     );
     await expect(getDocFromServer(doc(services.db, 'inventories/main'))).rejects.toThrow();
+  });
+  async function owner(name: string) {
+    await seedLocal(validateConfig(env));
+    const services = initializeFirebase(env, name);
+    await signInWithEmailAndPassword(
+      services.auth,
+      LOCAL_ACCOUNTS.owner.email,
+      LOCAL_ACCOUNTS.owner.password,
+    );
+    return services;
+  }
+  async function attempt(id: string): Promise<CaptureAttempt> {
+    const bytes = new Uint8Array([255, 216, 255, 217]);
+    const file = (variant: 'detail' | 'thumb') => ({
+      storagePath: photoPath('main', id, 'photo-one', variant),
+      contentType: 'image/jpeg' as const,
+      byteSize: bytes.length,
+      width: 2,
+      height: 2,
+      sha256: '',
+    });
+    const hash = await sha256(bytes);
+    const photo = {
+      id: 'photo-one',
+      state: 'pending' as const,
+      detail: { ...file('detail'), sha256: hash },
+      thumbnail: { ...file('thumb'), sha256: hash },
+    };
+    const input: CaptureInput = {
+      name: 'Synthetic capture',
+      roomId: null,
+      reviewStatus: 'needs_review',
+      photos: [photo],
+    };
+    return {
+      id,
+      input,
+      prepared: [
+        {
+          photo,
+          detail: new Blob([bytes], { type: 'image/jpeg' }),
+          thumbnail: new Blob([bytes], { type: 'image/jpeg' }),
+        },
+      ],
+    };
+  }
+  it('saves acknowledged capture bytes and retries without duplicate records', async () => {
+    const services = await owner('capture-owner');
+    const plan = await attempt('sdk-capture');
+    const signal = new AbortController().signal;
+    const saved = await saveAttempt(services, 'main', plan, signal, () => {});
+    expect(saved.recordState).toBe('ready');
+    expect(saved.photos.every((photo) => photo.state === 'ready')).toBe(true);
+    expect((await saveAttempt(services, 'main', plan, signal, () => {})).id).toBe(saved.id);
+    expect(
+      (await loadItems(services.db, 'main')).filter((item) => item.id === plan.id),
+    ).toHaveLength(1);
+  });
+  it('keeps an interrupted capture visible and finishes verified uploads after reload', async () => {
+    const services = await owner('capture-recovery');
+    const plan = await attempt('sdk-recovery');
+    const draft = await ensureDraft(services.db, 'main', plan.id, plan.input);
+    const first = plan.prepared[0]!;
+    await uploadBytes(
+      ref(services.storage, first.photo.detail.storagePath),
+      new Uint8Array(await first.detail.arrayBuffer()),
+      { contentType: 'image/jpeg', cacheControl: 'private, no-store, max-age=0' },
+    );
+    await expect(
+      recoverAttempt(services, 'main', draft, new AbortController().signal, () => {}),
+    ).rejects.toThrow();
+    expect(
+      (await getDocFromServer(doc(services.db, `inventories/main/items/${plan.id}`))).data()
+        ?.recordState,
+    ).toBe('draft');
+    await uploadBytes(
+      ref(services.storage, first.photo.thumbnail.storagePath),
+      new Uint8Array(await first.thumbnail.arrayBuffer()),
+      { contentType: 'image/jpeg', cacheControl: 'private, no-store, max-age=0' },
+    );
+    expect(
+      (await recoverAttempt(services, 'main', draft, new AbortController().signal, () => {}))
+        .recordState,
+    ).toBe('ready');
+  });
+  it('refuses hash mismatches and explicitly discards draft files before the record', async () => {
+    const services = await owner('capture-discard');
+    const plan = await attempt('sdk-discard');
+    const draft = await ensureDraft(services.db, 'main', plan.id, plan.input);
+    await uploadBytes(
+      ref(services.storage, plan.prepared[0]!.photo.detail.storagePath),
+      new Uint8Array([1, 2, 3, 4]),
+      { contentType: 'image/jpeg' },
+    );
+    await expect(
+      recoverAttempt(services, 'main', draft, new AbortController().signal, () => {}),
+    ).rejects.toThrow();
+    await discardAttempt(services, 'main', draft, new AbortController().signal);
+    expect(
+      (await getDocFromServer(doc(services.db, `inventories/main/items/${plan.id}`))).exists(),
+    ).toBe(false);
+  });
+  it('creates a real room reference and rejects unrelated SDK capture writes', async () => {
+    const services = await owner('capture-room');
+    const room = await createRoom(services.db, 'main', 'Synthetic study', 0);
+    const plan = await attempt('sdk-room');
+    plan.input = { ...plan.input, roomId: room.id };
+    expect(captureDraft(plan.input, Timestamp.now()).originalRoomId).toBe(room.id);
+    const saved = await saveAttempt(services, 'main', plan, new AbortController().signal, () => {});
+    expect(saved.currentLocation).toEqual({ kind: 'room', roomId: room.id });
+    await signInWithEmailAndPassword(
+      services.auth,
+      LOCAL_ACCOUNTS.unrelated.email,
+      LOCAL_ACCOUNTS.unrelated.password,
+    );
+    await expect(
+      saveAttempt(
+        services,
+        'main',
+        await attempt('sdk-foreign'),
+        new AbortController().signal,
+        () => {},
+      ),
+    ).rejects.toThrow();
   });
   it('does not overwrite an existing different owner binding', async () => {
     await environment.withSecurityRulesDisabled(async (context) => {

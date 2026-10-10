@@ -4,11 +4,12 @@ A private, photo-first inventory for preparing an international move and finding
 Capture individual items on an iPhone, organize them on a Windows computer, decide what to store, take,
 sell, or give away, and browse the things you still own while abroad.
 
-**Repository status: M0 foundation implemented locally.** React/TypeScript/Vite scaffolding, mise
-toolchain pins, strict configuration validation, a synthetic authenticated shell, owner-policy rules,
-and emulator tests are present. Capture, organization, and backup remain M1-M3 work. No cloud resources
-have been provisioned or deployed by this implementation. Read-only cloud setup checks are recorded
-in [M1 setup](docs/M1_SETUP.md); the owner's Web configuration is stored in an ignored local file.
+**Repository status: M1 capture implemented locally; cloud/device acceptance pending.** Name + photo
+capture, a sticky room, optimized private photos, gallery/detail views, and interrupted-capture recovery
+are present. Google redirect sign-in and production release preparation are implemented but have not
+been deployed or tested against the cloud project. Organization and backup remain M2-M3 work.
+No cloud resources have been provisioned or deployed by this implementation. See [M1 evidence and
+release steps](docs/M1_CAPTURE.md) and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
 
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
 
@@ -61,8 +62,8 @@ not be. Backend authorization, not the visibility of a React screen, is the secu
 1. Read the M0 evidence and [Setup](docs/SETUP.md), then run the foundation locally.
 2. Use the owner's existing production cloud project for explicitly authorized device checks and releases.
    Normal development and automated tests use local emulators; no second cloud project is required.
-3. Run the **M0 foundation** locally using [Setup](docs/SETUP.md), then implement M1 to prove the real
-   iPhone-to-Windows capture loop once cloud deployment is explicitly authorized.
+3. Run capture locally using [Setup](docs/SETUP.md), then follow [M1 release steps](docs/M1_CAPTURE.md)
+   to prove the real iPhone-to-Windows capture loop once deployment is explicitly authorized.
 
 ## Configuration and commands
 

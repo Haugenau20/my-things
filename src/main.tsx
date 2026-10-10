@@ -9,10 +9,7 @@ const renderer = createRoot(root);
 try {
   const config = validateConfig(__APP_ENV__);
   // Initialize services only after configuration is known to be safe.
-  const services =
-    config.environment === 'local'
-      ? (await import('./data/firebase')).initializeFirebase(__APP_ENV__)
-      : null;
+  const services = (await import('./data/firebase')).initializeFirebase(__APP_ENV__);
   renderer.render(<App config={config} services={services} />);
 } catch {
   renderer.render(

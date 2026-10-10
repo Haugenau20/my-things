@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import type { FirebaseApp } from 'firebase/app';
 import {
   browserSessionPersistence,
+  browserPopupRedirectResolver,
   connectAuthEmulator,
   initializeAuth,
   inMemoryPersistence,
@@ -29,20 +30,22 @@ export function initializeFirebase(
   name = 'my-things',
 ): FirebaseServices {
   const config = validateConfig(env);
-  if (config.environment !== 'local' || !config.emulators) {
-    throw new Error('Cloud Firebase connections are deferred to M1');
-  }
   const endpoints = config.emulators;
   const app = initializeApp(config.firebase, name);
   const auth = initializeAuth(app, {
     persistence: typeof window === 'undefined' ? inMemoryPersistence : browserSessionPersistence,
+    ...(typeof window !== 'undefined' && config.environment !== 'local'
+      ? { popupRedirectResolver: browserPopupRedirectResolver }
+      : {}),
   });
   const db = initializeFirestore(app, { localCache: memoryLocalCache() });
   const storage = getStorage(app);
-  connectAuthEmulator(auth, `http://${endpoints.host}:${endpoints.auth}`, {
-    disableWarnings: true,
-  });
-  connectFirestoreEmulator(db, endpoints.host, endpoints.firestore);
-  connectStorageEmulator(storage, endpoints.host, endpoints.storage);
+  if (endpoints) {
+    connectAuthEmulator(auth, `http://${endpoints.host}:${endpoints.auth}`, {
+      disableWarnings: true,
+    });
+    connectFirestoreEmulator(db, endpoints.host, endpoints.firestore);
+    connectStorageEmulator(storage, endpoints.host, endpoints.storage);
+  }
   return { app, auth, db, storage };
 }
