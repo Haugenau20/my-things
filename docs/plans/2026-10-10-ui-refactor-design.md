@@ -22,7 +22,7 @@ with an `(archived)` label; they remain unavailable for new assignments and capt
 
 Each slice updates its domain/repository/UI boundaries and relevant unit, rules, SDK integration
 and browser coverage. Run the complete `npm run check` before proposing merge. Production releases
-remain pipeline-only; implementation alone does not authorize merges or production maintenance. The owner separately authorized the scoped wipe and the PR-01 merge.
+remain pipeline-only; implementation alone does not authorize merges or production maintenance. The owner separately authorized the scoped wipe and then explicitly authorized merging each verified refactor PR as work proceeds.
 
 ## Reliability boundaries
 
