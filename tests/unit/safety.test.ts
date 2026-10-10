@@ -53,6 +53,35 @@ describe('cloud build and deployment isolation', () => {
   it('allows an explicit matching production build', () => {
     expect(() => assertBuildTarget(config, 'production', targets)).not.toThrow();
   });
+  it.each([undefined, ''])(
+    'allows production without a cloud development project (%s)',
+    (development) => {
+      expect(() =>
+        assertBuildTarget(config, 'production', {
+          APP_PRODUCTION_PROJECT_ID: 'synthetic-production',
+          APP_DEVELOPMENT_PROJECT_ID: development,
+        }),
+      ).not.toThrow();
+    },
+  );
+  it.each([null, 'demo-inventory', 'not a project'])(
+    'rejects an invalid optional development ID (%s)',
+    (development) => {
+      expect(() =>
+        assertBuildTarget(config, 'production', {
+          ...targets,
+          APP_DEVELOPMENT_PROJECT_ID: development,
+        }),
+      ).toThrow();
+    },
+  );
+  it('never treats the production project as an implicit development target', () => {
+    expect(() =>
+      assertBuildTarget({ ...config, environment: 'development' }, 'development', {
+        APP_PRODUCTION_PROJECT_ID: 'synthetic-production',
+      }),
+    ).toThrow();
+  });
   it('rejects development credentials baked into a production build', () => {
     expect(() =>
       assertBuildTarget(

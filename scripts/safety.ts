@@ -49,17 +49,18 @@ export function assertBuildTarget(
   }
   const development = env.APP_DEVELOPMENT_PROJECT_ID;
   const production = env.APP_PRODUCTION_PROJECT_ID;
+  const hasDevelopment = development !== undefined && development !== '';
   const realProject = (id: unknown): id is string =>
     typeof id === 'string' && /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(id) && !id.startsWith('demo-');
   if (
-    !realProject(development) ||
     !realProject(production) ||
-    development === production ||
+    (hasDevelopment && (!realProject(development) || development === production)) ||
+    (mode === 'development' && !realProject(development)) ||
     value.emulators !== null ||
     value.firebase.projectId !== (mode === 'development' ? development : production)
   ) {
     throw new Error(
-      'Cloud builds require distinct, explicit, matching development and production IDs',
+      'Cloud builds require an explicit matching destination; configured development and production IDs must be distinct',
     );
   }
 }

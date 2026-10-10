@@ -89,7 +89,7 @@ exports/imports and cleanup/retry. Exercise a synthetic 2 GiB photo collection b
 that size; prove bounded memory or the multipart fallback. A small fixture alone is not evidence of
 large-backup feasibility.
 
-## 6. Real browser and cloud development checks
+## 6. Real browser and authorized cloud checks
 
 These checks are manual in addition to emulators:
 
@@ -110,8 +110,10 @@ Automation using a WebKit engine is useful but does not replace this real-device
 Capture 20 real items in two rooms using the iPhone. Include a grouped entry, a label close-up, multiple
 photos, and an item left unassigned. Review on Windows, pack selected items into a numbered box, rename a
 room, complete one sale and one donation, and trash/restore another item. Verify the default inventory,
-archive, original-room search, box contents, and value semantics. Export and restore into an empty cloud
-development inventory; check all relationships and photo hashes. Keep this test data private.
+archive, original-room search, box contents, and value semantics. Export and restore into an empty,
+isolated, administrator-authorized cloud verification inventory; check all relationships and photo
+hashes. Never overwrite the main inventory. Keep this test data private. Normal automated tests remain
+synthetic emulator-only checks, not evidence of cloud backup/recovery.
 
 ## 8. Sign-off record
 

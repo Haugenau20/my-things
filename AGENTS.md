@@ -18,9 +18,10 @@ offline synchronization, public sharing, custom authentication, server-side rend
 Cloud Run, a second cloud provider, a custom field engine, or AI services without a documented need and
 owner approval.
 
-Blaze and US photo storage are accepted. `us-central1` for both database and bucket is the proposed default,
-not permission to provision resources autonomously. No cloud project names, UIDs, real credentials, or
-currency values have been provided.
+Blaze and US photo storage are accepted. The owner chose one production cloud project with existing
+Storage in `us-east1` and Firestore in `eur3`; local work/tests remain on `demo-inventory`. Runtime project
+IDs and Web configuration stay in ignored environment files. These choices do not authorize autonomous
+provisioning or deployment. App Check is deferred. No owner UID or currency has been provided.
 
 ## Non-negotiable safety rules
 

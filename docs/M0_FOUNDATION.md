@@ -2,6 +2,9 @@
 
 Date: 2026-10-10. Status: M0 complete locally. No cloud deployment or real inventory use.
 
+This records the original M0 checkpoint. Subsequent owner setup decisions, the production-only build
+guard update, and read-only checks are recorded in [M1 setup](M1_SETUP.md).
+
 ## Implemented acceptance criteria
 
 - React/TypeScript/Vite application with strict TypeScript and a focused authenticated shell.
@@ -89,6 +92,6 @@ reported as passed. All tests used `demo-inventory`; none establishes a real bac
   exception; no global Git configuration was changed. The milestone includes the owner's previously
   untracked documentation pack alongside the implementation for review.
 
-Next milestone: M1 capture and real cloud-development/device proof, only after explicit deployment
+Next milestone: M1 capture and real cloud/device proof, only after explicit deployment
 authorization. The operating instructions are in [Setup](SETUP.md), and full release gates remain in
 [Test plan](TEST_PLAN.md).

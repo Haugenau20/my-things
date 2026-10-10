@@ -1,7 +1,8 @@
 # Architecture
 
 Status: V1 implementation design with an M0 local foundation. No cloud services have been provisioned
-by this implementation. The owner's existing Firebase project has not been inspected or connected.
+by this implementation. Read-only checks of the owner's existing project and remaining setup are
+recorded in [M1 setup](M1_SETUP.md); cloud SDK initialization remains unimplemented.
 
 ## 1. Components
 
@@ -88,19 +89,20 @@ Exclude large text/photo metadata from unnecessary indexes and commit required i
 | Environment | Backend | Data | Intended use |
 | --- | --- | --- | --- |
 | Local / automated tests | Auth, Firestore, and Storage emulators; `demo-inventory` | Synthetic only | Normal development and CI |
-| Cloud development | Separate real Firebase project | Disposable/synthetic or consented device-test samples | iPhone HTTPS, Google OAuth, CORS, deployed-rule smoke tests |
-| Production | Separate real Firebase project | Real possessions | Released personal inventory |
+| Production / authorized device checks | Owner's single real Firebase project | Disposable device samples first; real possessions after M3 | Explicitly authorized HTTPS/OAuth/CORS checks and released personal inventory |
 
 Use a demo project locally so missing emulator services cannot target live resources. Real-project
 emulation can otherwise reach non-emulated live services; see [References S07](REFERENCES.md#s07).
 
-Build configuration is explicit: `local`, `development`, or `production`. Local mode requires all emulator
-settings. Cloud modes reject demo IDs/emulator flags. Deployment scripts verify the built project ID and
-inventory ID against the explicit destination; a renamed Hosting preview alone is not backend isolation.
+Build configuration is explicit: `local` or `production` in the owner's workflow. Local mode requires all
+emulator settings. Production requires its exact explicit destination and rejects demo IDs/emulator flags.
+Optional `development` builds still require a separate, explicitly configured project if ever authorized.
+Deployment scripts verify the built project ID and inventory ID against the explicit destination; a
+renamed Hosting preview alone is not backend isolation. Automated tests never use the cloud project.
 
-`us-central1` is the proposed regional default for both Firestore and the default photo bucket. The owner
-accepted US storage; this pack chooses a specific eligible region as an editable setup default. Regions
-must be verified before resource creation; see [Setup](SETUP.md).
+The existing photo bucket is regional `us-east1`; Firestore Standard is European multi-region `eur3`.
+These owner-created resources are retained. Their locations differ; cloud device checks must establish
+actual access and latency. No location migration is implied; see [Setup](SETUP.md).
 
 ## 6. Hosting and sessions
 

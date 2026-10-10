@@ -191,4 +191,5 @@ objects exist, or that a JPEG content-type header proves the bytes are a safe im
 must be reflected in tests; see [Security](SECURITY.md).
 
 Schema changes require an explicit version/migration plan, an export before touching real data, and an
-empty-development restore test. Do not drop unknown future fields during an older client's write.
+restore test into an empty, isolated, administrator-authorized verification inventory. Do not drop unknown
+future fields during an older client's write.

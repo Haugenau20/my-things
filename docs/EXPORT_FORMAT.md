@@ -125,5 +125,5 @@ is not an encrypted or independently authenticated backup.
 
 Release gate: a synthetic round trip plus the 20-item real-device sample must reproduce room/box
 relationships, grouped values, completed/trash records, photo counts, and exact derivative hashes in an
-empty development inventory. A 2 GiB synthetic photo export test must demonstrate bounded memory or
+empty, isolated, administrator-authorized verification inventory. A 2 GiB synthetic photo export test must demonstrate bounded memory or
 validated splitting before claiming support for a collection of that size.

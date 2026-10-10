@@ -25,14 +25,15 @@ string. An unrelated user may successfully authenticate but must receive no inve
 
 Bootstrap sequence:
 
-1. Deploy default-deny rules and a minimal sign-in shell to the cloud development project.
+1. Deploy default-deny rules and a minimal sign-in shell to the owner's cloud project only when authorized.
 2. Sign in as the intended owner. No inventory access is granted yet. Obtain the exact Firebase UID from
    the project's Authentication user list; do not infer it from a Google account ID.
 3. As project administrator, create `/inventories/main` in the Firebase console using the documented
    inventory-root fields and that UID. This is a trusted administrative action.
 4. Deploy the reviewed owner-based rules and verify both positive and negative access tests. A missing
    root, missing owner field, or incorrect UID must deny access, not trigger automatic ownership claiming.
-5. Repeat independently for production; UIDs and configuration must be checked per project.
+5. Verify the production project and UID explicitly. If another project is ever authorized, bootstrap
+   it independently; do not assume the same UID or reuse authorization from an export.
 
 Client creation/deletion of inventory roots is denied. Root updates are limited to display name,
 default currency, and update timestamp. `ownerUid` is immutable to clients. A future account change is
@@ -66,7 +67,7 @@ object deletion in its own rule branch: a delete has no incoming file whose size
 validated. Wrong paths, unexpected variants, HTML/SVG uploads, and oversized files must fail.
 
 Firestore-dependent Storage rules require cross-service permission setup. Confirm the documented service
-integration when deploying, and test it in the cloud development project. Emulator success alone does
+integration when deploying, and test it in the owner's cloud project when authorized. Emulator success alone does
 not verify that IAM integration. Monitor both services' usage after deploying the integration.
 [References S05](REFERENCES.md#s05).
 
@@ -107,7 +108,9 @@ browser-visible. [References S10](REFERENCES.md#s10), [S17](REFERENCES.md#s17).
 
 ## 7. Operational safety and recovery
 
-Use a separate development project and fail-closed local configuration. Review a production diff,
+Use `demo-inventory` emulators for normal development and every automated test, with fail-closed local
+configuration. The owner chose one production cloud project; device smoke tests there require explicit
+authorization and disposable samples. Review a production diff,
 including rules/indexes/Hosting settings, before explicit deployment. Keep tests and migrations away
 from real data. Exports are private files; keep an independent copy outside the Firebase project and
 outside this repository. Do not rely on that same application as the only source of account recovery.

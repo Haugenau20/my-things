@@ -27,8 +27,8 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | ID | Default | How to revisit |
 | --- | --- | --- |
 | D01 | Working title `Home Inventory`; inventory ID `main` | Rename without changing product behavior |
-| D02 | `us-central1` for regional Firestore and Storage | Recheck eligibility and latency before resource creation |
-| D03 | Local demo project; separate cloud development and production | Keep isolation even if deployment tooling changes |
+| D02 | Existing Storage `us-east1`; Firestore Standard `eur3` | Owner-created locations retained; test actual cloud behavior |
+| D03 | Local demo project and one production cloud project | Owner chose no second project; automated tests remain emulator-only |
 | D04 | Owner UID stored in trusted inventory root; Storage rules consult it | Change only with a reviewed policy and negative tests |
 | D05 | Google sign-in with session-scoped Auth persistence initially | Test phone usability; persistence is not offline data storage |
 | D06 | First-room association retained; current-location union | Correct original room explicitly, never silently on packing |
@@ -45,9 +45,10 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 
 ## Runtime details still to fill in
 
-Repository URL/name; real development/production project IDs; owner UID per project; actual bucket/origin
-configuration; billing alert amount; default currency when desired; actual room names; selected pinned
-tool versions; results of camera/HEIC/session tests. These are setup choices, not blockers for writing M0.
+Actual project/Web configuration is now supplied in ignored local files; selected tools are pinned in M0.
+Remaining details include owner UID; approved origin/CORS/IAM configuration; billing alert amount; default
+currency when desired; actual room names; and results of camera/HEIC/session tests. These are setup choices,
+not blockers for writing M0. The single-project choice and existing regions are recorded below.
 No precise move date or item count has been supplied.
 
 ## Decisions deliberately not made
@@ -71,6 +72,21 @@ JPEG creation/read/scoped-list/deletion. Child record writes and Storage object 
 until their feature-specific validation/recovery is implemented. Runtime settings validation checks
 currency-code shape; supported currency selection/parsing belongs to M2. M0 provides no capture,
 gallery, bulk edits, or backup functionality. No schema or product behavior has been changed.
+
+### 2026-10-10 — Owner's single cloud project and existing regions
+
+The owner explicitly chose the existing Firebase project as production and declined a separate cloud
+development project. Normal development and all automated tests remain synthetic `demo-inventory`
+emulator work. Production builds require an explicit matching production ID without a development ID;
+if a development ID is configured, it must remain valid and distinct. Deployment, administrative owner
+seeding, IAM/billing changes, and real-data maintenance still require explicit authorization.
+
+Read-only checks confirmed Storage in `us-east1` and a Standard `(default)` Firestore database in `eur3`.
+Keep both existing resources; no relocation is requested. Owner-reported Blaze/Google/Storage setup and
+remaining manual checks are recorded in [M1 setup](M1_SETUP.md). App Check was considered and explicitly
+deferred; Analytics remains absent from the application. Real Web settings stay in ignored production
+configuration. Backup proof still requires an empty, isolated, administrator-authorized destination;
+it must never overwrite the main inventory, and emulator checks are not real cloud recovery evidence.
 
 Add an entry with date, problem, decision, consequences, affected schemas/docs, test evidence, and rollback
 or migration needs. Changes to privacy, data loss, scope, or paid infrastructure need explicit owner

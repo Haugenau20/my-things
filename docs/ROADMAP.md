@@ -17,7 +17,8 @@ the local foundation. Report any unimplemented manual cloud setup explicitly.
 
 ## M1 - Prove phone capture end to end
 
-Implement Google sign-in and cloud-development bootstrap when deployment is explicitly authorized.
+Implement Google sign-in and bootstrap in the owner's single production cloud project when deployment
+is explicitly authorized. Normal development and all automated tests remain on `demo-inventory` emulators.
 Build name + photo capture, sticky capture room, derivative generation, stable IDs, acknowledged saves,
 and a minimal private gallery/detail view. Test real iPhone input and Windows output. Implement recovery
 for interrupted new captures from the start, not after production use.
@@ -39,10 +40,11 @@ state transitions and scope filters. Box contents and still-owned inventory rema
 
 Complete trash/permanent-deletion recovery, owner-only orphan inspection, full export/restore, import
 validation, and bounded-memory backup handling. Run the security/failure/device tests, synthetic scale
-tests, and the complete real acceptance scenario. Provision production separately only when authorized.
+tests, and the complete real acceptance scenario. Use the existing owner-selected production project;
+an empty, isolated, administrator-authorized verification inventory is required for real restore proof.
 Review actual usage/billing and document production operating steps.
 
-**Gate:** Export restores to an empty development inventory with matching photo hashes and relationships;
+**Gate:** Export restores to an empty authorized verification inventory with matching photo hashes and relationships;
 unauthorized data/photo access is denied; interrupted operations recover; production configuration is
 reviewed. This is the earliest milestone for relying on the application as the main inventory record.
 

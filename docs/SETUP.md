@@ -24,11 +24,11 @@ control: the application must remain secure even if its source becomes public.
 | Value | Initial choice / action |
 | --- | --- |
 | Local project ID | `demo-inventory` - synthetic emulator-only configuration |
-| Cloud development project | Choose a unique real ID; not supplied in this pack |
-| Production project | A different unique ID; create before entering relied-on inventory data |
+| Cloud workflow | Owner chose one production project; normal development/tests use local emulators |
+| Production project | Owner supplied actual configuration in ignored `.env.production.local` |
 | Inventory ID | Proposed default `main` in each environment |
-| Firestore | Standard edition, `(default)` database, regional `us-central1` |
-| Storage | Default bucket, Standard storage, regional `us-central1` |
+| Firestore | Existing Standard edition, `(default)` database, European multi-region `eur3` |
+| Storage | Existing default bucket in regional `us-east1` |
 | Owner UID | Obtain independently from Firebase Authentication in each cloud project |
 | Display name | Suggested `My inventory`; editable |
 | Default currency | Initially null; choose when first entering a value or in settings |
@@ -41,23 +41,24 @@ all billing-account-level free allowances. [References S01](REFERENCES.md#s01).
 Select database/bucket locations carefully before creating resources. The Firestore database location
 cannot be changed in place. [References S12](REFERENCES.md#s12).
 
-## 3. Cloud development project
+## 3. Owner's single production cloud project
 
-Use the Firebase console for the initial setup; no privileged provisioning automation is required.
+The owner created the cloud resources. See [M1 setup](M1_SETUP.md) for read-only verification and pending
+checks. The sequence below describes required setup, not permission to recreate existing resources.
+Use the Firebase console for remaining administrative setup; no privileged provisioning automation is required.
 
-1. Create the project. Do not enable optional Analytics or extensions by default. Attach the chosen
-   billing account and select Blaze before creating the photo bucket.
+1. Verify the existing project and owner-reported Blaze plan. Do not enable optional Analytics or
+   extensions by default. Any billing change requires explicit authorization.
 2. Create an alerts-only billing budget at an amount you choose. Alerts do not automatically pause
    Firestore/Storage. Review actual usage after device testing and initial uploads.
    [References S02](REFERENCES.md#s02).
-3. Register a Web app and copy its exact web configuration into an ignored local cloud-development
+3. Verify the registered Web app and copy its exact web configuration into the ignored `.env.production.local`
    environment file. Copy the actual bucket name from the console, never infer it from an old tutorial.
 4. Enable Google as the initial sign-in provider. Configure the app/support information requested by the
    console. Do not enable anonymous, phone, or password sign-in without a requirement.
-5. Create Firestore and Storage with closed rules, not temporary public/test-mode access. Choose the
-   regions before confirming creation. Do not select Realtime Database, App Hosting, or Enterprise
-   features as substitutes for the documented stack.
-6. Initialize **Firebase Hosting** for the static Vite build directory (`dist`) and SPA routing. No
+5. Keep existing Firestore Standard `(default)` in `eur3` and Storage in `us-east1`. Review their actual
+   rules for default-deny access. Do not switch to temporary public/test-mode access or recreate resources.
+6. Review existing **Firebase Hosting** configuration for the static Vite build directory (`dist`) and SPA routing. No
    automatic production deployment in M0. The standard Hosting initialization flow is documented in
    [References S03](REFERENCES.md#s03).
 7. Deploy the minimal sign-in shell only when explicitly requested. Complete the owner bootstrap in
@@ -120,8 +121,11 @@ M0 loads `.env.local` for local commands and dedicated `.env.development.local` 
 `.env.production.local` files for cloud builds. These do not inherit local emulator values. Process
 `VITE_`/`APP_` values can override file values but still pass the same validation. Missing files or
 values are hard failures. Cloud examples intentionally contain blank project/configuration values.
-Both real project IDs must be distinct and explicitly supplied for cloud builds. M0 cloud builds
-are static shells only: cloud SDK initialization and Google sign-in are deferred to M1.
+Production builds require `APP_PRODUCTION_PROJECT_ID` to match the actual Web configuration; no cloud
+development project is required. Optional development builds require both explicit, distinct IDs if a
+second project is ever authorized. M0 cloud builds are static shells only: cloud SDK initialization and
+Google sign-in are deferred to M1. The default CLI alias remains `demo-inventory`; cloud commands must
+select the intended project explicitly.
 
 When updating the toolchain, select a currently supported Node.js LTS release compatible with the chosen Vite and
 Firebase CLI versions. Pin it in repository toolchain configuration and `package.json` engines. Commit
@@ -137,7 +141,7 @@ Connect Auth, Firestore, and Storage emulators before any service call. Ports in
 8080, and 9199. Seed a synthetic owner/root and synthetic inventory through emulator-only tooling.
 That seed must reject non-demo projects. Do not use a downloaded service-account key for normal local work.
 
-For real iPhone camera/OAuth tests, prefer the deployed HTTPS cloud development build. A phone's
+For real iPhone camera/OAuth tests, use an explicitly authorized HTTPS cloud build with disposable samples. A phone's
 `localhost` is not your Windows computer; LAN/emulator networking is not an initial requirement.
 
 ## 5. Implemented M0 command contract
@@ -158,7 +162,7 @@ is not activated in your shell.
 | `npm run test:integration` | Start isolated demo emulators and verify real SDK/seed integration |
 | `npm run test:e2e` | Browser flows against emulators only |
 | `npm run build` | Compile a local validation build; never deploy |
-| `npm run build:dev` | Build with explicit cloud-development config and validate destination IDs |
+| `npm run build:dev` | Optional separate cloud-development build; unavailable in the owner's single-project workflow |
 | `npm run build:prod` | Build with explicit production config; reject demo/development IDs |
 | `npm run deploy:check -- production PROJECT_ID main` | Validate baked-in environment/project/inventory against an explicit destination; does not deploy |
 | `npm run check` | Run lint, typecheck, unit, rules, integration, browser, and local build sequentially |
@@ -182,13 +186,13 @@ service-account keys or arbitrary secret API tokens there. [References S17](REFE
 
 ## 7. Production release and operating routine
 
-Create production separately and repeat the verified bootstrap/configuration. Before release, pass the
+Use the existing production project and complete its verified bootstrap/configuration. Before release, pass the
 [test plan](TEST_PLAN.md), inspect the project/bucket IDs in the built config, review rules and indexes,
 and explicitly select the deployment project. Deploy only reviewed components. A Hosting deployment by
 itself does not deploy Firestore/Storage rules or indexes. [References S03](REFERENCES.md#s03).
 
 Test owner login and one unauthorized account after deployment. Verify direct photo access is denied
-without credentials, room/box behavior is correct, and no development data appears. Record the release
+without credentials, room/box behavior is correct, and no synthetic emulator records were seeded into cloud data. Record the release
 commit and manual checks. Do not enter irreplaceable inventory data before export/restore works.
 
 After substantial inventory sessions and before migrations, export an independent copy. Periodically

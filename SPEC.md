@@ -194,7 +194,9 @@ zero-spend guarantee; see [References S01](docs/REFERENCES.md#s01) and
 
 V1 is usable when the 20-item/two-room acceptance scenario in the README passes, cross-account and
 unauthenticated access tests pass for records and photos, failed saves and partial deletions recover,
-and an export restores into an empty development inventory with matching records and photo checksums.
+and an export restores into an empty, isolated, administrator-authorized verification inventory with
+matching records and photo checksums. Under the owner's single-project decision, this cloud verification
+destination is separate from the main inventory in the same project.
 
 Do not classify optional polish as a dependency for starting real inventory work. Do not classify
 security, backup recovery, or reliable photo storage as optional polish.
