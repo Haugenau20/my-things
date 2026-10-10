@@ -1,7 +1,8 @@
 # Repository, Firebase, and development setup
 
 This is a setup guide, not a record of completed cloud provisioning. M0 adds a local application,
-toolchain configuration, emulator tooling, and authorization tests. Cloud and device setup remain manual.
+toolchain configuration, emulator tooling, and authorization tests. Production releases now use only
+GitHub Actions after merge to `main`; trusted administrative setup and device checks remain separate.
 
 ## 1. First commit
 
@@ -61,11 +62,12 @@ Use the Firebase console for remaining administrative setup; no privileged provi
 6. Review existing **Firebase Hosting** configuration for the static Vite build directory (`dist`) and SPA routing. No
    automatic production deployment in M0. The standard Hosting initialization flow is documented in
    [References S03](REFERENCES.md#s03).
-7. Deploy the minimal sign-in shell only when explicitly requested. Complete the owner bootstrap in
+7. Release the minimal sign-in shell through the reviewed GitHub pipeline. Complete the owner bootstrap in
    [Security](SECURITY.md): authenticate, obtain the UID, and seed the inventory root as administrator.
    Then disable end-user signup/deletion and verify the owner is the only production Auth user.
    Existing owner sign-in must work; another Google account must be rejected during authentication.
-8. Deploy reviewed owner rules. Confirm the Storage-to-Firestore permission setup when prompted. Configure
+8. Release reviewed owner rules through the pipeline. Separately authorize and verify Storage-to-Firestore
+   permission setup. Configure
    bucket CORS for the actual Hosting origin and test authenticated blob downloads, including denial for
    another account. No public bucket access.
 
@@ -162,7 +164,7 @@ is not activated in your shell.
 | `npm run typecheck` | Run strict TypeScript checks |
 | `npm run test` | Noninteractive unit/component tests |
 | `npm run test:rules` | Start/use demo emulators and run positive/negative rules tests |
-| `npm run test:rules:cloud -- --project PROJECT_ID` | Optional explicit cloud Rules API evaluation with synthetic requests/mocked documents; no data reads/writes or deployment; requires CLI authentication |
+| `npm run test:rules:cloud -- --project PROJECT_ID` | Synthetic cloud Rules API evaluation in the deploy job using ADC; no inventory data reads/writes; local diagnostic use requires explicit authorization |
 | `npm run test:integration` | Start isolated demo emulators and verify real SDK/seed integration |
 | `npm run test:e2e` | Browser flows against emulators only |
 | `npm run build` | Compile a local validation build; never deploy |
@@ -173,11 +175,11 @@ is not activated in your shell.
 | `npm run check` | Run lint, typecheck, unit, rules, integration, browser, and local build sequentially |
 
 A build writes `dist/build-environment.json`. Deployment preflight rejects local builds and mismatched
-environment/project/inventory values. No deployment command is provided in M0; a manual Firebase CLI
-invocation can bypass this check, so the approved release workflow must run it before deploying.
+environment/project/inventory values. Only the GitHub deployment job may invoke Firebase deployment;
+it runs this preflight before publishing. Do not deploy from a local CLI or console.
 The root Hosting CSP remains local-only. M1's `release:prepare` generates a separate ignored production
 Firebase configuration with the required Auth/Firestore/Storage endpoints and same-origin auth frames.
-Its exact-origin CORS file is never applied automatically. Follow [M1 release steps](M1_CAPTURE.md);
+Its exact-origin CORS file is never applied automatically. Follow [GitHub release steps](GITHUB_ACTIONS.md);
 the cloud CSP, OAuth, CORS, IAM, and device gate still need actual verification after authorization.
 
 ## 6. Commit configuration, not secrets
@@ -196,11 +198,13 @@ GitHub test/deployment automation is defined in `.github/workflows/ci.yml`; see
 [GitHub Actions setup](GITHUB_ACTIONS.md) for the owner's three variables, keyless authentication,
 one-time cloud setup and activation gates. PR checks use only emulators. Successful `main` builds
 publish Firestore rules/indexes, Storage rules and Hosting after the explicit production preflight.
+This is the only production deployment path. Every new or changed feature must have relevant emulator
+coverage before merge. A failed job blocks release; fix through a PR and retry in Actions.
 
-Use the existing production project and complete its verified bootstrap/configuration. Before release, pass the
+Use the existing production project and complete its verified bootstrap/configuration. Before merge, pass the
 [test plan](TEST_PLAN.md), inspect the project/bucket IDs in the built config, review rules and indexes,
-and explicitly select the deployment project. Deploy only reviewed components. A Hosting deployment by
-itself does not deploy Firestore/Storage rules or indexes. [References S03](REFERENCES.md#s03).
+and review the pipeline's explicit deployment destination. Merge reviewed changes into `main`; the
+pipeline publishes all tracked components after verification. Do not make local CLI/console releases.
 
 Test owner login and one unauthorized account after deployment. Verify direct photo access is denied
 without credentials, room/box behavior is correct, and no synthetic emulator records were seeded into cloud data. Record the release
@@ -208,5 +212,6 @@ commit and manual checks. Do not enter irreplaceable inventory data before expor
 
 After substantial inventory sessions and before migrations, export an independent copy. Periodically
 review usage, billing notifications, broken-photo reports, and unfinished operations. A previous frontend
-release can be redeployed, but that does not automatically undo database changes; migrations need their
+release can be restored through a reviewed revert PR and pipeline deployment, but that does not
+automatically undo database changes; migrations need their
 own recovery plan. No paid automated backup service is assumed in V1.

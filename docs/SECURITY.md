@@ -136,7 +136,10 @@ browser-visible. [References S10](REFERENCES.md#s10), [S17](REFERENCES.md#s17).
 ## 7. Operational safety and recovery
 
 The [GitHub pipeline](GITHUB_ACTIONS.md) obtains short-lived deployment credentials only in its
-post-test production job on `main`. One-time cloud federation setup requires explicit approval;
+post-test production job on `main`. It is the only permitted production release path: merge reviewed
+changes into `main`, pass the complete emulator verification suite, then deploy automatically. Never
+publish app assets, rules or indexes through a local CLI, console or agent session. Retries stay in
+Actions and rollback uses a reviewed revert PR. One-time cloud federation setup requires explicit approval;
 its trust binds immutable repository/owner IDs, branch, workflow and production environment. Tests
 receive no cloud credentials. The deployment account has product-specific release roles and no
 inventory document/photo-object permissions; it can publish rules, so merged changes remain trusted
@@ -145,7 +148,8 @@ administrative actions. Never place its credentials in `VITE_` settings or build
 Use `demo-inventory` emulators for normal development and every automated test, with fail-closed local
 configuration. The owner chose one production cloud project; device smoke tests there require explicit
 authorization and disposable samples. Review a production diff,
-including rules/indexes/Hosting settings, before explicit deployment. Keep tests and migrations away
+including rules/indexes/Hosting settings, before merge and automatic pipeline deployment. Every feature
+needs relevant emulator coverage before merge. Keep tests and migrations away
 from real data. Exports are private files; keep an independent copy outside the Firebase project and
 outside this repository. Do not rely on that same application as the only source of account recovery.
 

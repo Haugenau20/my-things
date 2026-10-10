@@ -22,6 +22,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | A12 | Export actual photos, test restore, and keep trash | Reliability before dependence on the application |
 | A13 | Agentic coding on Windows | Clear specifications, repeatable tests, cross-platform scripts |
 | A14 | Only the owner may authenticate to the production app | Close public signup after trusted owner bootstrap; keep only the owner Auth account |
+| A15 | Production releases only through GitHub Actions after merge to `main` | Every feature needs emulator coverage; failed checks block release; no local CLI or console deployment |
 
 ## Concrete defaults supplied by this pack
 
@@ -42,7 +43,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | D13 | Simple category plus notes; no tag/custom-field engine | Add only after a repeated real need appears |
 | D14 | Archive disposed entries; clear their current location | Do not leave sold objects in current box contents |
 | D15 | Empty-destination restore; no merge; optional multipart export | Keep the exit path reliable and memory-bounded |
-| D16 | npm, pinned tools, manual production release initially | Update scripts/docs together if changing tooling |
+| D16 | npm, pinned tools, pipeline-only production release | Update the reviewed workflow and verification together for new deployable components |
 
 ## Runtime details still to fill in
 
@@ -70,6 +71,22 @@ future paid service chosen. No exact budget/free-tier prediction or guarantee th
 free allowances. No claim that this documentation is a deployed or security-audited application.
 
 ## Recording a change
+
+### 2026-10-10 — Pipeline-only production releases
+
+The owner requires all production deployments to run through GitHub Actions after merge to `main`.
+Every new or changed feature must be verified against the isolated `demo-inventory` emulators with
+relevant unit, rules, SDK integration and browser coverage. Successful `npm run check` gates the
+production build, destination preflight, synthetic cloud-policy check and Hosting/rules/index release.
+Local CLI, console and agent-session releases are prohibited. Retry through Actions; rollback through
+a reviewed revert PR and the same pipeline. Merge authorization remains separate from implementation;
+an authorized merge needs no additional deployment confirmation. Provisioning, IAM/billing/Auth/CORS,
+seeding, migrations and destructive maintenance retain explicit authorization requirements.
+
+Update AGENTS, README, setup, security, roadmap, test and pipeline guidance together. Earlier milestone
+CLI deployment records remain historical evidence. No schema/data migration or cloud change is needed
+for this policy update. Emulator checks still do not prove actual camera, OAuth, IAM/CORS or cloud
+backup/recovery acceptance.
 
 ### 2026-10-10 — M3 full export and bounded ZIP parts
 

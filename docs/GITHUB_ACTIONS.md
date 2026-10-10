@@ -1,5 +1,14 @@
 # GitHub tests and production deployment
 
+The owner requires pipeline-only production releases. Merge reviewed changes into `main`; successful
+verification then deploys all tracked release components automatically. Never publish Hosting assets,
+Firestore/Storage rules or indexes from a local CLI, console or agent session. Every new or changed
+feature needs relevant demo-emulator coverage before merge. A failed check/deployment is fixed through
+a PR; a rollback is a reviewed revert PR released by this same pipeline. Retrying the existing workflow
+on `main` is permitted. Add any future deployable component to the reviewed workflow and its checks.
+This release policy does not authorize IAM/billing/Auth/CORS changes, owner seeding, migrations or
+destructive maintenance; those retain their separate explicit-authorization requirements.
+
 The `Test and deploy` workflow runs on pull requests targeting `main`, pushes to `main`, and manual
 dispatch. `Verify` installs the pinned mise toolchain and npm lockfile, installs Chromium, and runs
 `npm run check`: lint, formatting, typechecking, unit, rules, SDK integration, browser tests and a local
@@ -88,8 +97,10 @@ Do not rerun the create commands on the existing resources. For future setup cha
 resources and apply only approved missing steps. The workflow does not configure IAM, seed data, alter CORS/Auth/billing,
 run restore/cleanup, or provision a database/bucket. The account has no database-creation permission.
 
-Once the three variables are added, merge the pipeline PR into
-`main` to enable automatic deployment. This PR builds on the photo-upload fix PR; merge that PR first.
+The three production environment variables are now configured; no environment secrets are stored.
+Merge the pipeline PR into `main` to enable automatic deployment. This PR builds on the photo-upload
+fix PR; merge that PR first. A successful `Deploy production` job establishes a release, rather than
+a passed PR check or merge alone. Record its workflow URL and deployed commit.
 
 ## Verification evidence
 
@@ -98,7 +109,7 @@ typechecking, actionlint 1.7.12 workflow validation and PowerShell parsing passe
 release ZIP was checked against its upstream published SHA-256 before execution. The cloud policy
 command passed all nine synthetic cases with existing local CLI authentication after ADC support was
 added. This is not a GitHub OIDC or service-account deployment test. Actual GitHub production deployment
-remains pending GitHub variables and merge into `main`.
+remains pending merge into `main`.
 
 The first full local run passed lint/typechecking, 148 unit, 100 rules and 27 SDK tests, then stopped
 before browser tests because an emulator health probe exceeded its two-second startup deadline.

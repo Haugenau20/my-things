@@ -1,6 +1,8 @@
 # Implementation roadmap
 
-Work in small, verifiable slices. No time estimates or automatic deployments are implied. All milestones
+Work in small, verifiable slices. Production releases now run only through the GitHub pipeline after
+merge to `main` and successful emulator verification; see [pipeline policy](GITHUB_ACTIONS.md).
+No time estimates are implied. All milestones
 were initially **not implemented**. M0 is now implemented locally; see [M0 evidence](M0_FOUNDATION.md).
 M1 capture is deployed; its actual-device gate remains pending. M2 organization is verified and deployed
 under the owner's explicit instruction to proceed while away; see [M2 evidence](M2_ORGANIZE.md).
@@ -23,8 +25,9 @@ the local foundation. Report any unimplemented manual cloud setup explicitly.
 
 ## M1 - Prove phone capture end to end
 
-Implement Google sign-in and bootstrap in the owner's single production cloud project when deployment
-is explicitly authorized. Normal development and all automated tests remain on `demo-inventory` emulators.
+Implement Google sign-in in the owner's single production cloud project and release through the
+pipeline. Trusted administrative bootstrap remains separately authorized. Normal development and all
+automated feature tests remain on `demo-inventory` emulators.
 Build name + optional-photo capture, later attachment to photo-free items, sticky capture room,
 derivative generation, stable IDs, acknowledged saves,
 and a minimal private gallery/detail view. Test real iPhone input and Windows output. Implement recovery

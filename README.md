@@ -20,8 +20,10 @@ steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configura
 
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
 See [GitHub Actions setup](docs/GITHUB_ACTIONS.md) for automated PR checks and production deployment
-after successful `main` checks; the approved Google identity setup is applied. Activation awaits the
-owner's three GitHub variables and merge into `main`.
+after successful `main` checks. The approved Google identity setup and three production environment
+variables are configured; activation awaits merge of the pipeline PR. All production releases use
+GitHub Actions after merge to `main`; local CLI and console deployment are prohibited. Every feature
+must be covered by relevant automated tests against `demo-inventory` before merge.
 
 ## The first version
 
@@ -70,10 +72,10 @@ not be. Backend authorization, not the visibility of a React screen, is the secu
 ## Start here
 
 1. Read the M0 evidence and [Setup](docs/SETUP.md), then run the foundation locally.
-2. Use the owner's existing production cloud project for explicitly authorized device checks and releases.
+2. Use the owner's existing production cloud project for explicitly authorized device checks and pipeline releases.
    Normal development and automated tests use local emulators; no second cloud project is required.
-3. Run capture locally using [Setup](docs/SETUP.md), then follow [M1 release steps](docs/M1_CAPTURE.md)
-   to prove the real iPhone-to-Windows capture loop once deployment is explicitly authorized.
+3. Run capture locally using [Setup](docs/SETUP.md), then release through [GitHub Actions](docs/GITHUB_ACTIONS.md)
+   to prove the real iPhone-to-Windows capture loop after a successful pipeline deployment.
 
 ## Configuration and commands
 
