@@ -47,7 +47,20 @@ reload/reselection recovery, photo attachment and private photo downloads. The e
 bundle warning remains. `mise exec -- npm run test:rules:cloud -- --project PROJECT_ID` passed all
 nine cloud policy cases. `git diff --check` passed.
 
-Authorized production release evidence will be recorded after deployment. The exact denied production
-request body was not collected; actual owner retry is still needed
+## Authorized production release
+
+Released source commit `16d5343` with the owner's standing production deployment authorization.
+`mise exec -- npm run build:prod`, deployment preflight against the explicit project/main inventory,
+and `npm run release:prepare` all passed. The existing Firebase chunk warning remains.
+
+`mise exec -- node node_modules/firebase-tools/lib/bin/firebase.js deploy --only storage,hosting
+--project PROJECT_ID --config .firebase/production.firebase.json --non-interactive` exited 0: Storage
+rules compiled/published and Hosting released. Firestore rules, IAM and CORS were not changed.
+Post-release API reads confirmed both published rule sources match the repository; HTTP reads
+confirmed the production shell and every built asset match local SHA-256 values. A fresh signed-out
+Chromium context displayed sign-in and reached `accounts.google.com` with no observed page/console
+errors. It did not sign in or access inventory.
+
+The exact denied production request body was not collected; actual owner retry is still needed
 to confirm this reproduced rule defect accounts for the reported device failure. No real inventory
 records or photos were read, changed, discarded or migrated during investigation.
