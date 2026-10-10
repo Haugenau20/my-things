@@ -11,9 +11,12 @@ afterEach(async () => {
   servers.length = 0;
 });
 
-async function service(redirectRoot = false): Promise<number> {
+async function service(redirectRoot = false, warming = false): Promise<number> {
+  let requests = 0;
   const server = createServer((request, response) => {
-    if (redirectRoot && request.url === '/') response.writeHead(302, { Location: '/ui' }).end();
+    if (warming && requests++ === 0) response.writeHead(503).end();
+    else if (redirectRoot && request.url === '/')
+      response.writeHead(302, { Location: '/ui' }).end();
     else response.writeHead(200).end('{}');
   });
   servers.push(server);
@@ -37,6 +40,13 @@ const config = (ports: number[]): AppConfig => ({
 });
 
 describe('all-service startup preflight', () => {
+  it('waits for a warming emulator before allowing synthetic seeding', async () => {
+    await expect(
+      assertEmulatorsRunning(
+        config(await Promise.all([service(), service(true, true), service()])),
+      ),
+    ).resolves.toBeUndefined();
+  });
   it('accepts all three reachable local services', async () => {
     await expect(
       assertEmulatorsRunning(config(await Promise.all([service(), service(), service()]))),

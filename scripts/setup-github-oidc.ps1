@@ -19,4 +19,3 @@ Invoke-DeploymentSetup -Arguments @('iam','service-accounts','add-iam-policy-bin
 foreach ($deploymentRole in @('roles/firebasehosting.admin','roles/firebaserules.admin','roles/firebasestorage.viewer','roles/datastore.indexAdmin','roles/serviceusage.serviceUsageConsumer')) {
   Invoke-DeploymentSetup -Arguments @('projects','add-iam-policy-binding',$deploymentProject,"--member=serviceAccount:$deploymentAccount","--role=$deploymentRole",'--condition=None','--quiet','--format=none')
 }
-

@@ -91,3 +91,10 @@ command passed all nine synthetic cases with existing local CLI authentication a
 added. This is not a GitHub OIDC or service-account deployment test. Full repository and hosted runner
 results will be recorded after completion. Actual GitHub production deployment remains pending Google
 setup, GitHub variables and merge into `main`.
+
+The first full local run passed lint/typechecking, 148 unit, 100 rules and 27 SDK tests, then stopped
+before browser tests because an emulator health probe exceeded its two-second startup deadline.
+A warming-service regression reproduced rejection before the fix and passed afterward. Readiness
+probes now retry at most three times, with the same demo-only endpoints, two-second per-request
+deadline and a 250 ms wait; persistently unavailable services still deny seeding. Full verification
+is being rerun for this change. No cloud fallback or safety-guard bypass was added.
