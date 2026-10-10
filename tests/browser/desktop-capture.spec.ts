@@ -15,7 +15,7 @@ test('desktop capture shares the panel, defaults to the room facet and retains a
   const capture = page.getByRole('region', { name: 'Desktop capture', exact: true });
   await expect(capture).toBeVisible();
   await expect(capture).toContainText('Capturing in Synthetic bedroom');
-  await expect(capture.getByLabel('Item name')).toBeFocused();
+  await expect(capture.getByRole('textbox', { name: 'Item name', exact: true })).toBeFocused();
   await expect(
     page.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }),
   ).toBeVisible();
@@ -30,16 +30,20 @@ test('desktop capture shares the panel, defaults to the room facet and retains a
   }
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({ path: test.info().outputPath('desktop-capture.png'), fullPage: true });
-  await capture.getByLabel('Item name').fill('Synthetic panel draft');
+  await capture
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic panel draft');
   await capture.getByRole('button', { name: 'Close capture', exact: true }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
-  await expect(capture.getByLabel('Item name')).toHaveValue('Synthetic panel draft');
-  await capture.getByLabel('Item name').press('Enter');
+  await expect(capture.getByRole('textbox', { name: 'Item name', exact: true })).toHaveValue(
+    'Synthetic panel draft',
+  );
+  await capture.getByRole('textbox', { name: 'Item name', exact: true }).press('Enter');
   await expect(
     capture.getByRole('status').filter({ hasText: 'Saved Synthetic panel draft' }),
   ).toBeVisible();
-  await expect(capture.getByLabel('Item name')).toHaveValue('');
-  await expect(capture.getByLabel('Item name')).toBeFocused();
+  await expect(capture.getByRole('textbox', { name: 'Item name', exact: true })).toHaveValue('');
+  await expect(capture.getByRole('textbox', { name: 'Item name', exact: true })).toBeFocused();
   await capture
     .getByRole('button', { name: 'Open recently added Synthetic panel draft', exact: true })
     .click();
@@ -64,7 +68,9 @@ test('desktop optional details save atomically and Ctrl Enter marks only that ca
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   const capture = page.getByRole('region', { name: 'Desktop capture', exact: true });
-  await capture.getByLabel('Item name').fill('Synthetic detailed panel capture');
+  await capture
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic detailed panel capture');
   await capture
     .locator('summary')
     .filter({ hasText: /^Details$/ })
@@ -75,7 +81,7 @@ test('desktop optional details save atomically and Ctrl Enter marks only that ca
   await capture.getByLabel('Capture serial number').fill('0000021');
   await capture.getByLabel('Capture category').fill('Synthetic fragile');
   await capture.getByLabel('Capture notes').fill('Synthetic optional details');
-  await capture.getByLabel('Item name').press('Control+Enter');
+  await capture.getByRole('textbox', { name: 'Item name', exact: true }).press('Control+Enter');
   await expect(
     capture.getByRole('status').filter({ hasText: 'Saved Synthetic detailed panel capture' }),
   ).toBeVisible();
@@ -116,12 +122,14 @@ test('desktop photo drops retain their source selection when the capture panel c
   await capture
     .getByRole('group', { name: 'Photo slot 1', exact: true })
     .dispatchEvent('drop', { dataTransfer: transfer });
-  await capture.getByLabel('Item name').fill('Synthetic dropped capture');
+  await capture
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic dropped capture');
   await capture.getByRole('button', { name: 'Close capture', exact: true }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   await expect(capture.getByText('synthetic-drop.png', { exact: true })).toBeVisible();
   await expect(capture.getByRole('img', { name: 'Selected photo 1', exact: true })).toBeVisible();
-  await capture.getByLabel('Item name').press('Enter');
+  await capture.getByRole('textbox', { name: 'Item name', exact: true }).press('Enter');
   await expect(
     capture.getByRole('status').filter({ hasText: 'Saved Synthetic dropped capture' }),
   ).toBeVisible();

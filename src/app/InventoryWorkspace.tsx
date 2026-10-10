@@ -29,6 +29,7 @@ import type { RestoreReport } from '../backup/restore-state';
 import type { Environment } from '../data/config';
 import { useNarrow } from './use-narrow';
 import { BottomSheet } from './BottomSheet';
+import { PhoneCapture } from './PhoneCapture';
 
 export function InventoryWorkspace({
   services,
@@ -438,7 +439,7 @@ export function InventoryWorkspace({
                     capturePanel={
                       <section
                         aria-label="Desktop capture"
-                        hidden={!captureOpen || view !== 'things'}
+                        hidden={!captureOpen || view !== 'things' || narrow}
                         ref={captureContainer}
                         className="workspace-capture"
                       >
@@ -475,6 +476,42 @@ export function InventoryWorkspace({
                     requestDeletion={setDeletionRequested}
                   />
                 </div>
+                <PhoneCapture
+                  services={services}
+                  inventoryId={inventoryId}
+                  ownerUid={inventory.ownerUid}
+                  items={items}
+                  rooms={rooms}
+                  signal={controller.signal}
+                  session={session}
+                  open={narrow && captureOpen && view === 'things' && !ordinaryLocked}
+                  close={() => {
+                    setCaptureOpen(false);
+                    setInspectRequest((current) => ({
+                      sequence: (current?.sequence ?? 0) + 1,
+                      id: '',
+                    }));
+                  }}
+                  reopen={add}
+                  onRoom={(room) => setRooms((values) => [...values, room])}
+                  onSaved={async (settledId) => {
+                    if (settledId)
+                      setActiveAttempt((current) => (current === settledId ? undefined : current));
+                    await reload();
+                  }}
+                  onAttempt={async (id) => {
+                    setActiveAttempt(id);
+                    await reload();
+                  }}
+                  onOpen={(id) => {
+                    setCaptureOpen(false);
+                    navigate('things');
+                    setInspectRequest((current) => ({
+                      sequence: (current?.sequence ?? 0) + 1,
+                      id,
+                    }));
+                  }}
+                />
               </>
             )}
           </fieldset>

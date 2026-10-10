@@ -11,11 +11,14 @@ async function selectPhoto(page: import('@playwright/test').Page) {
     canvas.getContext('2d')!.fillRect(0, 0, 40, 40);
     return canvas.toDataURL('image/png').split(',')[1]!;
   });
-  await page.getByLabel('Choose photos').setInputFiles({
-    name: 'synthetic-export.png',
-    mimeType: 'image/png',
-    buffer: Buffer.from(base64, 'base64'),
-  });
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
+    .getByLabel('Choose photos')
+    .setInputFiles({
+      name: 'synthetic-export.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(base64, 'base64'),
+    });
 }
 test('exports actual private photo bytes and photo-free records with independently verified checksums', async ({
   page,
@@ -25,13 +28,19 @@ test('exports actual private photo bytes and photo-free records with independent
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
-  await page.getByLabel('Item name').fill('Synthetic export photo');
+  await page
+    .locator('.workspace-capture')
+    .getByLabel('Item name', { exact: true })
+    .fill('Synthetic export photo');
   await selectPhoto(page);
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Open Synthetic export photo', exact: true }),
   ).toBeVisible();
-  await page.getByLabel('Item name').fill('Synthetic export without photo');
+  await page
+    .locator('.workspace-capture')
+    .getByLabel('Item name', { exact: true })
+    .fill('Synthetic export without photo');
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Open Synthetic export without photo', exact: true }),
@@ -42,7 +51,9 @@ test('exports actual private photo bytes and photo-free records with independent
   await panel.getByRole('button', { name: 'Start full export', exact: true }).click();
   const link = panel.getByRole('link', { name: /^Download inventory-/ });
   await expect(link).toBeVisible();
-  await expect(page.getByLabel('Item name')).toBeDisabled();
+  await expect(
+    page.locator('.workspace-capture').getByLabel('Item name', { exact: true }),
+  ).toBeDisabled();
   const confirmation = panel.getByRole('button', {
     name: 'I saved the final ZIP and every photo part',
     exact: true,
@@ -73,7 +84,9 @@ test('exports actual private photo bytes and photo-free records with independent
   });
   await confirmation.click();
   await expect(panel.getByRole('status')).toContainText('Export complete');
-  await expect(page.getByLabel('Item name')).toBeEnabled();
+  await expect(
+    page.locator('.workspace-capture').getByLabel('Item name', { exact: true }),
+  ).toBeEnabled();
   expect(errors).toEqual([]);
 });
 test('cancellation releases export controls and sign-out clears the private download', async ({
@@ -90,7 +103,9 @@ test('cancellation releases export controls and sign-out clears the private down
   await panel.getByRole('button', { name: 'Cancel export', exact: true }).click();
   await expect(panel.getByRole('alert')).toContainText('Export canceled');
   await expect(panel.getByRole('link')).toHaveCount(0);
-  await expect(page.getByLabel('Item name')).toBeEnabled();
+  await expect(
+    page.locator('.workspace-capture').getByLabel('Item name', { exact: true }),
+  ).toBeEnabled();
   await panel.getByRole('button', { name: 'Start full export', exact: true }).click();
   await expect(panel.getByRole('link', { name: /^Download inventory-/ })).toBeVisible();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
@@ -114,7 +129,10 @@ test('export waits for an acknowledged capture before pausing mutations', async 
     await route.continue();
   });
   await page.getByRole('button', { name: /^Things/ }).click();
-  await page.getByLabel('Item name').fill('Synthetic export capture barrier');
+  await page
+    .locator('.workspace-capture')
+    .getByLabel('Item name', { exact: true })
+    .fill('Synthetic export capture barrier');
   await selectPhoto(page);
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();

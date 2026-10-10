@@ -251,3 +251,7 @@ The approved PR-07 handoff permits optional details during desktop capture. Crea
 ### 2026-10-11 — Phone browse navigation
 
 The approved ≤850px layout replaces the interim top menu with Things/Review/More bottom tabs. More provides overview, locations, Trash, backup/settings and sign-out. Native modal dialog sheets keep filter choices reachable outside the horizontal chip strip, with the same shared counts as desktop. Phone browsing uses a flat two-column square grid while retaining desktop grouping/table choices for the wider layout; full-view return retains filters and scroll. Actual Safari/Home Screen acceptance remains manual.
+
+### 2026-10-11 — Phone camera and bounded capture queue
+
+PR-09 uses the approved native camera/file-input alternative rather than a live preview. The queue limit is three captures (one active and two waiting), providing backpressure while preserving the next typed draft. It is sequential and memory-only, with no private offline persistence; only an active room-ID preference is stored per owner/project/inventory/device. Native 2nd-photo selection retains the existing two-photo limit. Acknowledged toast lasts five seconds; Undo is an explicit recoverable Trash action with the saved revision. Preparation-only corrections and confirmed partial-upload cleanup remain explicit. Actual iPhone camera/HEIC/keyboard/Home Screen acceptance is still required before large-scale capture.

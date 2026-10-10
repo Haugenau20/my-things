@@ -40,10 +40,11 @@ Do not add these without an explicit scope decision. Basic notes are the escape 
 
 ### CAP-01: Capture an item
 
-1. Open Capture on the phone. Optionally select the current room; keep it selected for subsequent items
-   within that capture session, with the selected room always visible.
-2. Enter a short name. Photos are optional: take one, select existing photos, or save the item without
-   photos and attach them later from its detail view on the phone. A nonblank name is required.
+1. Open Capture on the phone. Choose the sticky room in its sheet (with room creation); it remains
+   visible and is retained per device. The native camera/file input is the approved camera interface.
+2. Take/select a photo or choose **No photo**, then enter a short name in the focused name step.
+   A second photo is optional. Return or **Save & next** queues the capture and returns to the camera.
+   A nonblank name is required; photo-free items can receive photos later from detail.
 3. Desktop capture provides collapsed quantity, estimated value/currency, serial number, notes and
    category fields. Room comes from the visible sticky picker. New items start unpacked with an
    undecided/not-started workflow; moving choices are made during review. The approved phone flow
@@ -53,7 +54,12 @@ Do not add these without an explicit scope decision. Basic notes are the escape 
    completes after record acknowledgment; a failed selected photo is never silently omitted.
 5. Reset the item form but retain the capture room. The item goes to the review inbox by default.
    Desktop **Save as reviewed** (Cmd/Ctrl+Enter) is an explicit alternative; phone captures always
-   enter the review inbox. Desktop Enter saves and focuses the cleared name field.
+   enter the review inbox. Desktop Enter saves and focuses the cleared name field. Phone captures
+   upload sequentially in a bounded memory-only queue, so the next thing can be photographed while
+   uploading. A five-second toast appears only after acknowledgment; **Undo** moves that saved item
+   to recoverable Trash using its revision. Failed captures remain retryable under the same identity.
+   Pending source files and unsaved drafts are not an offline backup and do not survive page reload
+   or sign-out; acknowledged/unfinished server records remain recoverable.
 
 Photo-free items are saved inventory entries with a "No photo yet" placeholder, not upload drafts.
 The detail view allows adding first photos to that same item without losing its metadata. Interrupted

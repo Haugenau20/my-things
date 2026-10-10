@@ -14,7 +14,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   const photoName = 'Synthetic restore browser photo';
-  await page.getByLabel('Item name').fill(photoName);
+  await page.locator('.workspace-capture').getByLabel('Item name', { exact: true }).fill(photoName);
   const png = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 80;
@@ -24,11 +24,14 @@ test('validates without writes, refuses existing data, then resumes interrupted 
     context.fillRect(0, 0, 80, 60);
     return canvas.toDataURL('image/png').split(',')[1]!;
   });
-  await page.getByLabel('Choose photos').setInputFiles({
-    name: 'synthetic-restore.png',
-    mimeType: 'image/png',
-    buffer: Buffer.from(png, 'base64'),
-  });
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
+    .getByLabel('Choose photos')
+    .setInputFiles({
+      name: 'synthetic-restore.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(png, 'base64'),
+    });
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('button', { name: `Open ${photoName}`, exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
@@ -108,7 +111,9 @@ test('validates without writes, refuses existing data, then resumes interrupted 
     page.getByRole('alert').filter({ hasText: 'Import remains unfinished' }),
   ).toBeVisible();
   expect(denied).toBeGreaterThan(0);
-  await expect(page.getByLabel('Item name')).toBeDisabled();
+  await expect(
+    page.locator('.workspace-capture').getByLabel('Item name', { exact: true }),
+  ).toBeDisabled();
   await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Backup export', { exact: true }).click();
   await expect(
@@ -130,7 +135,9 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   await expect(
     page.getByRole('region', { name: 'Backup restore' }).getByRole('status'),
   ).toContainText('Restore complete', { timeout: 15000 });
-  await expect(page.getByLabel('Item name')).toBeEnabled();
+  await expect(
+    page.locator('.workspace-capture').getByLabel('Item name', { exact: true }),
+  ).toBeEnabled();
   await page.getByLabel('Restored item photo preview').selectOption({ label: photoName });
   const restoredPreview = page
     .getByRole('region', { name: 'Restored photo preview' })
