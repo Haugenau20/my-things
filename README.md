@@ -21,7 +21,8 @@ steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configura
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
 See [GitHub Actions setup](docs/GITHUB_ACTIONS.md) for automated PR checks and production deployment
 after successful `main` checks. The approved Google identity setup and three production environment
-variables are configured; activation awaits merge of the pipeline PR. All production releases use
+variables are configured. The first pipeline release passed verification/OIDC but stopped during
+Storage discovery; see [pipeline Storage fix](docs/PIPELINE_STORAGE_FIX.md). All production releases use
 GitHub Actions after merge to `main`; local CLI and console deployment are prohibited. Every feature
 must be covered by relevant automated tests against `demo-inventory` before merge.
 

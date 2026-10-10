@@ -21,7 +21,7 @@ const hosting = {
 };
 const release = {
   firestore: { rules: resolve(base.firestore.rules), indexes: resolve(base.firestore.indexes) },
-  storage: { rules: resolve(base.storage.rules) },
+  storage: [{ bucket: config.firebase.storageBucket, rules: resolve(base.storage.rules) }],
   hosting,
 };
 await mkdir('.firebase', { recursive: true });
