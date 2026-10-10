@@ -6,6 +6,15 @@ import { assertLocalTarget, LOCAL_ENDPOINTS, TEST_ENDPOINTS } from './safety.ts'
 import { runNode } from './process.mjs';
 
 const action = process.argv[2];
+const files = process.argv.slice(3);
+if (
+  files.some(
+    (file) => !/^tests\/(browser|rules|integration)\/[A-Za-z0-9_-]+\.(spec|test)\.ts$/.test(file),
+  )
+)
+  throw new Error('Test filters must be repository test file paths');
+if (action === 'start' && files.length)
+  throw new Error('Emulator start does not accept test filters');
 const commands = {
   rules: 'node node_modules/vitest/vitest.mjs run --config vitest.rules.config.ts',
   integration: 'node node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts',
@@ -57,6 +66,10 @@ if (action !== 'start') {
     singleProjectMode: true,
   };
   await writeFile('firebase.test.generated.json', JSON.stringify(config, null, 2));
-  args.push('--config', 'firebase.test.generated.json', commands[action]);
+  args.push(
+    '--config',
+    'firebase.test.generated.json',
+    commands[action] + (files.length ? ' ' + files.join(' ') : ''),
+  );
 }
 await runNode('node_modules/firebase-tools/lib/bin/firebase.js', args, env);

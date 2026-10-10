@@ -5,6 +5,7 @@ test('failed permanent photo deletion retains a marker and completes after reloa
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   await page.getByLabel('Item name').fill('Synthetic permanent deletion');
   const data = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
@@ -68,6 +69,8 @@ test('failed permanent photo deletion retains a marker and completes after reloa
 test('orphan inspection is an explicit preview and has no deletion action', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Photo maintenance', { exact: true }).click();
   const preview = page.getByRole('region', { name: 'Orphan inspection' });
   await preview.getByRole('button', { name: 'Inspect stored photos', exact: true }).click();

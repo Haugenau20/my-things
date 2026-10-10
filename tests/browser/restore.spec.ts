@@ -12,6 +12,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
   const photoName = 'Synthetic restore browser photo';
   await page.getByLabel('Item name').fill(photoName);
   const png = await page.evaluate(() => {
@@ -30,6 +31,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   });
   await page.getByRole('button', { name: 'Save & next', exact: true }).click();
   await expect(page.getByRole('button', { name: `Open ${photoName}`, exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Backup export', { exact: true }).click();
   const exportPanel = page.getByRole('region', { name: 'Full export' });
   await exportPanel.getByRole('button', { name: 'Start full export', exact: true }).click();
@@ -42,6 +44,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
     .getByRole('button', { name: 'I saved the final ZIP and every photo part', exact: true })
     .click();
   await expect(exportPanel.getByRole('status')).toContainText('Export complete');
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Restore backup', { exact: true }).click();
   await page.getByLabel('Backup ZIP files').setInputFiles(archive);
   await page.getByRole('button', { name: 'Validate backup and destination', exact: true }).click();
@@ -81,6 +84,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
     await environment.cleanup();
   }
   await page.reload();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Restore backup', { exact: true }).click();
   await page.getByLabel('Backup ZIP files').setInputFiles(archive);
   await page.getByRole('button', { name: 'Validate backup and destination', exact: true }).click();
@@ -105,6 +109,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   ).toBeVisible();
   expect(denied).toBeGreaterThan(0);
   await expect(page.getByLabel('Item name')).toBeDisabled();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Backup export', { exact: true }).click();
   await expect(
     exportPanel.getByRole('button', { name: 'Start full export', exact: true }),
@@ -114,6 +119,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   await expect(
     page.getByRole('alert').filter({ hasText: 'An import is unfinished' }),
   ).toBeVisible();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
   await page.getByText('Restore backup', { exact: true }).click();
   await page.getByLabel('Backup ZIP files').setInputFiles(archive);
   await page.getByRole('button', { name: 'Validate backup and destination', exact: true }).click();
@@ -134,6 +140,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
     .poll(() => restoredPreview.evaluate((element) => (element as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0);
   expect(await restoredPreview.getAttribute('src')).toMatch(/^blob:/);
+  await page.getByRole('button', { name: /^Things/ }).click();
   await page.getByRole('button', { name: `Open ${photoName}`, exact: true }).click();
   const image = page.getByRole('img', { name: `${photoName} · photo 1`, exact: true });
   await expect(image).toBeVisible();
