@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://REPLACE_WITH_EXACT_HOSTING_ORIGIN"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length", "Content-Disposition"],
+    "maxAgeSeconds": 3600
+  }
+]

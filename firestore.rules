@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(inventoryId) {
+      let policy = get(/databases/$(database)/documents/inventories/$(inventoryId)).data;
+      return request.auth != null
+        && inventoryId.matches('[A-Za-z0-9_-]{1,128}')
+        && policy.keys().hasAll(['schemaVersion', 'ownerUid'])
+        && policy.schemaVersion == 1
+        && policy.ownerUid is string
+        && policy.ownerUid == request.auth.uid;
+    }
+
+    function validSettings() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['schemaVersion', 'ownerUid', 'displayName', 'defaultCurrency', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['schemaVersion', 'ownerUid', 'displayName', 'defaultCurrency', 'createdAt', 'updatedAt'])
+        && data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'defaultCurrency', 'updatedAt'])
+        && data.displayName is string
+        && data.displayName.size() > 0 && data.displayName.size() <= 100
+        && data.displayName.matches('.*[^\\s].*')
+        && (data.defaultCurrency == null || (data.defaultCurrency is string && data.defaultCurrency.matches('[A-Z]{3}')))
+        && data.createdAt is timestamp && data.updatedAt == request.time;
+    }
+
+    match /inventories/{inventoryId} {
+      allow get: if owns(inventoryId);
+      allow update: if owns(inventoryId) && validSettings();
+      allow list, create, delete: if false;
+
+      match /items/{itemId} {
+        allow get, list: if owns(inventoryId);
+        // Feature-specific write validation is added with capture in M1.
+        allow write: if false;
+      }
+      match /rooms/{roomId} {
+        allow get, list: if owns(inventoryId);
+        allow write: if false;
+      }
+      match /boxes/{boxId} {
+        allow get, list: if owns(inventoryId);
+        allow write: if false;
+      }
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

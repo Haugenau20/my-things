@@ -1,0 +1,5 @@
+min_version = "2026.9.18"
+
+[tools]
+node = "24.21.0"
+java = "temurin-21.0.12+8.0.LTS"
