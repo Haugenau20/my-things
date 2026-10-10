@@ -206,7 +206,7 @@ export function InventoryWorkspace({
         </aside>
         <div className="workspace-main">
           <div className="workspace-toolbar">
-            <h1>{titles[view]}</h1>
+            {!['things', 'review', 'trash'].includes(view) && <h1>{titles[view]}</h1>}
             <button className="text-button" disabled={busy} onClick={() => void reload()}>
               Refresh inventory
             </button>
