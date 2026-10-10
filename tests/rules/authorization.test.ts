@@ -11,7 +11,7 @@ import type { FirebaseStorage } from 'firebase/storage';
 import { assertLocalTarget } from '../../scripts/safety';
 import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { captureDraft, photoPath } from '../../src/domain/item';
-import { doc, updateDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 
 let environment: RulesTestEnvironment;
@@ -26,6 +26,108 @@ const root = {
   updatedAt: timestamp,
 };
 const bytes = new Uint8Array([255, 216, 255, 217]);
+
+describe('M3 permanent deletion authorization', () => {
+  async function trashed() {
+    const id = crypto.randomUUID();
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc(`inventories/main/items/${id}`)
+        .set({
+          ...captureDraft(
+            { name: 'Synthetic trash', roomId: null, photos: [], reviewStatus: 'needs_review' },
+            Timestamp.now(),
+          ),
+          deletedAt: Timestamp.now(),
+        });
+    });
+    return id;
+  }
+  const client = (uid: string | null) =>
+    (uid
+      ? environment.authenticatedContext(uid)
+      : environment.unauthenticatedContext()
+    ).firestore() as unknown as Firestore;
+  it('requires a trash marker, preserves metadata during marking, and permits owner final deletion', async () => {
+    const id = await trashed();
+    const target = doc(client('synthetic-owner'), 'inventories/main/items', id);
+    await assertFails(deleteDoc(target));
+    await assertFails(
+      updateDoc(target, {
+        recordState: 'deleting',
+        quantity: 9,
+        revision: 2,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    await assertSucceeds(
+      updateDoc(target, { recordState: 'deleting', revision: 2, updatedAt: serverTimestamp() }),
+    );
+    await assertFails(
+      updateDoc(target, {
+        deletedAt: null,
+        recordState: 'ready',
+        revision: 3,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    await assertSucceeds(deleteDoc(target));
+  });
+  it.each([null, 'unrelated-user'])(
+    'denies valid-looking deletion markers and final deletes for %s',
+    async (uid) => {
+      const id = await trashed();
+      const target = doc(client(uid), 'inventories/main/items', id);
+      await assertFails(
+        updateDoc(target, { recordState: 'deleting', revision: 2, updatedAt: serverTimestamp() }),
+      );
+      await updateDoc(doc(client('synthetic-owner'), 'inventories/main/items', id), {
+        recordState: 'deleting',
+        revision: 2,
+        updatedAt: serverTimestamp(),
+      });
+      await assertFails(deleteDoc(target));
+    },
+  );
+  it('retains ready cover metadata and blocks marking while a photo is pending', async () => {
+    const id = await trashed();
+    const details = {
+      storagePath: photoPath('main', id, 'photo-one', 'detail'),
+      contentType: 'image/jpeg',
+      byteSize: 4,
+      width: 2,
+      height: 2,
+      sha256: 'a'.repeat(64),
+    };
+    const photo = {
+      id: 'photo-one',
+      state: 'pending',
+      detail: details,
+      thumbnail: { ...details, storagePath: photoPath('main', id, 'photo-one', 'thumb') },
+    };
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc(`inventories/main/items/${id}`)
+        .update({ photos: [photo] });
+    });
+    const target = doc(client('synthetic-owner'), 'inventories/main/items', id);
+    const marker = { recordState: 'deleting', revision: 2, updatedAt: serverTimestamp() };
+    await assertFails(updateDoc(target, marker));
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .doc(`inventories/main/items/${id}`)
+        .update({
+          photos: [{ ...photo, state: 'ready' }],
+          coverPhotoId: photo.id,
+        });
+    });
+    await assertSucceeds(updateDoc(target, marker));
+    await assertSucceeds(deleteDoc(target));
+  });
+});
 
 describe('M2 constrained owner organization', () => {
   const db = (uid: string | null = 'synthetic-owner') =>

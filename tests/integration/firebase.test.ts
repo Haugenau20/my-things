@@ -23,6 +23,10 @@ import * as captureMedia from '../../src/media/capture';
 import { saveAttempt, recoverAttempt, discardAttempt } from '../../src/media/capture';
 import type { CaptureAttempt } from '../../src/media/capture';
 import * as organizeRepository from '../../src/data/organize-repository';
+import * as deletion from '../../src/media/permanent-deletion';
+import { inspectOrphans } from '../../src/media/orphan-inspection';
+import { photoObjects } from '../../src/media/cleanup';
+import { runBounded } from '../../src/media/processing';
 
 let environment: RulesTestEnvironment;
 const env = {
@@ -533,6 +537,171 @@ describe('real client SDK and trusted synthetic seed', () => {
     expect(loaded).toHaveLength(260);
     expect(loaded.find((item) => item.notes.includes('final page needle'))?.id).toBe('paging-259');
   });
+  it('permanently deletes a trashed photo item, preserves another item, and rejects stale or nontrashed deletion', async () => {
+    const services = await owner('permanent-delete');
+    const plan = await attempt('permanent-photo');
+    const saved = await saveAttempt(services, 'main', plan, new AbortController().signal, () => {});
+    await expect(
+      deletion.permanentlyDelete(services, 'main', saved, new AbortController().signal, () => {}),
+    ).rejects.toThrow(/trash/);
+    const trashed = await organizeRepository.editItem(services.db, 'main', saved, {
+      kind: 'trash',
+    });
+    const unrelated = await ensureDraft(services.db, 'main', 'permanent-preserved', {
+      name: 'Synthetic preserved item',
+      roomId: null,
+      photos: [],
+      reviewStatus: 'needs_review',
+    });
+    await deletion.permanentlyDelete(
+      services,
+      'main',
+      trashed,
+      new AbortController().signal,
+      () => {},
+    );
+    expect(await captureRepository.loadItem(services.db, 'main', saved.id)).toBeNull();
+    await expect(
+      import('firebase/storage').then(({ getMetadata }) =>
+        getMetadata(ref(services.storage, saved.photos[0]!.detail.storagePath)),
+      ),
+    ).rejects.toMatchObject({ code: 'storage/object-not-found' });
+    expect(await captureRepository.loadItem(services.db, 'main', unrelated.id)).not.toBeNull();
+    const newer = await organizeRepository.editItem(services.db, 'main', unrelated, {
+      kind: 'metadata',
+      patch: { notes: 'Newer synthetic details' },
+    });
+    await expect(
+      deletion.permanentlyDelete(
+        services,
+        'main',
+        unrelated,
+        new AbortController().signal,
+        () => {},
+      ),
+    ).rejects.toThrow(/changed/);
+    const emptyTrash = await organizeRepository.editItem(services.db, 'main', newer, {
+      kind: 'trash',
+    });
+    await deletion.permanentlyDelete(
+      services,
+      'main',
+      emptyTrash,
+      new AbortController().signal,
+      () => {},
+    );
+    expect(await captureRepository.loadItem(services.db, 'main', unrelated.id)).toBeNull();
+  });
+  it('keeps a permanent marker after cancellation and unexpected objects, then retries exact-prefix cleanup', async () => {
+    const services = await owner('permanent-recovery');
+    const plan = await attempt('permanent-recovery');
+    const saved = await saveAttempt(services, 'main', plan, new AbortController().signal, () => {});
+    const trashed = await organizeRepository.editItem(services.db, 'main', saved, {
+      kind: 'trash',
+    });
+    const controller = new AbortController();
+    await expect(
+      deletion.permanentlyDelete(
+        services,
+        'main',
+        trashed,
+        controller.signal,
+        () => {},
+        async () => controller.abort(),
+      ),
+    ).rejects.toThrow();
+    const marker = (await captureRepository.loadItem(services.db, 'main', trashed.id))!;
+    expect(marker).toMatchObject({ recordState: 'deleting', coverPhotoId: saved.coverPhotoId });
+    const unexpected = `inventories/main/items/${saved.id}/unexpected.txt`;
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context
+        .storage('gs://demo-inventory.firebasestorage.app')
+        .ref(unexpected)
+        .put(bytesForFixture(), { contentType: 'text/plain' });
+    });
+    await expect(
+      deletion.permanentlyDelete(services, 'main', marker, new AbortController().signal, () => {}),
+    ).rejects.toThrow(/Unexpected object/);
+    expect((await captureRepository.loadItem(services.db, 'main', trashed.id))?.recordState).toBe(
+      'deleting',
+    );
+    const preview = await inspectOrphans(services, 'main', new AbortController().signal, () => {});
+    expect(preview.findings).toContainEqual({
+      path: unexpected,
+      kind: 'unexpected',
+      byteSize: null,
+      createdAt: null,
+    });
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await context.storage('gs://demo-inventory.firebasestorage.app').ref(unexpected).delete();
+    });
+    await deletion.permanentlyDelete(
+      services,
+      'main',
+      marker,
+      new AbortController().signal,
+      () => {},
+    );
+    expect(await captureRepository.loadItem(services.db, 'main', marker.id)).toBeNull();
+  });
+  function bytesForFixture() {
+    return new Uint8Array([255, 216, 255, 217]);
+  }
+  it('lists more than 100 photo folders, preserves recent orphans in previews, detects changed metadata, and cleans only a confirmed item', async () => {
+    const services = await owner('cleanup-pagination');
+    const signal = new AbortController().signal;
+    const saved = await ensureDraft(services.db, 'main', 'cleanup-pagination', {
+      name: 'Synthetic paginated cleanup',
+      roomId: null,
+      photos: [],
+      reviewStatus: 'needs_review',
+    });
+    const paths = Array.from({ length: 105 }, (_, index) =>
+      photoPath('main', saved.id, `photo-${index}`, 'detail'),
+    );
+    await environment.withSecurityRulesDisabled(async (context) => {
+      await runBounded(paths, 8, async (path) => {
+        await context
+          .storage('gs://demo-inventory.firebasestorage.app')
+          .ref(path)
+          .put(bytesForFixture(), { contentType: 'image/jpeg' });
+      });
+    });
+    const listed: string[] = [];
+    for await (const object of photoObjects(services.storage, 'main', signal, saved.id))
+      listed.push(object.fullPath);
+    expect(new Set(listed)).toEqual(new Set(paths));
+    const preview = await inspectOrphans(services, 'main', signal, () => {});
+    expect(preview.recent).toBeGreaterThanOrEqual(105);
+    expect(preview.referenced).toBeGreaterThanOrEqual(2);
+    expect(preview.findings.some((entry) => paths.includes(entry.path))).toBe(false);
+    const originalLoad = captureRepository.loadItems;
+    const spy = vi.spyOn(captureRepository, 'loadItems').mockImplementationOnce(async (...args) => {
+      const snapshot = await originalLoad(...args);
+      await organizeRepository.editItem(services.db, 'main', saved, {
+        kind: 'metadata',
+        patch: { notes: 'Synthetic changed during preview' },
+      });
+      return snapshot;
+    });
+    try {
+      await expect(inspectOrphans(services, 'main', signal, () => {})).rejects.toThrow(
+        /Inventory changed during inspection/,
+      );
+    } finally {
+      spy.mockRestore();
+    }
+    const current = (await captureRepository.loadItem(services.db, 'main', saved.id))!;
+    const trashed = await organizeRepository.editItem(services.db, 'main', current, {
+      kind: 'trash',
+    });
+    await deletion.permanentlyDelete(services, 'main', trashed, signal, () => {});
+    expect(await captureRepository.loadItem(services.db, 'main', saved.id)).toBeNull();
+    const remaining: string[] = [];
+    for await (const object of photoObjects(services.storage, 'main', signal, saved.id))
+      remaining.push(object.fullPath);
+    expect(remaining).toEqual([]);
+  }, 30000);
   it('does not overwrite an existing different owner binding', async () => {
     await environment.withSecurityRulesDisabled(async (context) => {
       await context

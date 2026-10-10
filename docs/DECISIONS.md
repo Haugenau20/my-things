@@ -71,6 +71,21 @@ free allowances. No claim that this documentation is a deployed or security-audi
 
 ## Recording a change
 
+### 2026-10-10 — M3 cleanup recovery and inspection
+
+Use the existing schema-1 item as the permanent-deletion marker, with ready photos and the trash timestamp
+retained. Revision checks precede marking; recognized exact-prefix files are deleted with concurrency two,
+the prefix is checked empty, and the record is removed last. Failed/canceled cleanup stays visible for
+confirmed retry. Unknown paths require administrative review. Existing draft discard shares the same
+bounded prefix cleaner; no live data migration or maintenance is performed.
+
+Orphan inspection is read-only. Skip all references and files younger than 24 hours, flag unknown paths
+or invalid metadata, and invalidate the preview if item IDs/revisions change. Cap traversal at 50,000
+folder/file entries and fail if exceeded instead of returning partial success. This accommodates the
+proposed 5,000-item/two-photo namespace shape without an unbounded scan; it is not a measured browser
+scale claim. No deletion button, scheduled service, or new dependency is introduced. See
+[M3 recovery evidence](M3_RECOVERY.md). Export/restore remains subsequent M3 work.
+
 ### 2026-10-10 — M2 organization and archive concurrency
 
 The owner authorized continued implementation while away, including the next phase. Keep the outstanding

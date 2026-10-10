@@ -93,6 +93,13 @@ that exact item's prefix, including unfinished/unused variants, using paginated 
 Treat an already missing object as success. Delete the item document last. A separate deletion-operation
 document is not required; the existing item is the recovery marker until cleanup finishes.
 
+The M3 recovery slice implements this for ready trash with completed photos. Listing pages contain at
+most 100 entries, deletion uses concurrency two, and a second listing verifies no live objects remain.
+Only recognized `detail.jpg`/`thumb.jpg` paths are removed; unexpected objects block final deletion for
+administrative review. The separate recovery panel offers a confirmed retry after reload. Cancellation
+stops subsequent work but cannot retract already submitted writes. There is no bulk permanent-delete
+operation or automatic cleanup.
+
 Cloud Storage soft-delete/retention policies may retain billed copies after live deletion. Inspect the
 bucket policy and document it; application deletion is not a promise of immediate physical erasure.
 [References S18](REFERENCES.md#s18).
@@ -103,6 +110,12 @@ Drafts and deleting markers should account for routine failures. Also provide an
 check for objects not referenced by any current item/photo. Make it explicit, preview-only first, and
 skip active attempts or recent objects. Initial safety age: 24 hours; do not schedule automatic deletion.
 Never apply a bucket-wide age-based lifecycle rule to all inventory photos.
+
+The implemented preview walks at most 50,000 folder/file entries, rejects repeated pagination tokens,
+counts all draft/trash/deleting references, and rechecks server item IDs/revisions after listing.
+Unexpected objects and invalid creation/type/size metadata require administrative review. The preview
+does not delete files or check referenced photo bytes; it must not be mistaken for a backup integrity
+check. See [M3 recovery evidence](M3_RECOVERY.md).
 
 Download thumbnails lazily through authenticated SDK access. Use a bounded in-memory blob cache; revoke
 object URLs on eviction/sign-out. Load full detail photos only when opened. Never precache the full

@@ -651,6 +651,29 @@ input[type='checkbox'] {
   border-radius: 12px;
   margin-bottom: 24px;
 }
+.deletion-dialog {
+  width: 520px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100vh - 32px);
+  border: 1px solid #ba9c6d;
+  border-radius: 12px;
+  padding: 28px;
+  color: #263c32;
+  background: #faf8f3;
+}
+.deletion-dialog::backdrop {
+  background: #263c3280;
+}
+.inspection-findings {
+  max-height: 320px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  padding-left: 22px;
+}
+.inspection-findings li {
+  padding: 8px 0;
+}
 .location-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

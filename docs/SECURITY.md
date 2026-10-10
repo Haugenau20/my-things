@@ -146,3 +146,15 @@ a frontend bundle is not by itself evidence of an admin credential leak.
 
 Required security evidence is enumerated in [Test plan](TEST_PLAN.md). App Check may be evaluated later
 as abuse protection; it is not an initial dependency or a substitute for these controls.
+
+Permanent deletion remains owner-only. Rules permit the narrow ready-trash-to-deleting patch and final
+marker deletion, retain immutable photo metadata, and reject a marker with pending photos. They cannot
+prove cross-service file cleanup; the application deletes recognized exact-prefix objects, verifies the
+prefix is empty, and removes the record last. Unknown paths block cleanup. A direct owner bypassing the
+application can still delete valid Storage objects or a marked record; this is an integrity boundary,
+not authorization for unrelated accounts.
+
+Orphan inspection is an explicit read-only owner preview. All item states supply references; recent
+unreferenced files are skipped, unknown paths/metadata are flagged, and changed item IDs/revisions
+invalidate the result. Listing is bounded and canceled/failed scans do not report completeness. There
+is no automatic orphan cleanup or deletion action. A preview is not a backup or an atomic snapshot.
