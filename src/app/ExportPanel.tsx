@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import { createExport } from '../backup/export-repository';
+import { exportErrorMessage } from '../backup/export-errors';
 
 export function ExportPanel({
   services,
@@ -89,18 +90,7 @@ export function ExportPanel({
     } catch (failure) {
       if (!signal.aborted) {
         setStatus('');
-        const controlled =
-          failure instanceof Error &&
-          /Resolve unfinished|reference blocks|Inventory changed during export|tested.*limit|Missing or changed photo/.test(
-            failure.message,
-          );
-        setError(
-          controller.signal.aborted
-            ? 'Export canceled. Any saved parts are incomplete unless the final ZIP and every listed part were saved.'
-            : controlled
-              ? failure.message
-              : 'Export could not finish. No complete backup was confirmed. Resolve unfinished operations, check your connection and stored photos, then retry.',
-        );
+        setError(exportErrorMessage(failure, controller.signal.aborted));
       }
     } finally {
       signal.removeEventListener('abort', abort);

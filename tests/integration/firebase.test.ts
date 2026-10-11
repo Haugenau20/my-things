@@ -933,7 +933,9 @@ describe('real client SDK and trusted synthetic seed', () => {
         .ref(photo.detail.storagePath)
         .delete();
     });
-    await expect(createExport(services, inventory, signal, () => {}).next()).rejects.toThrow();
+    await expect(createExport(services, inventory, signal, () => {}).next()).rejects.toMatchObject({
+      code: 'photo_unverified',
+    });
   });
   it('does not overwrite an existing different owner binding', async () => {
     await environment.withSecurityRulesDisabled(async (context) => {
