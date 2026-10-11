@@ -15,7 +15,7 @@
           { "key": "Cache-Control", "value": "no-store" },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self' http://127.0.0.1:9099 http://127.0.0.1:8080 http://127.0.0.1:9199; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'"
+            "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: http://127.0.0.1:9199/v0/b/demo-inventory.firebasestorage.app/o/; connect-src 'self' http://127.0.0.1:9099 http://127.0.0.1:8080 http://127.0.0.1:9199; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'"
           }
         ]
       }

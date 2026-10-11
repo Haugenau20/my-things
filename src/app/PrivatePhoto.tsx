@@ -57,10 +57,18 @@ export function PrivatePhoto({
       className={detail ? 'private-photo detail-photo' : 'private-photo thumbnail'}
     >
       {url ? (
-        <img src={url} alt={alt} />
+        <img
+          src={url}
+          alt={alt}
+          referrerPolicy="no-referrer"
+          onError={() => {
+            setUrl(undefined);
+            setFailed(true);
+          }}
+        />
       ) : failed ? (
         <div className="photo-error">
-          <p>Could not load this private photo.</p>
+          <p>Could not load this photo.</p>
           <button
             className="text-button"
             onClick={() => {

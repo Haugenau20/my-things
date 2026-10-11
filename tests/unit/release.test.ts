@@ -20,6 +20,9 @@ describe('validation-only cloud release settings', () => {
     const settings = releaseSettings(config, manifest, configFingerprint(config));
     expect(settings.cors[0]?.origin).toEqual(['https://synthetic-project.firebaseapp.com']);
     expect(settings.csp).toContain('https://firebasestorage.googleapis.com');
+    expect(settings.csp).toContain(
+      "img-src 'self' blob: https://firebasestorage.googleapis.com/v0/b/synthetic-project.firebasestorage.app/o/",
+    );
     expect(settings.csp).toContain("frame-src 'self'");
     expect(settings.csp).toContain('https://apis.google.com');
     expect(settings.csp).not.toMatch(/127\.0\.0\.1|localhost|unsafe-inline|unsafe-eval|\*/);

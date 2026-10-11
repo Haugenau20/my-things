@@ -32,7 +32,8 @@ replace the device/cloud acceptance scenarios below.
 | Create/update permitted records | Deny | Deny | Allow valid operations only |
 | Create/delete an inventory root | Deny | Deny | Deny from client |
 | Modify root owner/schema fields | Deny | Deny | Deny from client |
-| Download photo or inspect metadata | Deny | Deny | Allow valid owned path |
+| SDK download, URL issuance or metadata inspection | Deny | Deny | Allow valid owned path |
+| Read photo using a previously issued valid bearer URL | Allow that photo | Allow that photo | Allow that photo |
 | List own inventory photo namespace | Deny | Deny | Allow only scoped listing |
 | Upload/delete a photo | Deny | Deny | Allow valid path/type/size/action only |
 | Read another inventory's data/photos | Deny | Deny | Deny unless separately its owner |
@@ -43,9 +44,12 @@ oversized uploads, metadata-only changes, and storage deletion with no incoming 
 
 For Storage releases, separately run the explicit synthetic cloud Rules API check documented in
 [Setup](SETUP.md) and [photo upload investigation](PHOTO_UPLOAD_FIX.md). It covers an absent optional
-custom-metadata map, which the emulator normalizes to an empty map. Mocked evaluation does not establish
-actual authenticated uploads or provider-generated download-token behavior; those still require the
-authorized owner/device checks.
+custom-metadata map, which the emulator normalizes to an empty map, and the approved single UUID-token
+field. Reject malformed/multiple/non-string tokens, extra custom fields, foreign/anonymous uploads and
+replacement. The emulator removes token metadata from the rules resource; synthetic cloud evaluation
+must cover that validation. Neither establishes the real upload outcome: the owner/device retry remains
+required. Verify issued-link downloads without authentication, refusal of absent/wrong tokens, and
+invalidation after object deletion. Sign-out clears app images/URL leases but does not revoke copied links.
 
 Run direct SDK/HTTP requests, not only UI navigation tests. A route guard passing says nothing about data
 protection. Verify that deleting/renaming a frontend route does not affect backend authorization.
@@ -114,7 +118,7 @@ These checks are manual in addition to emulators:
   and complete export/restore. Test keyboard focus and basic narrow/wide layouts.
 - Verify real Google sign-in/redirect behavior, owner bootstrap, deployed Firestore and Storage rules,
   CORS, Storage-to-Firestore IAM integration, security headers, and denial with another account.
-- Sign out and confirm private UI/blob caches disappear; revisit deep links and browser history. Test
+- Sign out and confirm inventory UI and issued URL references disappear; revisit deep links and browser history. Test
   other open app tabs. Record the limits of clearing previously downloaded data.
 
 Before advertising Home Screen support, repeat sign-in, capture, browsing, and session tests in that mode.

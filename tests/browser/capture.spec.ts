@@ -182,7 +182,7 @@ test('reload recovery attaches original files to a saved photo-free item', async
           node instanceof HTMLImageElement &&
           node.complete &&
           node.naturalWidth > 0 &&
-          node.src.startsWith('blob:'),
+          new URL(node.src).searchParams.has('token'),
       ),
     )
     .toBe(true);
@@ -222,7 +222,7 @@ test('captures two photos, remembers the room, reloads private photos, and clear
             img instanceof HTMLImageElement &&
             img.complete &&
             img.naturalWidth > 0 &&
-            img.src.startsWith('blob:'),
+            new URL(img.src).searchParams.has('token'),
         ),
       ),
     )

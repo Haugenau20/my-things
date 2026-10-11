@@ -106,3 +106,42 @@ retry after its pipeline release is still required. A passed simulation or emula
 establish that this probe fixes the production 403, or that provider-generated download tokens
 cannot exist. If denial continues, retain the existing recoverable draft and record the outcome;
 do not declare success or weaken metadata policy to bypass it.
+
+## 2026-10-11: owner-approved token-bearing photo delivery
+
+The owner retried PR #23's empty-map probe and still received 403. Read-only inspection of the owner's
+other local Firebase application found the same upload API and matching SDK request-construction
+functions, but its production rules permit token metadata and its gallery uses `getDownloadURL()`.
+That comparison did not establish the production denial's cause. No neighboring project files or
+cloud resources were changed or accessed.
+
+The owner then explicitly approved token-bearing photo URLs, superseding the earlier refusal.
+Storage creation now accepts absent/empty custom metadata or exactly one `firebaseStorageDownloadTokens`
+field containing a lowercase UUID v4. Extra fields, malformed/multiple/non-string tokens and every
+metadata update remain denied. Owner binding, valid pending registration, exact byte sizes, JPEG
+limits, immutability, listing and deletion authorization are retained. Rules cannot distinguish a
+provider-generated UUID from one supplied by the owner.
+
+Gallery and restored-photo previews issue URLs through owner-authorized `getDownloadURL()` and keep
+leases in memory only. Sign-out clears the images and suppresses late results, but cannot revoke a
+copied link. Anyone possessing a valid link can download that photo without authentication until the
+token is revoked or the object deleted. Records and backups still contain paths and verified photo
+bytes, never download URLs/tokens. Upload/recovery/export checksum verification and private/no-store
+object cache metadata are retained. The production image CSP is restricted to the configured bucket's
+Firebase Storage endpoint. URL or media errors remain visible and retryable.
+
+Before implementation, unit assertions failed on the blob URL and missing image CSP origin, and the
+synthetic cloud owner-token case failed against the old rules. Focused SDK integration verifies owner
+URL issuance, anonymous/foreign issuance denial, copied-link access after sign-out, absent/wrong token
+denial and invalidation after object deletion. The emulator strips token custom metadata before rules,
+so cloud synthetic cases separately validate the token shape and preserve negative authorization.
+
+`mise exec -- npm run check` passed lint/formatting, TypeScript, 180 unit tests, 112 rules tests,
+30 SDK integration tests, 58 Chromium browser tests and the local build (380 tests). The focused
+capture/restore/token-photo browser run passed all 13 cases. The explicit synthetic cloud policy
+command passed all 23 cases. The existing large Firebase bundle warning remains.
+
+Pipeline release evidence is recorded in the follow-up PR. The owner must retry an
+actual upload after deployment; passing simulated/emulator requests still does not prove that the
+production 403 is resolved. No bucket change, new infrastructure, migration or real inventory operation
+is part of this release.

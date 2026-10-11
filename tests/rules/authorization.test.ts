@@ -6,7 +6,7 @@ import {
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import type { RulesTestContext, RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { getBytes, ref, uploadBytes } from 'firebase/storage';
+import { getBytes, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import type { FirebaseStorage } from 'firebase/storage';
 import { assertLocalTarget } from '../../scripts/safety';
 import { Timestamp, serverTimestamp } from 'firebase/firestore';
@@ -795,6 +795,7 @@ describe('Storage owner policy', () => {
     await assertSucceeds(
       owner().storage('gs://demo-inventory.firebasestorage.app').ref(photo).getMetadata(),
     );
+    expect(await assertSucceeds(getDownloadURL(reference))).toContain('token=');
   });
   it.each([null, 'unrelated-user'])(
     'denies bytes, metadata, listing, upload, and delete for %s',
@@ -803,6 +804,7 @@ describe('Storage owner policy', () => {
         uid === null ? environment.unauthenticatedContext() : environment.authenticatedContext(uid);
       const store = context.storage('gs://demo-inventory.firebasestorage.app');
       await assertFails(getBytes(ref(storage(context), photo)));
+      await assertFails(getDownloadURL(ref(storage(context), photo)));
       await assertFails(store.ref(photo).getMetadata());
       await assertFails(store.ref('inventories/main/items').listAll());
       await assertFails(

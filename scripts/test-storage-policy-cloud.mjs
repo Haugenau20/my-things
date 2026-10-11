@@ -49,8 +49,26 @@ const cases = [
   { name: 'owner without optional metadata', expectation: 'ALLOW' },
   { name: 'owner with empty metadata', expectation: 'ALLOW', metadata: {} },
   {
-    name: 'UUID download-token metadata remains forbidden',
+    name: 'owner with one UUID download token',
+    expectation: 'ALLOW',
+    metadata: { firebaseStorageDownloadTokens: '00000000-0000-4000-8000-000000000001' },
+  },
+  {
+    name: 'thumbnail with one UUID download token',
+    expectation: 'ALLOW',
+    variant: 'thumb.jpg',
+    metadata: { firebaseStorageDownloadTokens: '00000000-0000-4000-8000-000000000001' },
+  },
+  {
+    name: 'UUID token does not bypass exact byte registration',
     expectation: 'DENY',
+    size: 3,
+    metadata: { firebaseStorageDownloadTokens: '00000000-0000-4000-8000-000000000001' },
+  },
+  {
+    name: 'UUID token does not authorize replacement',
+    expectation: 'DENY',
+    existing: true,
     metadata: { firebaseStorageDownloadTokens: '00000000-0000-4000-8000-000000000001' },
   },
   { name: 'extra metadata', expectation: 'DENY', metadata: { unexpected: 'synthetic' } },
@@ -102,7 +120,7 @@ const testCases = cases.map((test) => ({
   request: {
     auth: test.uid === null ? null : { uid: test.uid ?? 'synthetic-owner', token: {} },
     method: 'create',
-    path,
+    path: test.variant ? path.replace('detail.jpg', test.variant) : path,
     resource: {
       size: test.size ?? 4,
       contentType: test.contentType ?? 'image/jpeg',

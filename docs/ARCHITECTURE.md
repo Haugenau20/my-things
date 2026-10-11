@@ -47,7 +47,7 @@ src/
     transfer/          export, restore, recovery reports
   domain/              types, validation, workflow transitions, value helpers
   data/                Firebase bootstrap and record repositories
-  media/               conversion, upload/download, blob cache, cleanup
+  media/               conversion, upload/download, session URL leases, cleanup
   components/          small shared UI primitives
   test/                synthetic fixture builders and test setup
 scripts/               cross-platform dev/check tooling; no embedded credentials
@@ -65,8 +65,10 @@ there is no atomic transaction covering both. The design therefore tracks incomp
 retries idempotent. See [Photo pipeline](PHOTO_PIPELINE.md).
 
 Store image object paths and derivative metadata in records, never base64 images or permanent sharing
-URLs. Obtain photos through authenticated SDK downloads and display temporary browser object URLs. This
-requires bucket CORS configuration; see [References S06](REFERENCES.md#s06).
+URLs. The owner approved bearer gallery URLs on 2026-10-11: resolve them through owner-authorized
+`getDownloadURL()` and keep them only in session memory. Copied links remain readable after sign-out.
+Upload recovery and backup downloads still authenticate and verify file metadata/bytes/checksums;
+these direct SDK downloads require bucket CORS. See [Security](SECURITY.md).
 
 Room tags, nullable packing-box references, review status, moving workflow, record readiness, and trash status are
 different concepts. See [Data model](DATA_MODEL.md); do not collapse them into a single `status` field.

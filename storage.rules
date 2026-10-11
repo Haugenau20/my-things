@@ -29,6 +29,13 @@ service firebase.storage {
         return item.recordState in ['draft','ready'] && item.photos.size() > 0 && item.photos.size() <= 2
           && (pendingPhoto(item.photos[0]) || (item.photos.size() == 2 && pendingPhoto(item.photos[1])));
       }
+      function validMetadata() {
+        return !('metadata' in request.resource)
+          || (request.resource.metadata.keys().hasOnly(['firebaseStorageDownloadTokens'])
+            && (!('firebaseStorageDownloadTokens' in request.resource.metadata)
+              || (request.resource.metadata.firebaseStorageDownloadTokens is string
+                && request.resource.metadata.firebaseStorageDownloadTokens.matches('[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'))));
+      }
       allow get: if owns(inventoryId) && validPath();
       allow create: if owns(inventoryId) && validPath()
         && resource == null
@@ -37,8 +44,8 @@ service firebase.storage {
         && request.resource.contentType == 'image/jpeg'
         && request.resource.size > 0
         && request.resource.size <= (variant == 'detail.jpg' ? 8388608 : 524288)
-        // Cloud uploads can omit this optional map; the emulator supplies an empty map.
-        && (!('metadata' in request.resource) || request.resource.metadata.keys().hasOnly([]));
+        // The owner approved one UUID download token; every other custom field stays denied.
+        && validMetadata();
       // Verified retries reuse existing bytes; replacements require a new photo ID.
       allow update: if false;
       // Deletes have no incoming resource to validate.
