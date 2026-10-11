@@ -64,3 +64,45 @@ errors. It did not sign in or access inventory.
 The exact denied production request body was not collected; actual owner retry is still needed
 to confirm this reproduced rule defect accounts for the reported device failure. No real inventory
 records or photos were read, changed, discarded or migrated during investigation.
+
+## 2026-10-11: explicit-empty-map compatibility probe
+
+The owner still observes actual upload 403s after the earlier absent-map rule repair. The owner
+confirmed the app UID, simulated UID and trusted root owner UID match. A create simulation with
+the registered JPEG size allowed the upload. The captured multipart client payload contains the
+expected JPEG content type and private cache policy, with no custom metadata. Its request length
+minus the pinned SDK's multipart wrapper matches the registered thumbnail length. These checks
+establish the request's visible inputs; they do not expose the live service's complete rule context.
+
+Read-only cloud checks confirmed the published rules match this repository, the default bucket is
+linked to the configured bucket in the configured location/project, billing is enabled, Requester
+Pays is off, Storage App Check is unenforced, and the Storage service agent has the required
+Firestore role. Owner console inspection confirmed both Storage service-agent grants have no IAM
+condition. The owner reports there are no successfully uploaded photos. No bucket was reset and no
+provisioning, IAM, billing, CORS, trusted root or inventory data was changed.
+
+The SDK now explicitly sends `customMetadata: {}` on each derivative upload, instead of omitting
+the custom-metadata map. This is a controlled compatibility probe, not a confirmed diagnosis of
+the live denial. It makes the wire request unambiguously use the existing allowed empty-map branch.
+Authorization, pending registration, exact byte sizes, JPEG bounds, replacement denial and private
+authenticated retrieval remain unchanged. The owner explicitly declined an exception for UUID
+download-token metadata; Storage rules still reject that field and every other custom field.
+
+A new Chromium test uses a deterministic synthetic image large enough to exercise both resumable
+detail upload and multipart thumbnail upload. It inspects each initial SDK request, injects 403s,
+checks that the source selection remains available, then retries that same capture successfully
+against the demo emulators. Before the client change, its empty-map assertion failed with
+`Received: undefined`. Expanded synthetic cloud policy cases also cover UUID, malformed, empty,
+non-string, multiple and extra-field tokens, plus anonymous/foreign UUID-token requests; all remain
+denied. Cloud policy tests use mocked synthetic documents and do not upload objects or read inventory.
+
+The pinned Storage emulator generates a download token during finalization, then removes that field
+from custom metadata before constructing the rules resource. Its successful uploads therefore do
+not establish whether the production service presents generated tokens to rules in the same way.
+The captured client request contains no token; provider-side token injection remains unconfirmed.
+
+Local and GitHub verification/release evidence is recorded in the follow-up PR. An actual owner
+retry after its pipeline release is still required. A passed simulation or emulator upload does not
+establish that this probe fixes the production 403, or that provider-generated download tokens
+cannot exist. If denial continues, retain the existing recoverable draft and record the outcome;
+do not declare success or weaken metadata policy to bypass it.

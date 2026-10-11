@@ -67,6 +67,7 @@ export async function ensureFile(
   const task = uploadBytesResumable(ref(storage, file.storagePath), bytes, {
     contentType: 'image/jpeg',
     cacheControl: PRIVATE_CACHE,
+    customMetadata: {},
   });
   await new Promise<void>((resolve, reject) => {
     const cancel = () => {
