@@ -1,5 +1,9 @@
 # M3 second slice — Full photo export
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 Implemented under the owner's instruction to continue while away. This supplies the export half of the
 version-1 backup contract. Import/restore and its real recovery gate remain outstanding.
 

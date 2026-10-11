@@ -1,5 +1,9 @@
 # UI refactor implementation evidence
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 The photo delivery descriptions below record the policy during these milestones. On 2026-10-11 the
 owner approved token-bearing gallery URLs; the current policy is documented in [Security](SECURITY.md).
 

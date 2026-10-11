@@ -1,5 +1,7 @@
 # Repository, Firebase, and development setup
 
+See [current operations and acceptance](OPERATIONS.md) for current steps, dated evidence and remaining gates.
+
 This is a setup guide, not a record of completed cloud provisioning. M0 adds a local application,
 toolchain configuration, emulator tooling, and authorization tests. Production releases now use only
 GitHub Actions after merge to `main`; trusted administrative setup and device checks remain separate.
@@ -119,8 +121,9 @@ Emulator binaries use ignored `.firebase-emulators/` so CLI upgrades cannot repl
 running Java files. First startup downloads them. Run suites sequentially, not concurrently.
 
 Normal application data stays in memory; Auth persists only in the browser tab's session. Sign-out is
-broadcast to other same-origin app tabs. M1 capture/gallery/recovery and cloud Google redirect sign-in
-are implemented. Organization remains M2; cloud/device verification remains pending.
+broadcast to other same-origin app tabs. M1 capture/gallery/recovery, M2 organization, M3 backup/restore
+and the approved UI refactor are implemented. See [current acceptance](OPERATIONS.md) for completed
+owner/cloud checks and the remaining actual-device and real-cloud recovery gates.
 
 M0 loads `.env.local` for local commands and dedicated `.env.development.local` or
 `.env.production.local` files for cloud builds. These do not inherit local emulator values. Process
@@ -201,13 +204,15 @@ publish Firestore rules/indexes, Storage rules and Hosting after the explicit pr
 This is the only production deployment path. Every new or changed feature must have relevant emulator
 coverage before merge. A failed job blocks release; fix through a PR and retry in Actions.
 
-Use the existing production project and complete its verified bootstrap/configuration. Before merge, pass the
+Use the existing production project and retain its verified bootstrap/configuration. Before merge, pass the
 [test plan](TEST_PLAN.md), inspect the project/bucket IDs in the built config, review rules and indexes,
 and review the pipeline's explicit deployment destination. Merge reviewed changes into `main`; the
 pipeline publishes all tracked components after verification. Do not make local CLI/console releases.
 
-Test owner login and one unauthorized account after deployment. Verify direct photo access is denied
-without credentials, room/box behavior is correct, and no synthetic emulator records were seeded into cloud data. Record the release
+Test owner login and one unauthorized account after deployment. Verify SDK photo access and URL issuance
+require the bound owner, while an already-issued valid bearer URL permits that photo's download without
+authentication under the approved policy. Check absent/wrong tokens are denied, room/box behavior is
+correct, and no synthetic emulator records were seeded into cloud data. Record the release
 commit and manual checks. Do not enter irreplaceable inventory data before export/restore works.
 
 After substantial inventory sessions and before migrations, export an independent copy. Periodically
@@ -219,7 +224,7 @@ own recovery plan. No paid automated backup service is assumed in V1.
 ## 8. Approved v1 reset and schema-v2 cutover
 
 The owner approved replacing the initial test inventory without migration or v1 archive compatibility.
-The owner explicitly preapproved the scoped production wipe on 2026-10-10. This section documents the operation; it does not claim execution.
+The owner explicitly preapproved and completed the scoped production wipe on 2026-10-10; see the executed evidence below. The production steps preserve the historical procedure and do not authorize another reset.
 V2 clients and both rule sets require a schema-v2 inventory root. Preserve its exact existing owner UID,
 settings, creation timestamp and Auth account; change only its schema version through a trusted
 administrative action. Do not delete the root, re-bootstrap ownership or allow a client to change it.
@@ -234,10 +239,10 @@ are seeded. This is never a production credential or ownership source. Local exa
 review, packed/unpacked and a referenced archived room. Existing nonempty local items are not overwritten
 by seed. Browser-test emulators deliberately seed Auth/root only; their tests create isolated examples.
 
-### Production: owner-approved maintenance
+### Production: historical owner-approved maintenance
 
 Before executing anything, verify and report the exact project, inventory path, bucket prefix, observed collection
-counts and intended root-version change. The owner has already authorized this scoped reset; no repeated wipe confirmation is required. Do not log
+counts and intended root-version change. The recorded authorization applied to that completed reset only; a new destructive operation requires separate explicit owner authorization. Do not log
 private records, photos or owner identifiers. The accepted reset discards v1 test content; exporting or
 migrating it is not required for this specific owner-approved reset. Preserve any backup the owner wants
 outside the repository. Refresh/close old app tabs and stop editing during the cutover.
@@ -275,6 +280,6 @@ The owner preapproved this reset in the implementation chat on 2026-10-10. Admin
 
 The deployed Firestore rules were read and their v1 trusted-root/owner gate verified. A single administrative Firestore commit deleted the two observed documents using update-time preconditions and patched only the preserved root schemaVersion to 2 using its update-time precondition. The atomic operation also closed the old v1 client write gate. Root fields were re-read and verified identical except that version. All four collections (including missing parent documents) and the photo prefix were rechecked empty. Authentication was untouched. There was no Storage deletion because the scoped prefix was already empty. No credentials, owner UID, item content or private paths were logged in this evidence.
 
-Hosting, rules and indexes were not deployed. The v1 app is temporarily unavailable until an owner-authorized PR merge completes the reviewed release pipeline. Wiped content cannot be recovered by rolling back the app.
+At the time of this maintenance, Hosting, rules and indexes were not deployed and the v1 app was temporarily unavailable. The subsequent v2 pipeline release is recorded in [UI refactor evidence](UI_REFACTOR.md#pr-02-workspace-shell-and-dedicated-views); see [current operations](OPERATIONS.md) for the latest verified release. Wiped content cannot be recovered by rolling back the app.
 
 For focused emulator runs during refactoring, append repository test file paths, for example `mise exec -- npm run test:e2e -- tests/browser/shell.spec.ts`. Rules/integration scripts accept their matching `tests/rules/*.test.ts` or `tests/integration/*.test.ts` paths. The complete `npm run check` still runs every suite. Filters accept only validated repository test paths; all required demo emulators still start and fail closed.

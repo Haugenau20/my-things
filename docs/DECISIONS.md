@@ -1,5 +1,7 @@
 # Decision log and implementation defaults
 
+See [current operations and acceptance](OPERATIONS.md) for current steps, dated evidence and remaining gates.
+
 Date: 2026-10-10. "Agreed" means established by the owner/conversation. "Default" means a concrete choice
 proposed by this pack so implementation can proceed; it may be revised with rationale and tests. Defaults
 are not additional claims about the owner's possessions, accounts, budget, or preferred currency.
@@ -72,6 +74,11 @@ future paid service chosen. No exact budget/free-tier prediction or guarantee th
 free allowances. No claim that this documentation is a deployed or security-audited application.
 
 ## Recording a change
+
+Dated entries preserve decisions and implementation evidence at the time. Later entries supersede
+earlier schema/photo/release policies where stated; the current authorities and acceptance status are
+linked in [current operations](OPERATIONS.md). Past operation or merge permissions do not authorize
+new maintenance or merges.
 
 ### 2026-10-10 — Pipeline-only production releases
 

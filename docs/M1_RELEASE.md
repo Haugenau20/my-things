@@ -1,5 +1,9 @@
 # M1 deployment evidence
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 Date: 2026-10-10. The owner confirmed PR #2 was merged and explicitly authorized deployment and
 necessary configuration. Initial released application/rules source: merged main commit
 `d0ab84e126b227fad56eb35bc877138445139bd3`. **M1 owner/device acceptance remains pending.**

@@ -1,5 +1,9 @@
 # M0 foundation evidence
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 Date: 2026-10-10. Status: M0 complete locally. No cloud deployment or real inventory use.
 
 This records the original M0 checkpoint. Subsequent owner setup decisions, the production-only build
