@@ -79,7 +79,7 @@ Google button and reached `accounts.google.com` without console/page errors. Ano
 restore-report and Storage-prefix requests all returned 403. No production records/photos were read,
 exported, imported, migrated, deleted or cleared. No verification root was seeded. Storage rules, Auth,
 IAM, CORS, billing and infrastructure were unchanged. These checks do not prove authenticated cloud
-restore, actual-device behavior or a personal backup. Refresh existing app tabs to load this release.
+restore, actual-device behavior or a personal backup.
 
 ## Operating steps and remaining gates
 
@@ -89,20 +89,8 @@ are historical evidence; the present gallery/restore preview uses owner-authoriz
 authenticated blob delivery. The owner confirmed upload/delete after PR #25; real-cloud restore
 and actual iPhone acceptance remain pending.
 
-Refresh all open app tabs. Save every export part outside Firebase and this repository; ZIPs are
-unencrypted. Keep the final manifest ZIP with every numbered photo part. Have an administrator provision
-a separate empty inventory root with the existing trusted owner. Select all original filenames, validate,
-review destination/environment, then confirm. A nonempty main inventory is refused. On interruption,
-reconnect, refresh and reselect the same archive; never clear records/photos to make recovery succeed.
-Conflicts need administrator review.
-
-After completion, use Check restored photos to open multiple items, including label close-ups and trash.
-The main workspace still opens its configured inventory. A verification root can use a separate ID such
-as `restore-verification` in the same project; it must be seeded by a trusted administrator with schema
-version 2, the existing owner UID, a display name, explicit null/default currency, and creation/update
-timestamps. Browser clients cannot provision it. No such production verification root was created here.
-
-The real twenty-item/two-room iPhone-to-Windows scenario and a separate authorized cloud verification
-restore are required. Actual access/latency, gallery legibility, private object ACL/token posture and
-usage/billing need owner/device evidence. No additional cloud project is required. M4 remains optional
-after actual use identifies a need; usable V1 has not yet passed its complete gate.
+Use [Export and verification restore](OPERATIONS.md#export-and-verification-restore) for the complete
+procedure. The separate verification root requires `schemaVersion: 2` and the existing trusted owner
+binding, as specified in [Data model](DATA_MODEL.md#1-paths-and-ownership). Provisioning and real-data
+operations require explicit owner authorization. No production verification root was created for this
+milestone. Preserve the main inventory; never wipe a destination to make restore pass.

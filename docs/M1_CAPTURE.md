@@ -120,6 +120,10 @@ requires an explicit authDomain/redirect-origin change and new CSP/CORS verifica
 
 ## Trusted owner bootstrap
 
+Current schema-v2 contract: the existing production owner root is already provisioned. These steps
+describe separately authorized setup, not permission to recreate it. For isolated restore, follow
+[the current procedure](OPERATIONS.md#export-and-verification-restore).
+
 1. Verify Google provider settings and the exact Hosting domain in Firebase Authentication authorized
    domains. Complete sign-in once. Access remains denied before administrator bootstrap.
 2. The owner/project administrator identifies the owner's **Firebase Authentication UID** in the
@@ -129,14 +133,16 @@ requires an explicit authDomain/redirect-origin change and new CSP/CORS verifica
 
    | Field | Value/type |
    | --- | --- |
-   | `schemaVersion` | number `1` |
+   | `schemaVersion` | number `2` |
    | `ownerUid` | string containing the verified owner's Auth UID |
    | `displayName` | string, for example `My things` |
    | `defaultCurrency` | null until deliberately selected |
    | `createdAt`, `updatedAt` | Firestore timestamp values |
 
 4. Refresh/sign in again and verify owner access. Independently test another Google account and
-   unauthenticated access: both must remain denied for records, photos, listing, and writes.
+   unauthenticated SDK access: both must remain denied for records, photo reads/URL issuance, listing
+   and writes. Previously issued valid bearer photo URLs follow the approved
+   [token delivery policy](SECURITY.md#5-owner-approved-token-photo-delivery).
 5. Disable end-user signup/deletion after the owner account is verified; keep only that account in the
    production Auth user set. Other Google accounts must be rejected during sign-in. The initial owner
    binding and these restrictions are now applied; see [deployment evidence](M1_RELEASE.md).

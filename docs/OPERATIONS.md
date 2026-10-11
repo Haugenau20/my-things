@@ -11,7 +11,8 @@ their historical deployment commands and pending statements are not current inst
 - Only the administratively bound owner may access records or issue photo URLs. The owner approved
   token-bearing gallery URLs on 2026-10-11: copied links remain readable after sign-out until token
   revocation or object deletion. URLs stay in session memory, never records or backups. Upload
-  recovery and backups still verify authenticated bytes and checksums. See [security](SECURITY.md).
+  recovery and backups still verify authenticated bytes and checksums. Clearing app URL references
+  on sign-out does not revoke copied links. See [security](SECURITY.md).
 - Local development and automated tests use synthetic `demo-inventory` Auth, Firestore and Storage
   emulators. Missing emulator configuration fails closed. See [local setup](SETUP.md#4-local-windows-toolchain).
 - Production releases use the reviewed GitHub pipeline after an owner-authorized merge to `main`.
@@ -53,11 +54,17 @@ No claim of a full production security audit or real backup/recovery proof follo
    and [owner bootstrap contract](SECURITY.md#2-authentication-and-owner-bootstrap) are authoritative.
    Neither the browser, an archive nor a local environment variable may establish ownership.
 5. Reopen the saved ZIPs in Restore backup. Set **Destination inventory ID** to the separately provisioned
-   verification ID from steps 3–4; the initial value is the workspace inventory, normally `main`. Choose **Validate backup and destination**, inspect all parts and the dry-run summary, and confirm that the destination is the verification ID before explicitly confirming restore. A nonempty destination or unexpected objects block
-   a new restore; never wipe data to bypass that protection. Restore never imports owner authority.
-6. After interruption, reselect the same archive and resume the recorded operation. Changed records,
-   missing parts or checksum conflicts require investigation; keep the destination and original
-   archive intact. Only an unused interrupted report with zero claims can be explicitly released.
+   verification ID from steps 3–4; the initial value is the workspace inventory, normally `main`.
+   Choose **Validate backup and destination**, inspect all parts and the dry-run summary, and confirm
+   the environment and verification ID before choosing **Restore validated backup**. A nonempty
+   destination or unexpected objects block a new restore; never wipe data to bypass that protection.
+   Restore never imports owner authority. Restoring inventory name/default currency is optional;
+   destination owner, root schema and root creation metadata remain intact.
+6. After interruption, reconnect, refresh and reselect the same archive and destination. Validate,
+   then choose **Resume restore**. The exact manifest/export identity and claims must match. Changed
+   records, missing parts or checksum conflicts require investigation; keep the destination and
+   original archive intact. Only an interrupted report with zero claims offers **Release unused
+   import lock**. A completed report can be verified again with the same archive.
 7. Confirm record counts, room/box relationships, grouped values, completed/trashed entries, photo
    counts and exact derivative hashes. Use **Check restored photos** to inspect representative images
    and label close-ups. Record actual browser/device versions and results without committing records,

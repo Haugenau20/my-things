@@ -162,14 +162,14 @@ clean while findings remain.
 
 ## TODO-005 — Correct and consolidate current operating instructions
 
-- Status: In progress
+- Status: Done
 - Priority: High
 - Effort: Small
 - Evidence: Confirmed gap
 - Added: 2026-10-11
 
-**Problem and evidence:** The operating steps in [M3_RESTORE.md](docs/M3_RESTORE.md) still instruct an
-administrator to seed schema version 1, while [the current data model](docs/DATA_MODEL.md) requires v2.
+**Problem and evidence:** At review, the operating steps in [M3_RESTORE.md](docs/M3_RESTORE.md) instructed
+an administrator to seed schema version 1, while [the current data model](docs/DATA_MODEL.md) requires v2.
 Milestone histories also contain older delivery policies and pending acceptance statements, making
 current instructions harder to distinguish from historical evidence.
 
@@ -184,7 +184,21 @@ can find authoritative restore/release steps without following obsolete instruct
 **Dependencies and authorization:** None beyond normal change review. Documentation changes do not
 authorize executing the described cloud operations.
 
-**Completion record:** 2026-10-11 — implemented in [PR #26](https://github.com/Haugenau20/my-things/pull/26), pending review/merge. Corrected restore schema and reset status; added the current operations/acceptance guide and historical notices. `mise exec -- npm run check` passed lint/format, TypeScript, 180 unit, 117 rules, 30 SDK integration and 58 Chromium tests, plus local build (385 tests). Local documentation links and `git diff --check` passed. Independent runbook review made verification-destination selection explicit. Existing bundle warning remains; no new device/cloud recovery test or production operation was performed.
+**Completion record:** 2026-10-11 — the original implementation merged in
+[PR #26](https://github.com/Haugenau20/my-things/pull/26) (`e2b4b88`). It corrected restore schema and
+reset status, added the current operations/acceptance guide and historical notices, and made the
+verification destination explicit. Its local `mise exec -- npm run check` passed lint/format,
+TypeScript, 180 unit, 117 rules, 30 SDK integration and 58 Chromium tests, plus build (385 tests).
+Local documentation links and `git diff --check` passed.
+
+[PR #31](https://github.com/Haugenau20/my-things/pull/31) retains that implementation and subsequent
+main changes, corrects the remaining schema-v1 bootstrap table and SDK/bearer-link wording, and
+consolidates restore instructions with explicit confirmation/resume controls. After resolving the
+overlap with main, `mise exec -- npm run check` passed lint/format, TypeScript, 230 unit, 117 rules,
+31 SDK integration and all 65 Chromium tests, plus build (443 tests). Local documentation links,
+conflict-marker checks, TODO formatting and `git diff --check` passed. The follow-up remains subject
+to normal PR review. The existing bundle warning, actual-device and isolated real-cloud recovery
+gates remain; no production provisioning, maintenance or real-data operation was performed.
 
 ## TODO-006 — Reduce full-inventory refresh work
 
