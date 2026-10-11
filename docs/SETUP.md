@@ -121,8 +121,9 @@ Emulator binaries use ignored `.firebase-emulators/` so CLI upgrades cannot repl
 running Java files. First startup downloads them. Run suites sequentially, not concurrently.
 
 Normal application data stays in memory; Auth persists only in the browser tab's session. Sign-out is
-broadcast to other same-origin app tabs. M1 capture/gallery/recovery and cloud Google redirect sign-in
-are implemented. Organization remains M2; cloud/device verification remains pending.
+broadcast to other same-origin app tabs. M1 capture/gallery/recovery, M2 organization, M3 backup/restore
+and the approved UI refactor are implemented. See [current acceptance](OPERATIONS.md) for completed
+owner/cloud checks and the remaining actual-device and real-cloud recovery gates.
 
 M0 loads `.env.local` for local commands and dedicated `.env.development.local` or
 `.env.production.local` files for cloud builds. These do not inherit local emulator values. Process
@@ -203,13 +204,15 @@ publish Firestore rules/indexes, Storage rules and Hosting after the explicit pr
 This is the only production deployment path. Every new or changed feature must have relevant emulator
 coverage before merge. A failed job blocks release; fix through a PR and retry in Actions.
 
-Use the existing production project and complete its verified bootstrap/configuration. Before merge, pass the
+Use the existing production project and retain its verified bootstrap/configuration. Before merge, pass the
 [test plan](TEST_PLAN.md), inspect the project/bucket IDs in the built config, review rules and indexes,
 and review the pipeline's explicit deployment destination. Merge reviewed changes into `main`; the
 pipeline publishes all tracked components after verification. Do not make local CLI/console releases.
 
-Test owner login and one unauthorized account after deployment. Verify direct photo access is denied
-without credentials, room/box behavior is correct, and no synthetic emulator records were seeded into cloud data. Record the release
+Test owner login and one unauthorized account after deployment. Verify SDK photo access and URL issuance
+require the bound owner, while an already-issued valid bearer URL permits that photo's download without
+authentication under the approved policy. Check absent/wrong tokens are denied, room/box behavior is
+correct, and no synthetic emulator records were seeded into cloud data. Record the release
 commit and manual checks. Do not enter irreplaceable inventory data before export/restore works.
 
 After substantial inventory sessions and before migrations, export an independent copy. Periodically
