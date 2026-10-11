@@ -56,10 +56,17 @@ Preparation evidence on 2026-10-11: `mise exec -- npm run lint`, `mise exec -- n
 `mise exec -- npm run test` (213 unit tests), `mise exec -- npm run build`, actionlint 1.7.12 and
 `git diff --check` passed. The 26 focused CI/release cases passed after reproducing rejection of the
 selected hostname and the absent workflow-origin output before their changes. The build retains
-the existing large-chunk warning. Local `npm run check` stopped at rules-emulator startup because
-another project's session occupies the required ports; the focused shell browser run stopped for
-the same reason. Rules, SDK and browser execution remain pending locally. The owner requested
-waiting for that session rather than stopping it. No production configuration or cloud data changed.
+the existing large-chunk warning. The initial local emulator runs stopped at startup because another
+project's session held the required ports; the owner requested waiting without interrupting it.
+After those ports became available, `mise exec -- npm run check` passed lint/formatting, TypeScript,
+213 unit tests, 117 rules tests, 30 SDK integration tests, 61 Chromium browser tests and the local
+build: **421 tests**. The public-shell `noindex` check and positive/negative authorization cases passed
+against the complete `demo-inventory` emulator stack. GitHub's full verification also passed for
+implementation commit `9e476bc` in
+[workflow 38138007658](https://github.com/Haugenau20/my-things/actions/runs/38138007658); the final
+documentation commit receives a fresh PR check. Production deployment is skipped on this PR.
+No production configuration or cloud data changed; DNS/HTTPS, OAuth, CORS and actual-device acceptance
+remain separate pending chunks.
 
 Sources: [Firebase custom domains](https://firebase.google.com/docs/hosting/custom-domain),
 [same-origin redirect sign-in](https://firebase.google.com/docs/auth/web/redirect-best-practices),
