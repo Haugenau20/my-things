@@ -23,6 +23,14 @@ successful complete `npm run check`. Never bypass failed checks with a local CLI
 Retry the workflow after a fix; roll back with a reviewed revert PR. Emulator verification does not
 replace the device/cloud acceptance scenarios below.
 
+Custom-domain preparation must accept `things.muninn.quest` and the configured project's Firebase
+Hosting name while rejecting unreviewed/lookalike names and mismatched production targets. Test
+configuration fingerprints and generated exact-origin CORS with synthetic values. Check the public
+shell's `noindex` marker against demo emulators. Before activation, separately verify DNS/HTTPS,
+Google redirect sign-in, unrelated-account rejection, authenticated photo upload/recovery/export and
+the unaffected `muninn.quest` website. Record the deployed commit/workflow and actual-device results;
+see [custom-domain gates](plans/2026-10-11-custom-domain-design.md).
+
 ## 2. Authorization matrix - release blocking
 
 | Attempt | Unauthenticated | Unrelated signed-in UID | Inventory owner |

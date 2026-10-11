@@ -28,6 +28,30 @@ it('produces explicit production config from the public SDK JSON without forward
 it('rejects another project before creating production config', () => {
   expect(() => productionEnvironment(JSON.stringify(web), 'other-production')).toThrow();
 });
+it('accepts the owner-selected custom auth domain without changing the production target', () => {
+  const result = productionEnvironment(
+    JSON.stringify({ ...web, authDomain: 'things.muninn.quest' }),
+    project,
+  );
+  expect(result.VITE_FIREBASE_AUTH_DOMAIN).toBe('things.muninn.quest');
+  expect(result.VITE_FIREBASE_PROJECT_ID).toBe(project);
+  expect(result.VITE_FIREBASE_STORAGE_BUCKET).toBe(web.storageBucket);
+  expect(() =>
+    productionEnvironment(
+      JSON.stringify({ ...web, authDomain: 'things.muninn.quest' }),
+      'other-production',
+    ),
+  ).toThrow();
+});
+it.each([
+  'muninn.quest',
+  'storage.muninn.quest',
+  'other.muninn.quest',
+  'things.muninn.quest.example',
+  'another-project.firebaseapp.com',
+])('rejects an unreviewed auth domain: %s', (authDomain) => {
+  expect(() => productionEnvironment(JSON.stringify({ ...web, authDomain }), project)).toThrow();
+});
 it.each([
   '',
   '{}',

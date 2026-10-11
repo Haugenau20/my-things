@@ -1,4 +1,4 @@
-import { copyFile, writeFile } from 'node:fs/promises';
+import { appendFile, copyFile, writeFile } from 'node:fs/promises';
 import { productionEnvironment } from './ci-environment.ts';
 
 const [mode, ...extra] = process.argv.slice(2);
@@ -25,5 +25,11 @@ if (mode === 'local') {
       .map(([key, value]) => `${key}=${value}`)
       .join('\n') + '\n',
   );
+  if (process.env.GITHUB_OUTPUT) {
+    await appendFile(
+      process.env.GITHUB_OUTPUT,
+      `origin=https://${env.VITE_FIREBASE_AUTH_DOMAIN}\n`,
+    );
+  }
 }
 console.log(`Prepared explicit ${mode} configuration. No cloud action performed.`);

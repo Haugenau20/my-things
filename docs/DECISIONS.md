@@ -26,6 +26,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | A14 | Only the owner may authenticate to the production app | Close public signup after trusted owner bootstrap; keep only the owner Auth account |
 | A15 | Production releases only through GitHub Actions after merge to `main` | Every feature needs emulator coverage; failed checks block release; no local CLI or console deployment |
 | A16 | Token-bearing gallery photo URLs approved on 2026-10-11 | Supersedes the earlier refusal; owner authorizes URL issuance, but copied links remain readable after sign-out until token revocation/object deletion |
+| A17 | Custom app address `things.muninn.quest`, selected on 2026-10-11; Porkbun DNS | Attach to the existing Firebase Hosting site in verified chunks; preserve `muninn.quest`; DNS/Auth/CORS/activation remain pending |
 
 ## Concrete defaults supplied by this pack
 

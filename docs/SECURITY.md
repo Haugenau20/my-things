@@ -146,6 +146,13 @@ Policy for the actual Firebase/OAuth endpoints, allow required auth frames, and 
 Set an anti-framing policy for the app, `X-Content-Type-Options: nosniff`, and a restrictive referrer policy.
 Do not weaken OAuth or CSP wholesale to fix one browser issue.
 
+The owner selected `things.muninn.quest` as the custom app hostname on 2026-10-11. Production
+preparation permits only that name or the configured project's Firebase Hosting name. The app and
+Google redirect helper must still share the selected origin; CORS stays exact-origin and owner rules
+remain authoritative. The public shell requests `noindex`, which is search visibility control, not
+access control. Domain provisioning and activation are separate gates in the
+[custom-domain design](plans/2026-10-11-custom-domain-design.md).
+
 Do not add analytics, third-party error capture, or session replay by default. Sanitize errors; never log
 access tokens, item photos, or full exports. Test reports and screenshots use synthetic data only.
 

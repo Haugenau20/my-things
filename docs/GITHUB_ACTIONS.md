@@ -60,6 +60,13 @@ injection fail before build/authentication/deployment. Private/admin credentials
 this variable. Generated environment and Google credential files are ignored and are not uploaded as
 artifacts. GitHub automatically supplies the limited `GITHUB_TOKEN`; do not create a PAT for this job.
 
+The owner also selected `things.muninn.quest`. CI and release preparation accept only that hostname
+or the configured project's `firebaseapp.com` hostname; the explicit project/inventory target and
+configuration fingerprint checks still apply. The workflow environment link follows the JSON's
+`authDomain`. Keep the current value until the separately verified DNS/HTTPS, OAuth and bucket CORS
+chunks are complete, then change only `authDomain` and release through Actions. See the
+[custom-domain design and setup gates](plans/2026-10-11-custom-domain-design.md).
+
 ## One-time Google setup, applied
 
 The reviewable [PowerShell setup script](../scripts/setup-github-oidc.ps1) targets the existing project

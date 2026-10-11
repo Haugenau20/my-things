@@ -79,6 +79,11 @@ every served origin. Add localhost only if testing real OAuth from localhost is 
 work uses the Auth emulator. Do not assume a Hosting preview automatically works with OAuth or isolates
 the backend. Use the official redirect guidance for Safari. [References S08](REFERENCES.md#s08).
 
+The owner selected `things.muninn.quest`, with Porkbun DNS, on 2026-10-11. Follow the separate
+[custom-domain chunks](plans/2026-10-11-custom-domain-design.md); preparation support does not activate
+the address. Keep the existing production auth domain until DNS/HTTPS, OAuth and exact-origin CORS
+have been verified. Domain setup must preserve the existing `muninn.quest` website.
+
 Inspect the bucket's soft-delete, retention, and versioning policies, and record the actual choice in an
 ignored local operations note. Retained deleted objects may incur storage charges. Do not create lifecycle
 rules that expire ordinary inventory photos. [References S18](REFERENCES.md#s18).
