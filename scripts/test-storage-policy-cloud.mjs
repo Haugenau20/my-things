@@ -48,12 +48,47 @@ const functionMocks = [
 const cases = [
   { name: 'owner without optional metadata', expectation: 'ALLOW' },
   { name: 'owner with empty metadata', expectation: 'ALLOW', metadata: {} },
+  {
+    name: 'UUID download-token metadata remains forbidden',
+    expectation: 'DENY',
+    metadata: { firebaseStorageDownloadTokens: '00000000-0000-4000-8000-000000000001' },
+  },
   { name: 'extra metadata', expectation: 'DENY', metadata: { unexpected: 'synthetic' } },
   {
-    name: 'explicit download token',
+    name: 'malformed download token',
     expectation: 'DENY',
     metadata: { firebaseStorageDownloadTokens: 'synthetic-token' },
   },
+  ...[
+    ['', 'empty download token'],
+    [null, 'null download token'],
+    [123, 'numeric download token'],
+    [[], 'array download token'],
+    ['00000000-0000-1000-8000-000000000001', 'non-v4 download token'],
+    ['00000000-0000-4000-0000-000000000001', 'invalid UUID variant'],
+    [
+      '00000000-0000-4000-8000-000000000001,00000000-0000-4000-8000-000000000002',
+      'multiple download tokens',
+    ],
+  ].map(([token, name]) => ({
+    name,
+    expectation: 'DENY',
+    metadata: { firebaseStorageDownloadTokens: token },
+  })),
+  {
+    name: 'download token with extra metadata',
+    expectation: 'DENY',
+    metadata: {
+      firebaseStorageDownloadTokens: '00000000-0000-4000-8000-000000000001',
+      unexpected: 'synthetic',
+    },
+  },
+  ...[null, 'synthetic-unrelated'].map((uid) => ({
+    name: `${uid === null ? 'anonymous' : 'unrelated'} upload with UUID token`,
+    expectation: 'DENY',
+    uid,
+    metadata: { firebaseStorageDownloadTokens: '00000000-0000-4000-8000-000000000001' },
+  })),
   { name: 'anonymous upload', expectation: 'DENY', uid: null },
   { name: 'unrelated upload', expectation: 'DENY', uid: 'synthetic-unrelated' },
   { name: 'wrong byte size', expectation: 'DENY', size: 3 },
