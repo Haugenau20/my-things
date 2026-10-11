@@ -23,11 +23,13 @@ Protect item/room/box metadata, estimated values, serial numbers, photo bytes an
 and the ability to change/delete them. A public static application shell, generic login page, project
 identifier, and frontend code are acceptable. Never embed real inventory records in a static build.
 
-Threats in scope: unauthenticated access, unrelated Google accounts, tampered client requests, public
-photo links, accidental broad rules, cross-environment mistakes, malicious imports, XSS through notes,
+Threats in scope: unauthenticated inventory/SDK access, unrelated Google accounts, tampered client requests,
+accidental broad rules, cross-environment mistakes, malicious imports, XSS through notes,
 and accidental/destructive edits. The design does not protect against a compromised owner Google account,
 compromised device/browser, malicious project administrator, or copies already downloaded by the owner.
-No end-to-end encryption is claimed. Protect devices and independent backups separately.
+No end-to-end encryption is claimed. Protect devices and independent backups separately. The owner
+approved bearer photo links on 2026-10-11: a person possessing such a link can read its photo without
+authentication. This accepted capability is distinct from access to records or other Storage operations.
 
 ## 2. Authentication and owner bootstrap
 
@@ -83,13 +85,16 @@ not claim complete nested validation from a superficial rules check.
 
 Permit only the documented inventory photo namespace. Check `request.auth.uid` against the owner UID in
 the inventory root, using Firestore access from Storage rules. Deny missing inventory policies. Apply
-owner checks to reads, metadata reads, writes, deletion, and path-scoped listings; listing permissions
+owner checks to SDK reads, URL issuance, metadata reads, writes, deletion, and path-scoped listings; listing permissions
 must not expose other inventory namespaces.
 
 Constrain uploaded file names, JPEG content type, and size according to the photo specification. Treat
-an absent custom-metadata map as equivalent to an empty map; cloud requests may omit it. Unexpected
-custom metadata remains denied. See [photo upload investigation](PHOTO_UPLOAD_FIX.md) for cloud
-Rules API regression evidence and the separate provider-generated token audit limitation.
+an absent custom-metadata map as equivalent to an empty map; cloud requests may omit it. The owner
+approved the single `firebaseStorageDownloadTokens` field containing one lowercase UUID v4 on creation.
+Firebase-generated and owner-supplied UUIDs cannot be distinguished by rules. Malformed/non-string/
+multiple tokens, additional custom fields and all metadata updates remain denied. See
+[photo upload investigation](PHOTO_UPLOAD_FIX.md) for synthetic cloud Rules API evidence and the
+emulator's limitation around generated tokens.
 Handle object deletion in its own rule branch: a delete has no incoming file whose size/content type can be
 validated. Wrong paths, unexpected variants, HTML/SVG uploads, and oversized files must fail.
 
@@ -101,23 +106,30 @@ not verify that IAM integration. Monitor both services' usage after deploying th
 The inventory policy is the security authority. Item/filename guessing is not a defense. Rules should
 reject foreign inventory paths even when their IDs are known.
 
-## 5. Private photo delivery
+## 5. Owner-approved token photo delivery
 
-Store object paths, not permanent download URLs. Use authenticated SDK blob downloads and temporary local
-object URLs for display. Firebase documents direct downloads with Security Rules control and the need
-for CORS configuration. [References S06](REFERENCES.md#s06).
+Store object paths, not download URLs. Resolve gallery URLs with owner-authorized `getDownloadURL()` and
+display them directly. These are bearer capabilities: anyone with a copied URL can download its object
+without signing in, including after app sign-out or an owner-policy change. A login screen and URL
+eviction cannot revoke copies. Deleting the object invalidates its link; token rotation/revocation is
+a separately authorized administrative operation because client metadata updates remain denied.
+This explicitly approved decision supersedes the earlier authenticated-blob-only gallery policy.
 
 Configure exact development/production origins and required methods, not a reflexive wildcard. CORS is
-browser interoperability, not authorization. A non-browser request must still need authorized identity.
-Do not add `allUsers`/public bucket permissions. Do not expose download tokens in records, exports, logs,
-or links. If token-bearing URLs are ever created/exposed, review and revoke their tokens as appropriate;
-simply putting a login screen in front of the gallery does not revoke an already shared capability.
+browser interoperability, not authorization. A request with no photo token must still need authorized
+identity. Do not add `allUsers`/public bucket permissions. Keep URLs in session memory only and out of
+records, exports, logs and telemetry. There is no public-sharing UI. Production CSP permits images from
+the configured bucket's Firebase Storage endpoint, with a no-referrer policy.
 
 Use private/no-store cache metadata for photo delivery where supported. Keep app-managed photo caches in
-memory, bounded in size, and keyed by account/environment. Revoke object URLs on eviction, item removal,
-and sign-out. Clear metadata, selections, forms, and image caches on sign-out; communicate sign-out to
+memory, bounded in size, and keyed by account/environment. Clear issued URL references on eviction,
+item removal and sign-out; revoke temporary local capture-preview URLs. Clear metadata, selections,
+forms, and image caches on sign-out; communicate sign-out to
 other open same-origin app tabs. Do not promise to erase screenshots, downloaded backups, or all possible
-browser/OS remnants.
+browser/OS remnants or revoke a copied token URL by signing out. Upload acknowledgment/recovery and
+exports continue to use authenticated byte downloads with metadata, length and SHA-256 checks. Gallery
+display resolves URLs lazily and relies on immutable verified uploaded objects rather than hashing
+the image again on every view.
 
 ## 6. Frontend, configuration, and credentials
 

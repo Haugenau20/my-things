@@ -182,9 +182,12 @@ application. Disable end-user account creation after owner bootstrap; reject oth
 during Firebase Authentication. Keep the production Auth user set limited to the owner. A public login
 page is acceptable. Changing to magic links would still require the same closed account policy.
 
-**Privacy:** Only the configured owner can access records, filenames, photo bytes, exports, or storage
-listings. A public login page is acceptable. No inventory content in public Hosting assets, telemetry,
-URLs, or source-controlled fixtures. Do not use permanent bearer-style photo download links in the UI.
+**Privacy:** Only the configured owner can access inventory records, Storage metadata/listings, uploads,
+deletion and exports through the authenticated application. On 2026-10-11 the owner approved Firebase
+token-bearing photo URLs in the gallery: possession of a copied URL grants access to that photo without
+sign-in, including after app sign-out, until its token is revoked or its object deleted. Issue URLs only
+through owner-authorized SDK requests and keep them in session memory, never records, exports, telemetry
+or source-controlled fixtures. A public login page is acceptable; Hosting assets contain no inventory.
 
 **Reliability:** A success indicator means a server-acknowledged save. Surface pending, failed, and unknown
 outcomes, use stable IDs for retry, and do not lose unrelated fields during bulk or concurrent edits.

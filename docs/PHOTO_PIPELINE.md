@@ -117,10 +117,14 @@ Unexpected objects and invalid creation/type/size metadata require administrativ
 does not delete files or check referenced photo bytes; it must not be mistaken for a backup integrity
 check. See [M3 recovery evidence](M3_RECOVERY.md).
 
-Download thumbnails lazily through authenticated SDK access. Use a bounded in-memory blob cache; revoke
-object URLs on eviction/sign-out. Load full detail photos only when opened. Never precache the full
-inventory through a service worker. Share the same authenticated download helper with export, but give
-exports separate bounded concurrency and progress/cancel handling.
+Resolve thumbnails lazily with owner-authorized `getDownloadURL()` and load full detail photos only when
+opened. The owner approved token-bearing delivery on 2026-10-11. Hold URL leases only for mounted images,
+cap their registered encoded sizes at 24 MiB, and bound concurrent URL requests to two. This is an
+application working-set limit, not a browser decoded-image memory guarantee. Eviction/sign-out drops
+local references and suppresses late results; copied bearer URLs remain valid until token revocation or
+object deletion. Failed URL issuance or image requests offer retry. Never persist these URLs in records,
+backups or a service worker. Upload acknowledgment/recovery and export still use authenticated
+metadata/byte/checksum verification with their own bounded concurrency and cancellation.
 
 Desktop capture occupies the shared right panel and retains the name, optional details and selected source files when closed. Two drag-and-drop slots preview at most two local files using temporary object URLs, revoked on replacement/unmount. Camera/library selection still uses native file inputs; the existing two-photo limit, derivative preparation, locked retry identity and explicit unfinished-attempt recovery apply. Recent saves use authenticated thumbnail retrieval and appear only after record/photo acknowledgment.
 

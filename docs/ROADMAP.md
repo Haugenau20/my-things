@@ -1,5 +1,10 @@
 # Implementation roadmap
 
+On 2026-10-11 the owner approved token-bearing gallery URLs. Photo authorization gates distinguish
+owner-only SDK operations/URL issuance from an already-issued bearer link, which permits its holder
+to read that photo after sign-out. See [Security](SECURITY.md); earlier milestone evidence reflects
+the delivery policy at the time.
+
 Work in small, verifiable slices. Production releases now run only through the GitHub pipeline after
 merge to `main` and successful emulator verification; see [pipeline policy](GITHUB_ACTIONS.md).
 No time estimates are implied. All milestones

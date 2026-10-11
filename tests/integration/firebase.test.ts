@@ -14,7 +14,7 @@ import { assertLocalTarget } from '../../scripts/safety';
 import { captureDraft, photoPath } from '../../src/domain/item';
 import type { CaptureInput } from '../../src/domain/item';
 import { Timestamp } from 'firebase/firestore';
-import { ref, uploadBytes } from 'firebase/storage';
+import { deleteObject, getBytes, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { sha256 } from '../../src/media/processing';
 import { ensureDraft, loadItems, createRoom } from '../../src/data/capture-repository';
 import * as captureRepository from '../../src/data/capture-repository';
@@ -202,6 +202,45 @@ describe('real client SDK and trusted synthetic seed', () => {
     expect(
       (await loadItems(services.db, 'main')).filter((item) => item.id === plan.id),
     ).toHaveLength(1);
+  });
+  it('requires owner authorization to issue URLs while copied tokens work until object deletion', async () => {
+    const services = await owner('token-url-owner');
+    const plan = await attempt('sdk-token-urls');
+    const saved = await saveAttempt(services, 'main', plan, new AbortController().signal, () => {});
+    const reference = ref(services.storage, saved.photos[0]!.detail.storagePath);
+    const url = await getDownloadURL(reference);
+    expect(new URL(url).searchParams.get('token')).toBeTruthy();
+    await signOut(services.auth);
+    await expect(getDownloadURL(reference)).rejects.toMatchObject({ code: 'storage/unauthorized' });
+    await expect(getBytes(reference)).rejects.toMatchObject({ code: 'storage/unauthorized' });
+    const copied = await fetch(url);
+    expect(copied.ok).toBe(true);
+    expect(new Uint8Array(await copied.arrayBuffer())).toEqual(
+      new Uint8Array([255, 216, 255, 217]),
+    );
+    const missingToken = new URL(url);
+    missingToken.searchParams.delete('token');
+    expect((await fetch(missingToken)).ok).toBe(false);
+    const wrongToken = new URL(url);
+    wrongToken.searchParams.set('token', '00000000-0000-4000-8000-000000000000');
+    expect((await fetch(wrongToken)).ok).toBe(false);
+    await signInWithEmailAndPassword(
+      services.auth,
+      LOCAL_ACCOUNTS.unrelated.email,
+      LOCAL_ACCOUNTS.unrelated.password,
+    );
+    await expect(getDownloadURL(reference)).rejects.toMatchObject({ code: 'storage/unauthorized' });
+    await signInWithEmailAndPassword(
+      services.auth,
+      LOCAL_ACCOUNTS.owner.email,
+      LOCAL_ACCOUNTS.owner.password,
+    );
+    await deleteObject(reference);
+    expect((await fetch(url)).ok).toBe(false);
+    await deleteObject(ref(services.storage, saved.photos[0]!.thumbnail.storagePath));
+    await environment.withSecurityRulesDisabled((context) =>
+      context.firestore().doc(`inventories/main/items/${saved.id}`).delete(),
+    );
   });
   it('saves photo-free items with stable identity and attaches verified photos without changing metadata', async () => {
     const services = await owner('photo-free-attachment');

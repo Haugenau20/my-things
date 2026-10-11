@@ -146,7 +146,9 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   await expect
     .poll(() => restoredPreview.evaluate((element) => (element as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0);
-  expect(await restoredPreview.getAttribute('src')).toMatch(/^blob:/);
+  expect(new URL((await restoredPreview.getAttribute('src'))!).searchParams.has('token')).toBe(
+    true,
+  );
   await page.getByRole('button', { name: /^Things/ }).click();
   await page.getByRole('button', { name: `Open ${photoName}`, exact: true }).click();
   const image = page.getByRole('img', { name: `${photoName} · photo 1`, exact: true });
@@ -154,7 +156,7 @@ test('validates without writes, refuses existing data, then resumes interrupted 
   await expect
     .poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0);
-  expect(await image.getAttribute('src')).toMatch(/^blob:/);
+  expect(new URL((await image.getAttribute('src'))!).searchParams.has('token')).toBe(true);
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(image).toHaveCount(0);
   expect(errors).toEqual([]);

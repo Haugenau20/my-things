@@ -9,6 +9,10 @@ and box records needed to preserve labels, inventory display settings, and both 
 retained ready photo. Keep independent room and box references and grouped quantities. It is not an export of account
 authorization, Google/Firebase tokens, or cloud infrastructure.
 
+The owner-approved token-bearing gallery URLs are session-only and are excluded from this format.
+Exports still contain authenticated, checksum-verified photo bytes; restore uses object paths and
+obtains fresh gallery URLs from the destination. The schema and format remain version 2.
+
 Photo-free ready items are included with `photos: []` and `coverPhotoId: null`, zero photo files,
 and an empty CSV cover path. Intentional photo absence is valid, not a missing-file or incomplete-backup
 condition. Pending photo attachments still block a complete export. Restore photo-free records without

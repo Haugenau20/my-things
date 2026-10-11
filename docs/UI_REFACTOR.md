@@ -1,5 +1,8 @@
 # UI refactor implementation evidence
 
+The photo delivery descriptions below record the policy during these milestones. On 2026-10-11 the
+owner approved token-bearing gallery URLs; the current policy is documented in [Security](SECURITY.md).
+
 The owner approved the ten-stage [handoff](UI_refactor/README.md), the inclusion of referenced archived rooms in filters/counts, continuous stacked PRs, and the scoped production wipe. The owner subsequently explicitly authorized merging each verified PR as work proceeds. Releases still require the reviewed pipeline and successful checks.
 
 ## PR-01: Independent Room and Box, schema v2

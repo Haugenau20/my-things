@@ -26,7 +26,7 @@ export function releaseSettings(config: AppConfig, manifest: unknown, fingerprin
       "default-src 'self'",
       "script-src 'self' https://apis.google.com",
       "style-src 'self'",
-      "img-src 'self' blob:",
+      `img-src 'self' blob: https://firebasestorage.googleapis.com/v0/b/${config.firebase.storageBucket}/o/`,
       "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebasestorage.googleapis.com",
       "frame-src 'self'",
       "frame-ancestors 'none'",

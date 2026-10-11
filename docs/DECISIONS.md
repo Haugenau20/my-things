@@ -15,7 +15,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | A05 | Rooms now; flat numbered boxes when packing | Retain a nullable room tag independently of the packing box |
 | A06 | Simple store/take/sell/give-away workflow | No marketplace, buyer, or pickup-management system |
 | A07 | No offline capture requirement | Do not add a persistent local photo-sync system |
-| A08 | One owner initially; all inventory data behind login | Public login shell accepted; backend data/photo authorization required |
+| A08 | One owner; inventory records and Storage operations behind login | Owner approved token-bearing gallery photo access on 2026-10-11; possession of a copied link permits that photo's download |
 | A09 | Responsive React/TypeScript + Vite + Firebase direction accepted | Familiar managed stack; no self-hosting |
 | A10 | Blaze billing and US photo storage accepted | Target small usage costs, not guaranteed zero spend |
 | A11 | Native iOS deferred; IAP and YubiKey explicitly out of scope | Do not implement them as hidden prerequisites |
@@ -23,6 +23,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | A13 | Agentic coding on Windows | Clear specifications, repeatable tests, cross-platform scripts |
 | A14 | Only the owner may authenticate to the production app | Close public signup after trusted owner bootstrap; keep only the owner Auth account |
 | A15 | Production releases only through GitHub Actions after merge to `main` | Every feature needs emulator coverage; failed checks block release; no local CLI or console deployment |
+| A16 | Token-bearing gallery photo URLs approved on 2026-10-11 | Supersedes the earlier refusal; owner authorizes URL issuance, but copied links remain readable after sign-out until token revocation/object deletion |
 
 ## Concrete defaults supplied by this pack
 

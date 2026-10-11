@@ -47,8 +47,10 @@ must be covered by relevant automated tests against `demo-inventory` before merg
 | Development | Windows-friendly tooling; `demo-inventory` emulators locally and one production cloud project |
 | Excluded | Native iOS app, IAP, YubiKey/WebAuthn integration, offline capture, and sharing workflows |
 
-The public application shell and login page may be reachable by anyone. Private records and photos must
-not be. Backend authorization, not the visibility of a React screen, is the security boundary.
+The public application shell and login page may be reachable by anyone. Inventory records and Storage
+operations require the bound owner. The owner approved token-bearing gallery photo URLs on 2026-10-11:
+anyone possessing a copied URL can read that photo after sign-out until the token is revoked or the
+object deleted. URLs remain in memory and are excluded from records/backups. See [Security](docs/SECURITY.md).
 
 ## Read in this order
 

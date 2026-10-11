@@ -1,10 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getDownloadURL, ref } from 'firebase/storage';
 import type { FirebaseStorage } from 'firebase/storage';
 import { verifiedBytes } from '../../src/media/files';
 import { PhotoSession } from '../../src/media/photo-session';
 import type { PhotoFile } from '../../src/domain/item';
 
 vi.mock('../../src/media/files', () => ({ verifiedBytes: vi.fn() }));
+vi.mock('firebase/storage', () => ({
+  getDownloadURL: vi.fn(),
+  ref: vi.fn((_storage, path: string) => ({ fullPath: path })),
+}));
 const storage = {} as FirebaseStorage;
 const file: PhotoFile = {
   storagePath: 'inventories/main/items/synthetic/photos/id/detail.jpg',
@@ -14,50 +19,57 @@ const file: PhotoFile = {
   height: 2,
   sha256: 'a'.repeat(64),
 };
+const url =
+  'https://firebasestorage.googleapis.com/v0/b/synthetic/o/photo.jpg?alt=media&token=synthetic';
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(verifiedBytes).mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer);
+  vi.mocked(getDownloadURL).mockResolvedValue(url);
+});
 afterEach(() => vi.restoreAllMocks());
-describe('private photo session lifetime', () => {
-  it('shares a mounted photo and revokes its URL after the last viewer leaves', async () => {
-    vi.mocked(verifiedBytes).mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer);
-    const revoke = vi.spyOn(URL, 'revokeObjectURL');
+describe('token photo session lifetime', () => {
+  it('shares an issued URL only while a photo is mounted', async () => {
     const session = new PhotoSession(storage);
     const signal = new AbortController().signal;
     const first = await session.acquire(file, signal);
     const second = await session.acquire(file, signal);
     expect(first.url).toBe(second.url);
+    expect(first.url).toBe(url);
+    expect(ref).toHaveBeenCalledWith(storage, file.storagePath);
+    expect(getDownloadURL).toHaveBeenCalledTimes(1);
+    expect(verifiedBytes).not.toHaveBeenCalled();
     first.release();
-    await Promise.resolve();
-    expect(revoke).not.toHaveBeenCalled();
     second.release();
-    await Promise.resolve();
-    expect(revoke).toHaveBeenCalledWith(first.url);
+    const third = await session.acquire(file, signal);
+    expect(getDownloadURL).toHaveBeenCalledTimes(2);
+    third.release();
     session.dispose();
   });
-  it('does not create a private URL when sign-out happens during a download', async () => {
-    let finish!: (value: ArrayBuffer) => void;
-    vi.mocked(verifiedBytes).mockImplementation(
+  it('suppresses a late URL when sign-out happens during issuance', async () => {
+    let finish!: (value: string) => void;
+    vi.mocked(getDownloadURL).mockImplementation(
       () =>
         new Promise((resolve) => {
           finish = resolve;
         }),
     );
-    const create = vi.spyOn(URL, 'createObjectURL');
     const session = new PhotoSession(storage);
     const pending = session.acquire(file, new AbortController().signal);
     session.dispose();
-    finish(new Uint8Array([1, 2, 3, 4]).buffer);
+    finish(url);
     await expect(pending).rejects.toThrow();
-    expect(create).not.toHaveBeenCalled();
+    await expect(session.acquire(file, new AbortController().signal)).rejects.toThrow();
   });
-  it('bounds downloads to two and waits for a freed slot', async () => {
-    const finishes: ((bytes: Uint8Array<ArrayBuffer>) => void)[] = [];
+  it('bounds URL requests to two and waits for a freed slot', async () => {
+    const finishes: ((value: string) => void)[] = [];
     let active = 0;
     let peak = 0;
-    vi.mocked(verifiedBytes).mockImplementation(() => {
+    vi.mocked(getDownloadURL).mockImplementation(() => {
       peak = Math.max(peak, ++active);
       return new Promise((resolve) =>
-        finishes.push((bytes) => {
+        finishes.push((value) => {
           --active;
-          resolve(bytes.buffer);
+          resolve(value);
         }),
       );
     });
@@ -67,14 +79,25 @@ describe('private photo session lifetime', () => {
       session.acquire({ ...file, storagePath: file.storagePath + id }, signal),
     );
     expect(finishes).toHaveLength(2);
-    finishes[0]!(new Uint8Array(4));
+    finishes[0]!(url);
     await tasks[0];
     expect(finishes).toHaveLength(3);
-    finishes[1]!(new Uint8Array(4));
-    finishes[2]!(new Uint8Array(4));
+    finishes[1]!(url);
+    finishes[2]!(url);
     const leases = await Promise.all(tasks);
     expect(peak).toBe(2);
     leases.forEach((lease) => lease.release());
+    session.dispose();
+  });
+  it('evicts a refused URL request so the same photo can be retried', async () => {
+    vi.mocked(getDownloadURL).mockRejectedValueOnce(new Error('Synthetic URL denial'));
+    const session = new PhotoSession(storage);
+    const signal = new AbortController().signal;
+    await expect(session.acquire(file, signal)).rejects.toThrow('Synthetic URL denial');
+    const lease = await session.acquire(file, signal);
+    expect(lease.url).toBe(url);
+    expect(getDownloadURL).toHaveBeenCalledTimes(2);
+    lease.release();
     session.dispose();
   });
 });

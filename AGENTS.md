@@ -39,8 +39,11 @@ authorization. App Check is deferred. No default currency has been selected.
   containing personal data. Never paste real inventory data into external tools. Use synthetic fixtures.
 - Firebase web configuration is not an admin credential; nevertheless keep environment choices explicit.
   Any `VITE_` value is browser-visible. No Admin SDK or private credential in frontend code.
-- Do not use `getDownloadURL()` for gallery photos. Use authenticated blob retrieval and object paths.
-  Do not substitute a public URL because CORS or rules are misconfigured.
+- The owner approved token-bearing gallery URLs on 2026-10-11. Use owner-authorized `getDownloadURL()`
+  and keep issued URLs in memory only; records and exports retain object paths/bytes, never tokens.
+  Anyone possessing a copied token URL can read that photo after sign-out. Uploads, URL issuance,
+  metadata reads, listings and deletion still require the bound owner; never grant public bucket access.
+  Keep authenticated byte/checksum verification for upload recovery and backups.
 - Never claim success while a required upload/write is pending. Do not catch errors and silently discard
   them, auto-delete failed records, or turn a partial export into a successful full backup.
 
