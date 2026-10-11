@@ -1,8 +1,10 @@
 # Repository, Firebase, and development setup
 
-This is a setup guide, not a record of completed cloud provisioning. M0 adds a local application,
-toolchain configuration, emulator tooling, and authorization tests. Production releases now use only
-GitHub Actions after merge to `main`; trusted administrative setup and device checks remain separate.
+This guide contains setup procedures and dated execution evidence. Use
+[Current operations and acceptance](OPERATIONS.md) for current acceptance status and isolated restore
+steps. M0–M3 and the UI refactor are implemented. Production releases use only GitHub Actions after
+merge to `main`; trusted administrative setup and device checks remain separate. Procedures do not
+authorize recreating resources or executing maintenance.
 
 ## 1. First commit
 
@@ -119,8 +121,9 @@ Emulator binaries use ignored `.firebase-emulators/` so CLI upgrades cannot repl
 running Java files. First startup downloads them. Run suites sequentially, not concurrently.
 
 Normal application data stays in memory; Auth persists only in the browser tab's session. Sign-out is
-broadcast to other same-origin app tabs. M1 capture/gallery/recovery and cloud Google redirect sign-in
-are implemented. Organization remains M2; cloud/device verification remains pending.
+broadcast to other same-origin app tabs. Capture, gallery, recovery, organization and export/restore
+are implemented. See [Current acceptance status](OPERATIONS.md#current-acceptance-status) for the
+owner-confirmed production photo smoke check and the remaining device/cloud recovery gates.
 
 M0 loads `.env.local` for local commands and dedicated `.env.development.local` or
 `.env.production.local` files for cloud builds. These do not inherit local emulator values. Process

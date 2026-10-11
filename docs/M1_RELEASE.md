@@ -1,5 +1,9 @@
 # M1 deployment evidence
 
+This document retains dated M1 execution evidence, including CLI releases before the pipeline-only
+policy. Use [Current operations and acceptance](OPERATIONS.md) for current procedures and acceptance;
+historical commands and pending statements below are not a current release/setup runbook.
+
 Date: 2026-10-10. The owner confirmed PR #2 was merged and explicitly authorized deployment and
 necessary configuration. Initial released application/rules source: merged main commit
 `d0ab84e126b227fad56eb35bc877138445139bd3`. **M1 owner/device acceptance remains pending.**

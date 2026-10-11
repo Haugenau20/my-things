@@ -1,5 +1,9 @@
 # M1 capture implementation and release gate
 
+Use [Current operations and acceptance](OPERATIONS.md) for the implemented application, current photo
+policy and remaining acceptance gates. Implementation/test results below record M1 on 2026-10-10;
+the bootstrap procedure uses the current schema-v2 root contract.
+
 Date: 2026-10-10. Capture is implemented, tested locally, and deployed after owner authorization.
 **M1's owner and actual-device acceptance gate is pending.** See [deployment evidence](M1_RELEASE.md)
 for Hosting/rules/indexes, IAM/CORS, signed-out live checks, trusted owner bootstrap, and closed signup.
@@ -116,6 +120,9 @@ requires an explicit authDomain/redirect-origin change and new CSP/CORS verifica
 
 ## Trusted owner bootstrap
 
+The existing production owner root is already provisioned. These steps describe separately authorized
+setup, not permission to recreate it. For isolated restore, follow [the current procedure](OPERATIONS.md#export-and-isolated-restore).
+
 1. Verify Google provider settings and the exact Hosting domain in Firebase Authentication authorized
    domains. Complete sign-in once. Access remains denied before administrator bootstrap.
 2. The owner/project administrator identifies the owner's **Firebase Authentication UID** in the
@@ -125,7 +132,7 @@ requires an explicit authDomain/redirect-origin change and new CSP/CORS verifica
 
    | Field | Value/type |
    | --- | --- |
-   | `schemaVersion` | number `1` |
+   | `schemaVersion` | number `2` |
    | `ownerUid` | string containing the verified owner's Auth UID |
    | `displayName` | string, for example `My things` |
    | `defaultCurrency` | null until deliberately selected |

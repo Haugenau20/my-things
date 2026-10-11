@@ -16,7 +16,12 @@ ZIP export with verified photo bytes, strict archive validation, and resumable r
 already-authorized inventory. See [M3 restore evidence](docs/M3_RESTORE.md), [M3 export evidence](docs/M3_EXPORT.md),
 [M3 recovery evidence](docs/M3_RECOVERY.md), [M2 evidence](docs/M2_ORGANIZE.md),
 [deployment evidence](docs/M1_RELEASE.md), [M1 evidence and release
-steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
+history](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
+
+Start with [Current operations and acceptance](docs/OPERATIONS.md) for schema-v2 restore steps, release
+policy and the current evidence summary. The owner confirmed production photo addition/deletion after
+PR #25 on 2026-10-11; actual-device and isolated cloud-recovery acceptance remain open. Milestone
+documents retain dated evidence and older policies rather than serving as current operating procedures.
 
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
 See [GitHub Actions setup](docs/GITHUB_ACTIONS.md) for automated PR checks and production deployment
@@ -65,6 +70,7 @@ object deleted. URLs remain in memory and are excluded from records/backups. See
 | [Photo pipeline](docs/PHOTO_PIPELINE.md) | Conversion, upload acknowledgment, retries, and cleanup |
 | [Export format](docs/EXPORT_FORMAT.md) | Portable backup contract and restore behavior |
 | [Test plan](docs/TEST_PLAN.md) | Security, functional, failure, device, and recovery tests |
+| [Current operations and acceptance](docs/OPERATIONS.md) | Current restore/release procedures, evidence and remaining manual gates |
 | [Roadmap](docs/ROADMAP.md) | Small implementation milestones and completion gates |
 | [Decisions](docs/DECISIONS.md) | Agreed choices versus editable implementation defaults |
 | [References](docs/REFERENCES.md) | Official technical sources, checked on 2026-10-10 |

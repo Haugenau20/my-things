@@ -1,5 +1,10 @@
 # M3 archive validation and restore
 
+This milestone records implementation and verification on 2026-10-10 under the schema and photo
+delivery policy then in effect. Use [Current operations and acceptance](OPERATIONS.md) for schema-v2
+restore steps, the approved token URL policy and current acceptance status. Historical CLI releases
+below do not authorize a release outside the current GitHub pipeline.
+
 Implemented under the owner's instruction to continue unblocked work while away, with standing release
 authorization. All data exercises use synthetic `demo-inventory` Auth/Firestore/Storage emulators.
 No production inventory was read, exported, imported, migrated, deleted or cleared for this slice.
@@ -66,7 +71,7 @@ splitting evidence remains valid; it does not prove a 2 GiB cloud restore. SDK f
 JPEG header for byte/metadata tests; Chromium uses a canvas-generated real image. No emulator result
 is a real backup/recovery proof. Tooling audit findings remain documented in [M3 export](M3_EXPORT.md).
 
-## Production release
+## Historical production release — 2026-10-10
 
 Source `d51ba78` passed `mise exec -- npm run build:prod`, explicit production destination preflight and
 `mise exec -- npm run release:prepare`. Firebase CLI deployed Firestore rules and Hosting successfully
@@ -75,24 +80,18 @@ Google button and reached `accounts.google.com` without console/page errors. Ano
 restore-report and Storage-prefix requests all returned 403. No production records/photos were read,
 exported, imported, migrated, deleted or cleared. No verification root was seeded. Storage rules, Auth,
 IAM, CORS, billing and infrastructure were unchanged. These checks do not prove authenticated cloud
-restore, actual-device behavior or a personal backup. Refresh existing app tabs to load this release.
+restore, actual-device behavior or a personal backup.
 
 ## Operating steps and remaining gates
 
-Refresh all open app tabs. Save every export part outside Firebase and this repository; ZIPs are
-unencrypted. Keep the final manifest ZIP with every numbered photo part. Have an administrator provision
-a separate empty inventory root with the existing trusted owner. Select all original filenames, validate,
-review destination/environment, then confirm. A nonempty main inventory is refused. On interruption,
-reconnect, refresh and reselect the same archive; never clear records/photos to make recovery succeed.
-Conflicts need administrator review.
+Follow [Export and isolated restore](OPERATIONS.md#export-and-isolated-restore) for the current procedure.
+The separate verification root must be seeded by a trusted administrator with `schemaVersion: 2` and
+the existing owner binding, as required by [Data model](DATA_MODEL.md#1-paths-and-ownership). Provisioning
+and real-data operations require explicit owner authorization. No production verification root was
+created for this milestone. Preserve the main inventory; never wipe a destination to make restore pass.
 
-After completion, use Check restored photos to open multiple items, including label close-ups and trash.
-The main workspace still opens its configured inventory. A verification root can use a separate ID such
-as `restore-verification` in the same project; it must be seeded by a trusted administrator with schema
-version 1, the existing owner UID, a display name, explicit null/default currency, and creation/update
-timestamps. Browser clients cannot provision it. No such production verification root was created here.
-
-The real twenty-item/two-room iPhone-to-Windows scenario and a separate authorized cloud verification
-restore are required. Actual access/latency, gallery legibility, private object ACL/token posture and
-usage/billing need owner/device evidence. No additional cloud project is required. M4 remains optional
-after actual use identifies a need; usable V1 has not yet passed its complete gate.
+The real twenty-item/two-room iPhone-to-Windows scenario and isolated cloud restore remain pending in
+[Current acceptance status](OPERATIONS.md#current-acceptance-status). The owner-confirmed PR #25 photo
+upload/delete smoke check does not close them. Current restored-photo previews use owner-authorized
+token-bearing URLs; authenticated byte/checksum verification still governs restore completion. Earlier
+blob-preview results above retain their historical context.

@@ -1,5 +1,9 @@
 # Decision log and implementation defaults
 
+Dated entries retain the choices in effect at that time; later approved entries supersede earlier
+schema and photo-delivery policies. Use [Current operations and acceptance](OPERATIONS.md) for current
+procedures/status and the linked authoritative contracts.
+
 Date: 2026-10-10. "Agreed" means established by the owner/conversation. "Default" means a concrete choice
 proposed by this pack so implementation can proceed; it may be revised with rationale and tests. Defaults
 are not additional claims about the owner's possessions, accounts, budget, or preferred currency.

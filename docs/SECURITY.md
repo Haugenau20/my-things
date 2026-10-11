@@ -4,8 +4,10 @@ Status: M1 owner-policy rules are emulator-tested and deployed; this is not a co
 Validated capture drafts/finalization/discard and room creation are allowed for the bound owner. M2
 metadata editing, workflow/trash transitions, rooms, and boxes now have constrained, emulator-tested owner
 rules. Storage replacements remain closed. Required IAM/CORS and signed-out OAuth startup
-are verified; owner login and separate-account rejection are owner-verified. Device capture and actual
-photo-token behavior remain pending. See
+are verified; owner login and separate-account rejection are owner-verified. The owner confirmed
+production photo addition/deletion after PR #25 on 2026-10-11. Actual-device compatibility, the complete
+current photo-link/session checks and isolated cloud recovery remain pending; see
+[Current operations and acceptance](OPERATIONS.md). See
 [deployment evidence](M1_RELEASE.md). IAP, YubiKey integration, and custom WebAuthn are explicitly excluded.
 
 Optional-photo capture also permits acknowledged ready records with no photos and tightly constrained

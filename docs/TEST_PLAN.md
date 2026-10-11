@@ -1,15 +1,17 @@
 # Verification and release gates
 
-Status: M0 automated tests are implemented; evidence and remaining release gates are recorded in
-[M0 foundation](M0_FOUNDATION.md). The product, recovery, real-device, cloud, and backup scenarios below
-remain later-milestone release checks. Record evidence without private data or credentials.
+Status: M0–M3 and the UI refactor have automated synthetic coverage. Use
+[Current operations and acceptance](OPERATIONS.md) for dated evidence and remaining manual gates.
+The owner-confirmed PR #25 production photo upload/delete smoke check does not establish actual iPhone
+compatibility or isolated cloud backup recovery. The scenarios below remain the acceptance checklist;
+record evidence without private data or credentials.
 
 ## 1. Automated test layers
 
 Use unit tests for domain transitions/validation, component tests for interaction states, Firebase
 emulator tests for SDK/rules integration, and browser tests for end-to-end workflows. The Firebase rules
 test tooling supports synthetic authenticated and unauthenticated contexts; see
-[References S14](REFERENCES.md#s14). Select and pin runners during M0.
+[References S14](REFERENCES.md#s14). The pinned runners and commands are documented in [Setup](SETUP.md).
 
 Every automated feature test setup must assert the demo project ID and emulator connections. Every
 new or changed feature needs relevant coverage before merge, including failure/recovery and positive/

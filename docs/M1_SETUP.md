@@ -1,5 +1,8 @@
 # M1 setup checkpoint
 
+This checkpoint retains dated M1 evidence. Use [Current operations and acceptance](OPERATIONS.md) for
+the implemented application, current photo policy, procedures and remaining device/cloud gates.
+
 Date: 2026-10-10. M1 capture, cloud SDK initialization, and Google redirect sign-in are now implemented
 and deployed after owner authorization. Owner/device acceptance remains pending; see
 [deployment evidence](M1_RELEASE.md) and [M1 evidence and release steps](M1_CAPTURE.md).
