@@ -1,5 +1,7 @@
 # Repository, Firebase, and development setup
 
+See [current operations and acceptance](OPERATIONS.md) for current steps, dated evidence and remaining gates.
+
 This is a setup guide, not a record of completed cloud provisioning. M0 adds a local application,
 toolchain configuration, emulator tooling, and authorization tests. Production releases now use only
 GitHub Actions after merge to `main`; trusted administrative setup and device checks remain separate.
@@ -219,7 +221,7 @@ own recovery plan. No paid automated backup service is assumed in V1.
 ## 8. Approved v1 reset and schema-v2 cutover
 
 The owner approved replacing the initial test inventory without migration or v1 archive compatibility.
-The owner explicitly preapproved the scoped production wipe on 2026-10-10. This section documents the operation; it does not claim execution.
+The owner explicitly preapproved and completed the scoped production wipe on 2026-10-10; see the executed evidence below. The production steps preserve the historical procedure and do not authorize another reset.
 V2 clients and both rule sets require a schema-v2 inventory root. Preserve its exact existing owner UID,
 settings, creation timestamp and Auth account; change only its schema version through a trusted
 administrative action. Do not delete the root, re-bootstrap ownership or allow a client to change it.
@@ -234,10 +236,10 @@ are seeded. This is never a production credential or ownership source. Local exa
 review, packed/unpacked and a referenced archived room. Existing nonempty local items are not overwritten
 by seed. Browser-test emulators deliberately seed Auth/root only; their tests create isolated examples.
 
-### Production: owner-approved maintenance
+### Production: historical owner-approved maintenance
 
 Before executing anything, verify and report the exact project, inventory path, bucket prefix, observed collection
-counts and intended root-version change. The owner has already authorized this scoped reset; no repeated wipe confirmation is required. Do not log
+counts and intended root-version change. The recorded authorization applied to that completed reset only; a new destructive operation requires separate explicit owner authorization. Do not log
 private records, photos or owner identifiers. The accepted reset discards v1 test content; exporting or
 migrating it is not required for this specific owner-approved reset. Preserve any backup the owner wants
 outside the repository. Refresh/close old app tabs and stop editing during the cutover.
@@ -275,6 +277,6 @@ The owner preapproved this reset in the implementation chat on 2026-10-10. Admin
 
 The deployed Firestore rules were read and their v1 trusted-root/owner gate verified. A single administrative Firestore commit deleted the two observed documents using update-time preconditions and patched only the preserved root schemaVersion to 2 using its update-time precondition. The atomic operation also closed the old v1 client write gate. Root fields were re-read and verified identical except that version. All four collections (including missing parent documents) and the photo prefix were rechecked empty. Authentication was untouched. There was no Storage deletion because the scoped prefix was already empty. No credentials, owner UID, item content or private paths were logged in this evidence.
 
-Hosting, rules and indexes were not deployed. The v1 app is temporarily unavailable until an owner-authorized PR merge completes the reviewed release pipeline. Wiped content cannot be recovered by rolling back the app.
+At the time of this maintenance, Hosting, rules and indexes were not deployed and the v1 app was temporarily unavailable. The subsequent v2 pipeline release is recorded in [UI refactor evidence](UI_REFACTOR.md#pr-02-workspace-shell-and-dedicated-views); see [current operations](OPERATIONS.md) for the latest verified release. Wiped content cannot be recovered by rolling back the app.
 
 For focused emulator runs during refactoring, append repository test file paths, for example `mise exec -- npm run test:e2e -- tests/browser/shell.spec.ts`. Rules/integration scripts accept their matching `tests/rules/*.test.ts` or `tests/integration/*.test.ts` paths. The complete `npm run check` still runs every suite. Filters accept only validated repository test paths; all required demo emulators still start and fail closed.

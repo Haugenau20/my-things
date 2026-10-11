@@ -1,5 +1,9 @@
 # M3 first slice — Permanent deletion and inspection
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 Implemented under the owner's instruction to continue while away, including the next phase. This is
 the cleanup/recovery slice of M3. Full export/restore and its release gate are not complete.
 

@@ -1,5 +1,9 @@
 # M3 archive validation and restore
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 Implemented under the owner's instruction to continue unblocked work while away, with standing release
 authorization. All data exercises use synthetic `demo-inventory` Auth/Firestore/Storage emulators.
 No production inventory was read, exported, imported, migrated, deleted or cleared for this slice.
@@ -79,6 +83,12 @@ restore, actual-device behavior or a personal backup. Refresh existing app tabs 
 
 ## Operating steps and remaining gates
 
+Updated 2026-10-11: follow the consolidated [current operations guide](OPERATIONS.md) for the
+current schema-v2 restore procedure, token URL policy and acceptance status. The preceding sections
+are historical evidence; the present gallery/restore preview uses owner-authorized token URLs, not
+authenticated blob delivery. The owner confirmed upload/delete after PR #25; real-cloud restore
+and actual iPhone acceptance remain pending.
+
 Refresh all open app tabs. Save every export part outside Firebase and this repository; ZIPs are
 unencrypted. Keep the final manifest ZIP with every numbered photo part. Have an administrator provision
 a separate empty inventory root with the existing trusted owner. Select all original filenames, validate,
@@ -89,7 +99,7 @@ Conflicts need administrator review.
 After completion, use Check restored photos to open multiple items, including label close-ups and trash.
 The main workspace still opens its configured inventory. A verification root can use a separate ID such
 as `restore-verification` in the same project; it must be seeded by a trusted administrator with schema
-version 1, the existing owner UID, a display name, explicit null/default currency, and creation/update
+version 2, the existing owner UID, a display name, explicit null/default currency, and creation/update
 timestamps. Browser clients cannot provision it. No such production verification root was created here.
 
 The real twenty-item/two-room iPhone-to-Windows scenario and a separate authorized cloud verification

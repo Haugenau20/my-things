@@ -1,15 +1,16 @@
 # Verification and release gates
 
-Status: M0 automated tests are implemented; evidence and remaining release gates are recorded in
-[M0 foundation](M0_FOUNDATION.md). The product, recovery, real-device, cloud, and backup scenarios below
-remain later-milestone release checks. Record evidence without private data or credentials.
+Status: M0–M3 and the approved UI refactor are implemented with automated coverage. The
+[current operations guide](OPERATIONS.md) consolidates dated release/owner evidence and outstanding
+actual-device and real-cloud recovery gates. Use the scenarios below as the release checklist; record
+what was actually run without private data or credentials.
 
 ## 1. Automated test layers
 
 Use unit tests for domain transitions/validation, component tests for interaction states, Firebase
 emulator tests for SDK/rules integration, and browser tests for end-to-end workflows. The Firebase rules
 test tooling supports synthetic authenticated and unauthenticated contexts; see
-[References S14](REFERENCES.md#s14). Select and pin runners during M0.
+[References S14](REFERENCES.md#s14). Runners and commands are pinned in the repository.
 
 Every automated feature test setup must assert the demo project ID and emulator connections. Every
 new or changed feature needs relevant coverage before merge, including failure/recovery and positive/

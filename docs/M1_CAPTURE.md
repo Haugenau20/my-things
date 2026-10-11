@@ -1,5 +1,9 @@
 # M1 capture implementation and release gate
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 Date: 2026-10-10. Capture is implemented, tested locally, and deployed after owner authorization.
 **M1's owner and actual-device acceptance gate is pending.** See [deployment evidence](M1_RELEASE.md)
 for Hosting/rules/indexes, IAM/CORS, signed-out live checks, trusted owner bootstrap, and closed signup.

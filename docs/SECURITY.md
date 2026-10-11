@@ -1,12 +1,14 @@
 # Security design and operating boundaries
 
+See [current operations and acceptance](OPERATIONS.md) for current steps, dated evidence and remaining gates.
+
 Status: M1 owner-policy rules are emulator-tested and deployed; this is not a complete production audit.
 Validated capture drafts/finalization/discard and room creation are allowed for the bound owner. M2
 metadata editing, workflow/trash transitions, rooms, and boxes now have constrained, emulator-tested owner
 rules. Storage replacements remain closed. Required IAM/CORS and signed-out OAuth startup
 are verified; owner login and separate-account rejection are owner-verified. Device capture and actual
-photo-token behavior remain pending. See
-[deployment evidence](M1_RELEASE.md). IAP, YubiKey integration, and custom WebAuthn are explicitly excluded.
+photo-token audit remain pending. The owner confirmed production upload/delete after PR #25;
+[the current evidence](OPERATIONS.md) distinguishes that check from device, token and recovery gates. IAP, YubiKey integration, and custom WebAuthn are explicitly excluded.
 
 Optional-photo capture also permits acknowledged ready records with no photos and tightly constrained
 first-photo registration/completion/cancellation patches on photo-free saved items. Storage still checks

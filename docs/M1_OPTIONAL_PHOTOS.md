@@ -1,5 +1,9 @@
 # Optional-photo capture follow-up
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 Date: 2026-10-10. Owner-requested change after merged PR #3: replace native "Choose File" controls with
 visible Take photo / Choose photos buttons, permit desktop name-only entries, and attach first photos
 later to those same saved items. The follow-up frontend and matching rules are deployed under

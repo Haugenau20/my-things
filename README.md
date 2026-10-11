@@ -18,11 +18,16 @@ already-authorized inventory. See [M3 restore evidence](docs/M3_RESTORE.md), [M3
 [deployment evidence](docs/M1_RELEASE.md), [M1 evidence and release
 steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
 
+Start with [current operations and acceptance](docs/OPERATIONS.md) for v2 restore steps, current
+release evidence and the remaining device/cloud gates. Earlier milestone documents preserve history.
+
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
 See [GitHub Actions setup](docs/GITHUB_ACTIONS.md) for automated PR checks and production deployment
 after successful `main` checks. The approved Google identity setup and three production environment
-variables are configured. The first pipeline release passed verification/OIDC but stopped during
-Storage discovery; see [pipeline Storage fix](docs/PIPELINE_STORAGE_FIX.md). All production releases use
+variables are configured. PR #25 deployed commit `c6bcc093ce99726540b769340e6ede128ea76b18`
+in [workflow 38128423827](https://github.com/Haugenau20/my-things/actions/runs/38128423827),
+with Verify and Deploy production successful. The owner subsequently confirmed photo upload/deletion.
+The earlier [pipeline Storage fix](docs/PIPELINE_STORAGE_FIX.md) remains historical evidence. All production releases use
 GitHub Actions after merge to `main`; local CLI and console deployment are prohibited. Every feature
 must be covered by relevant automated tests against `demo-inventory` before merge.
 
