@@ -43,13 +43,17 @@ unexpected fields, unsupported schema versions, invalid revisions, wrong file ex
 oversized uploads, metadata-only changes, and storage deletion with no incoming resource.
 
 For Storage releases, separately run the explicit synthetic cloud Rules API check documented in
-[Setup](SETUP.md) and [photo upload investigation](PHOTO_UPLOAD_FIX.md). It covers an absent optional
-custom-metadata map, which the emulator normalizes to an empty map, and the approved single UUID-token
-field. Reject malformed/multiple/non-string tokens, extra custom fields, foreign/anonymous uploads and
+[Setup](SETUP.md) and [photo upload investigation](PHOTO_UPLOAD_FIX.md). It covers absent and explicitly
+null custom-metadata maps, plus the approved single UUID-token field. The SDK/emulator's empty-map
+normalization does not exercise the cloud's null-map case. Reject malformed/multiple/non-string tokens,
+extra custom fields, foreign/anonymous uploads and
 replacement. The emulator removes token metadata from the rules resource; synthetic cloud evaluation
 must cover that validation. Neither establishes the real upload outcome: the owner/device retry remains
 required. Verify issued-link downloads without authentication, refusal of absent/wrong tokens, and
-invalidation after object deletion. Sign-out clears app images/URL leases but does not revoke copied links.
+invalidation after object deletion. Null metadata must not bypass owner binding, exact registered bytes,
+JPEG content type or replacement denial. Missing policy documents/owner/schema fields must still deny
+SDK downloads, URL issuance, metadata inspection, listing, uploads and deletion after lookup simplification.
+Sign-out clears app images/URL leases but does not revoke copied links.
 
 Run direct SDK/HTTP requests, not only UI navigation tests. A route guard passing says nothing about data
 protection. Verify that deleting/renaming a frontend route does not affect backend authorization.

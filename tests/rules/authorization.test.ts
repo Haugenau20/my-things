@@ -831,6 +831,46 @@ describe('Storage owner policy', () => {
       await assertFails(getBytes(ref(storage(owner()), path)));
     },
   );
+  it.each([
+    ['missing-root', null],
+    ['missing-owner', { schemaVersion: 2 }],
+    ['missing-schema', { ownerUid: 'synthetic-owner' }],
+    ['wrong-schema', { schemaVersion: 1, ownerUid: 'synthetic-owner' }],
+    ['foreign-owner', { schemaVersion: 2, ownerUid: 'synthetic-unrelated' }],
+  ] as const)('fails closed for %s even with a registered photo', async (_kind, policy) => {
+    const inventoryId = crypto.randomUUID();
+    const prefix = `inventories/${inventoryId}/items/synthetic-item/photos/synthetic-photo`;
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      if (policy !== null) await db.doc(`inventories/${inventoryId}`).set(policy);
+      await db.doc(`inventories/${inventoryId}/items/synthetic-item`).set({
+        recordState: 'draft',
+        photos: [
+          {
+            id: 'synthetic-photo',
+            state: 'pending',
+            detail: { byteSize: 4 },
+            thumbnail: { byteSize: 4 },
+          },
+        ],
+      });
+      await uploadBytes(ref(storage(context), `${prefix}/detail.jpg`), bytes, {
+        contentType: 'image/jpeg',
+      });
+    });
+    const client = owner().storage('gs://demo-inventory.firebasestorage.app');
+    await assertFails(
+      uploadBytes(ref(storage(owner()), `${prefix}/thumb.jpg`), bytes, {
+        contentType: 'image/jpeg',
+        customMetadata: {},
+      }),
+    );
+    await assertFails(getBytes(ref(storage(owner()), `${prefix}/detail.jpg`)));
+    await assertFails(getDownloadURL(ref(storage(owner()), `${prefix}/detail.jpg`)));
+    await assertFails(client.ref(`${prefix}/detail.jpg`).getMetadata());
+    await assertFails(client.ref(`inventories/${inventoryId}/items`).listAll());
+    await assertFails(client.ref(`${prefix}/detail.jpg`).delete());
+  });
   it.each(['detail.jpg', 'thumb.jpg'])(
     'allows valid owner upload and independent deletion of %s',
     async (variant) => {
