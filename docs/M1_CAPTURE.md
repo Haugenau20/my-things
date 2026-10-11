@@ -1,8 +1,8 @@
 # M1 capture implementation and release gate
 
-Use [Current operations and acceptance](OPERATIONS.md) for the implemented application, current photo
-policy and remaining acceptance gates. Implementation/test results below record M1 on 2026-10-10;
-the bootstrap procedure uses the current schema-v2 root contract.
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
 
 Date: 2026-10-10. Capture is implemented, tested locally, and deployed after owner authorization.
 **M1's owner and actual-device acceptance gate is pending.** See [deployment evidence](M1_RELEASE.md)
@@ -120,8 +120,9 @@ requires an explicit authDomain/redirect-origin change and new CSP/CORS verifica
 
 ## Trusted owner bootstrap
 
-The existing production owner root is already provisioned. These steps describe separately authorized
-setup, not permission to recreate it. For isolated restore, follow [the current procedure](OPERATIONS.md#export-and-isolated-restore).
+Current schema-v2 contract: the existing production owner root is already provisioned. These steps
+describe separately authorized setup, not permission to recreate it. For isolated restore, follow
+[the current procedure](OPERATIONS.md#export-and-verification-restore).
 
 1. Verify Google provider settings and the exact Hosting domain in Firebase Authentication authorized
    domains. Complete sign-in once. Access remains denied before administrator bootstrap.
@@ -139,7 +140,9 @@ setup, not permission to recreate it. For isolated restore, follow [the current 
    | `createdAt`, `updatedAt` | Firestore timestamp values |
 
 4. Refresh/sign in again and verify owner access. Independently test another Google account and
-   unauthenticated access: both must remain denied for records, photos, listing, and writes.
+   unauthenticated SDK access: both must remain denied for records, photo reads/URL issuance, listing
+   and writes. Previously issued valid bearer photo URLs follow the approved
+   [token delivery policy](SECURITY.md#5-owner-approved-token-photo-delivery).
 5. Disable end-user signup/deletion after the owner account is verified; keep only that account in the
    production Auth user set. Other Google accounts must be rejected during sign-in. The initial owner
    binding and these restrictions are now applied; see [deployment evidence](M1_RELEASE.md).

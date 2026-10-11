@@ -1,10 +1,11 @@
 # UI refactor implementation evidence
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 The photo delivery descriptions below record the policy during these milestones. On 2026-10-11 the
 owner approved token-bearing gallery URLs; the current policy is documented in [Security](SECURITY.md).
-Use [Current operations and acceptance](OPERATIONS.md) for current restore/release steps and acceptance
-status. The dated pending statements below are historical snapshots; the owner-confirmed PR #25
-upload/delete smoke check does not close actual-device or isolated cloud recovery gates.
 
 The owner approved the ten-stage [handoff](UI_refactor/README.md), the inclusion of referenced archived rooms in filters/counts, continuous stacked PRs, and the scoped production wipe. The owner subsequently explicitly authorized merging each verified PR as work proceeds. Releases still require the reviewed pipeline and successful checks.
 

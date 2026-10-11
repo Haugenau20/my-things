@@ -1,8 +1,6 @@
 # Implementation roadmap
 
-Use [Current operations and acceptance](OPERATIONS.md) for current restore/release procedures and the
-dated acceptance summary. The owner-confirmed PR #25 upload/delete smoke check is complete; actual
-iPhone compatibility and isolated cloud backup recovery remain open.
+See [current operations and acceptance](OPERATIONS.md) for current steps, dated evidence and remaining gates.
 
 On 2026-10-11 the owner approved token-bearing gallery URLs. Photo authorization gates distinguish
 owner-only SDK operations/URL issuance from an already-issued bearer link, which permits its holder

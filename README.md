@@ -16,18 +16,18 @@ ZIP export with verified photo bytes, strict archive validation, and resumable r
 already-authorized inventory. See [M3 restore evidence](docs/M3_RESTORE.md), [M3 export evidence](docs/M3_EXPORT.md),
 [M3 recovery evidence](docs/M3_RECOVERY.md), [M2 evidence](docs/M2_ORGANIZE.md),
 [deployment evidence](docs/M1_RELEASE.md), [M1 evidence and release
-history](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
+steps](docs/M1_CAPTURE.md), and [M1 setup](docs/M1_SETUP.md). Real Web configuration remains ignored.
 
-Start with [Current operations and acceptance](docs/OPERATIONS.md) for schema-v2 restore steps, release
-policy and the current evidence summary. The owner confirmed production photo addition/deletion after
-PR #25 on 2026-10-11; actual-device and isolated cloud-recovery acceptance remain open. Milestone
-documents retain dated evidence and older policies rather than serving as current operating procedures.
+Start with [current operations and acceptance](docs/OPERATIONS.md) for v2 restore steps, current
+release evidence and the remaining device/cloud gates. Earlier milestone documents preserve history.
 
 See [M0 evidence and limitations](docs/M0_FOUNDATION.md) and [Setup](docs/SETUP.md) for commands.
 See [GitHub Actions setup](docs/GITHUB_ACTIONS.md) for automated PR checks and production deployment
 after successful `main` checks. The approved Google identity setup and three production environment
-variables are configured. The first pipeline release passed verification/OIDC but stopped during
-Storage discovery; see [pipeline Storage fix](docs/PIPELINE_STORAGE_FIX.md). All production releases use
+variables are configured. PR #25 deployed commit `c6bcc093ce99726540b769340e6ede128ea76b18`
+in [workflow 38128423827](https://github.com/Haugenau20/my-things/actions/runs/38128423827),
+with Verify and Deploy production successful. The owner subsequently confirmed photo upload/deletion.
+The earlier [pipeline Storage fix](docs/PIPELINE_STORAGE_FIX.md) remains historical evidence. All production releases use
 GitHub Actions after merge to `main`; local CLI and console deployment are prohibited. Every feature
 must be covered by relevant automated tests against `demo-inventory` before merge.
 
@@ -67,10 +67,10 @@ object deleted. URLs remain in memory and are excluded from records/backups. See
 | [Data model](docs/DATA_MODEL.md) | Fields, location semantics, workflow transitions, and invariants |
 | [Security](docs/SECURITY.md) | Owner authorization, private photos, bootstrap, and threat boundaries |
 | [Setup](docs/SETUP.md) | Repository/Firebase setup, Windows workflow, and deployment checklist |
+| [Custom domain](docs/plans/2026-10-11-custom-domain-design.md) | Selected `things.muninn.quest` address and separate DNS/Auth/CORS/activation gates |
 | [Photo pipeline](docs/PHOTO_PIPELINE.md) | Conversion, upload acknowledgment, retries, and cleanup |
 | [Export format](docs/EXPORT_FORMAT.md) | Portable backup contract and restore behavior |
 | [Test plan](docs/TEST_PLAN.md) | Security, functional, failure, device, and recovery tests |
-| [Current operations and acceptance](docs/OPERATIONS.md) | Current restore/release procedures, evidence and remaining manual gates |
 | [Roadmap](docs/ROADMAP.md) | Small implementation milestones and completion gates |
 | [Decisions](docs/DECISIONS.md) | Agreed choices versus editable implementation defaults |
 | [References](docs/REFERENCES.md) | Official technical sources, checked on 2026-10-10 |

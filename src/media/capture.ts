@@ -1,3 +1,4 @@
+import { photoPhase } from './capture-errors';
 import type { FirebaseServices } from '../data/firebase';
 import type { CaptureInput, Item } from '../domain/item';
 import type { PreparedPhoto } from './processing';
@@ -47,9 +48,11 @@ async function uploadAndFinish(
   );
   signal.throwIfAborted();
   progress('Confirming the saved item…');
-  return item.recordState === 'ready' && item.photos.length
-    ? finishFirstPhotos(services.db, inventory, item, signal)
-    : finishDraft(services.db, inventory, item, signal);
+  return photoPhase('finalization', () =>
+    item.recordState === 'ready' && item.photos.length
+      ? finishFirstPhotos(services.db, inventory, item, signal)
+      : finishDraft(services.db, inventory, item, signal),
+  );
 }
 export async function attachFirstPhotos(
   services: FirebaseServices,
@@ -61,12 +64,14 @@ export async function attachFirstPhotos(
 ): Promise<Item> {
   signal.throwIfAborted();
   progress('Registering recoverable photo uploads…');
-  const registered = await ensureFirstPhotos(
-    services.db,
-    inventory,
-    item,
-    prepared.map((entry) => entry.photo),
-    signal,
+  const registered = await photoPhase('registration', () =>
+    ensureFirstPhotos(
+      services.db,
+      inventory,
+      item,
+      prepared.map((entry) => entry.photo),
+      signal,
+    ),
   );
   return uploadAndFinish(services, inventory, registered, prepared, signal, progress);
 }
@@ -79,7 +84,9 @@ export async function saveAttempt(
 ): Promise<Item> {
   signal.throwIfAborted();
   progress('Saving a recoverable draft…');
-  const item = await ensureDraft(services.db, inventory, attempt.id, attempt.input, signal);
+  const item = await photoPhase('registration', () =>
+    ensureDraft(services.db, inventory, attempt.id, attempt.input, signal),
+  );
   return uploadAndFinish(services, inventory, item, attempt.prepared, signal, progress);
 }
 export async function recoverAttempt(

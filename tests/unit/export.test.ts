@@ -66,10 +66,14 @@ describe('portable full export', () => {
   it('blocks unresolved operations and dangling relationships instead of silently excluding records', () => {
     const input = snapshot();
     input.items[0]!.recordState = 'deleting';
-    expect(() => preflightExport(input)).toThrow(/unfinished/i);
+    expect(() => preflightExport(input)).toThrowError(
+      expect.objectContaining({ code: 'unfinished_operations' }),
+    );
     input.items[0]!.recordState = 'ready';
     input.items[0]!.roomId = 'missing-room';
-    expect(() => preflightExport(input)).toThrow(/reference/i);
+    expect(() => preflightExport(input)).toThrowError(
+      expect.objectContaining({ code: 'missing_reference' }),
+    );
   });
   it('validates and serializes 5,000 synthetic metadata records and rejects duplicates or overflow', () => {
     const input = snapshot();
@@ -86,9 +90,13 @@ describe('portable full export', () => {
       ),
     ).toHaveLength(5000);
     input.items.push({ ...template, id: 'synthetic-overflow' });
-    expect(() => preflightExport(input)).toThrow(/limit/);
+    expect(() => preflightExport(input)).toThrowError(
+      expect.objectContaining({ code: 'record_limit' }),
+    );
     input.items = [template, template];
-    expect(() => preflightExport(input)).toThrow(/Duplicate/);
+    expect(() => preflightExport(input)).toThrowError(
+      expect.objectContaining({ code: 'duplicate_records' }),
+    );
   });
   it('creates an independently readable ZIP and final manifest only after metadata recheck', async () => {
     const input = snapshot();
@@ -123,7 +131,7 @@ describe('portable full export', () => {
       new AbortController().signal,
       () => {},
     );
-    await expect(generator.next()).rejects.toThrow(/changed/i);
+    await expect(generator.next()).rejects.toMatchObject({ code: 'inventory_changed' });
   });
   async function withPhoto() {
     const source = snapshot();
@@ -194,7 +202,7 @@ describe('portable full export', () => {
       signal,
       () => {},
     );
-    await expect(wrong.next()).rejects.toThrow(/photo bytes/);
+    await expect(wrong.next()).rejects.toMatchObject({ code: 'photo_unverified' });
     const missing = exportParts(
       source,
       async () => {
@@ -204,7 +212,7 @@ describe('portable full export', () => {
       signal,
       () => {},
     );
-    await expect(missing.next()).rejects.toThrow(/missing object/);
+    await expect(missing.next()).rejects.toMatchObject({ code: 'photo_unverified' });
     const controller = new AbortController();
     const canceled = exportParts(
       source,
@@ -231,7 +239,35 @@ describe('portable full export', () => {
       (async () => {
         for await (const part of contested) results.push(part.final);
       })(),
-    ).rejects.toThrow(/changed/);
+    ).rejects.toMatchObject({ code: 'inventory_changed' });
     expect(results).toEqual([false, false]);
+  });
+  it('preserves cancellation when an in-flight photo read fails', async () => {
+    const { source } = await withPhoto();
+    const controller = new AbortController();
+    const reason = new DOMException('Synthetic cancellation', 'AbortError');
+    const canceled = exportParts(
+      source,
+      async () => {
+        controller.abort(reason);
+        throw new Error('Synthetic interrupted read');
+      },
+      async () => source,
+      controller.signal,
+      () => {},
+    );
+    await expect(canceled.next()).rejects.toBe(reason);
+  });
+  it('rejects a photo larger than the configured part with a limit category', async () => {
+    const { source, bytes } = await withPhoto();
+    const oversized = exportParts(
+      source,
+      async () => bytes.buffer,
+      async () => source,
+      new AbortController().signal,
+      () => {},
+      { partBytes: bytes.length - 1 },
+    );
+    await expect(oversized.next()).rejects.toMatchObject({ code: 'photo_limit' });
   });
 });

@@ -1,14 +1,14 @@
 # Security design and operating boundaries
 
+See [current operations and acceptance](OPERATIONS.md) for current steps, dated evidence and remaining gates.
+
 Status: M1 owner-policy rules are emulator-tested and deployed; this is not a complete production audit.
 Validated capture drafts/finalization/discard and room creation are allowed for the bound owner. M2
 metadata editing, workflow/trash transitions, rooms, and boxes now have constrained, emulator-tested owner
 rules. Storage replacements remain closed. Required IAM/CORS and signed-out OAuth startup
-are verified; owner login and separate-account rejection are owner-verified. The owner confirmed
-production photo addition/deletion after PR #25 on 2026-10-11. Actual-device compatibility, the complete
-current photo-link/session checks and isolated cloud recovery remain pending; see
-[Current operations and acceptance](OPERATIONS.md). See
-[deployment evidence](M1_RELEASE.md). IAP, YubiKey integration, and custom WebAuthn are explicitly excluded.
+are verified; owner login and separate-account rejection are owner-verified. Device capture and actual
+photo-token audit remain pending. The owner confirmed production upload/delete after PR #25;
+[the current evidence](OPERATIONS.md) distinguishes that check from device, token and recovery gates. IAP, YubiKey integration, and custom WebAuthn are explicitly excluded.
 
 Optional-photo capture also permits acknowledged ready records with no photos and tightly constrained
 first-photo registration/completion/cancellation patches on photo-free saved items. Storage still checks
@@ -145,6 +145,13 @@ Render user text as text. No raw HTML rendering of notes, names, or imports. Bui
 Policy for the actual Firebase/OAuth endpoints, allow required auth frames, and test before enforcement.
 Set an anti-framing policy for the app, `X-Content-Type-Options: nosniff`, and a restrictive referrer policy.
 Do not weaken OAuth or CSP wholesale to fix one browser issue.
+
+The owner selected `things.muninn.quest` as the custom app hostname on 2026-10-11. Production
+preparation permits only that name or the configured project's Firebase Hosting name. The app and
+Google redirect helper must still share the selected origin; CORS stays exact-origin and owner rules
+remain authoritative. The public shell requests `noindex`, which is search visibility control, not
+access control. Domain provisioning and activation are separate gates in the
+[custom-domain design](plans/2026-10-11-custom-domain-design.md).
 
 Do not add analytics, third-party error capture, or session replay by default. Sanitize errors; never log
 access tokens, item photos, or full exports. Test reports and screenshots use synthetic data only.

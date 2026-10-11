@@ -1,10 +1,8 @@
 # Photo upload denial investigation
 
 Current resolution: the owner's 2026-10-11 diagnostic uploads identified null custom metadata as a
-blocker and succeeded with the complete nullable-metadata candidate. The owner subsequently confirmed
-production photo addition/deletion after PR #25. See the final section below and
-[Current operations and acceptance](OPERATIONS.md); earlier sections retain the history of repairs
-and unconfirmed hypotheses.
+blocker and succeeded with the complete nullable-metadata candidate. See the final section below;
+earlier sections retain the history of repairs and unconfirmed hypotheses.
 
 Date: 2026-10-10. The owner reported photo capture failing on phone and desktop. The desktop
 network log showed Storage metadata probes returning 404 followed by an upload POST returning 403.
@@ -196,10 +194,11 @@ evidence; the tracked pipeline release and a subsequent owner smoke check are re
 `mise exec -- npm run test:rules:cloud -- --project my-things-c7305` passed all 30 synthetic cases.
 The existing large Firebase bundle warning remains.
 
-PR #25 deployed commit `c6bcc093ce99726540b769340e6ede128ea76b18` through
-[workflow 38128423827](https://github.com/Haugenau20/my-things/actions/runs/38128423827); both Verify and
-Deploy production completed successfully on 2026-10-11. Afterward, the owner confirmed that adding and
-deleting photos works in production, as recorded in [the backlog](../TODO.md). This closes the reported
-upload/delete smoke check. Device/browser versions and broader scenarios were not supplied; actual
-iPhone compatibility, complete photo-link/session checks and isolated real-cloud backup recovery remain
-separate acceptance gates.
+### Post-PR #25 release and owner smoke check
+
+On 2026-10-11, [workflow 38128423827](https://github.com/Haugenau20/my-things/actions/runs/38128423827)
+completed Verify and Deploy production successfully for merged commit
+`c6bcc093ce99726540b769340e6ede128ea76b18`. The owner subsequently confirmed that adding and deleting
+photos works in production, as recorded in TODO.md. This closes that smoke check, not actual iPhone
+compatibility, a complete token/ACL audit or isolated cloud backup recovery. See
+[current operations and acceptance](OPERATIONS.md) for remaining gates.

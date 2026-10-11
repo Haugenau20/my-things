@@ -1,7 +1,8 @@
 # M1 setup checkpoint
 
-This checkpoint retains dated M1 evidence. Use [Current operations and acceptance](OPERATIONS.md) for
-the implemented application, current photo policy, procedures and remaining device/cloud gates.
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
 
 Date: 2026-10-10. M1 capture, cloud SDK initialization, and Google redirect sign-in are now implemented
 and deployed after owner authorization. Owner/device acceptance remains pending; see

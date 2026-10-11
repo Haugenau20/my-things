@@ -1,9 +1,8 @@
 # M3 archive validation and restore
 
-This milestone records implementation and verification on 2026-10-10 under the schema and photo
-delivery policy then in effect. Use [Current operations and acceptance](OPERATIONS.md) for schema-v2
-restore steps, the approved token URL policy and current acceptance status. Historical CLI releases
-below do not authorize a release outside the current GitHub pipeline.
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
 
 Implemented under the owner's instruction to continue unblocked work while away, with standing release
 authorization. All data exercises use synthetic `demo-inventory` Auth/Firestore/Storage emulators.
@@ -71,7 +70,7 @@ splitting evidence remains valid; it does not prove a 2 GiB cloud restore. SDK f
 JPEG header for byte/metadata tests; Chromium uses a canvas-generated real image. No emulator result
 is a real backup/recovery proof. Tooling audit findings remain documented in [M3 export](M3_EXPORT.md).
 
-## Historical production release — 2026-10-10
+## Production release
 
 Source `d51ba78` passed `mise exec -- npm run build:prod`, explicit production destination preflight and
 `mise exec -- npm run release:prepare`. Firebase CLI deployed Firestore rules and Hosting successfully
@@ -84,14 +83,14 @@ restore, actual-device behavior or a personal backup.
 
 ## Operating steps and remaining gates
 
-Follow [Export and isolated restore](OPERATIONS.md#export-and-isolated-restore) for the current procedure.
-The separate verification root must be seeded by a trusted administrator with `schemaVersion: 2` and
-the existing owner binding, as required by [Data model](DATA_MODEL.md#1-paths-and-ownership). Provisioning
-and real-data operations require explicit owner authorization. No production verification root was
-created for this milestone. Preserve the main inventory; never wipe a destination to make restore pass.
+Updated 2026-10-11: follow the consolidated [current operations guide](OPERATIONS.md) for the
+current schema-v2 restore procedure, token URL policy and acceptance status. The preceding sections
+are historical evidence; the present gallery/restore preview uses owner-authorized token URLs, not
+authenticated blob delivery. The owner confirmed upload/delete after PR #25; real-cloud restore
+and actual iPhone acceptance remain pending.
 
-The real twenty-item/two-room iPhone-to-Windows scenario and isolated cloud restore remain pending in
-[Current acceptance status](OPERATIONS.md#current-acceptance-status). The owner-confirmed PR #25 photo
-upload/delete smoke check does not close them. Current restored-photo previews use owner-authorized
-token-bearing URLs; authenticated byte/checksum verification still governs restore completion. Earlier
-blob-preview results above retain their historical context.
+Use [Export and verification restore](OPERATIONS.md#export-and-verification-restore) for the complete
+procedure. The separate verification root requires `schemaVersion: 2` and the existing trusted owner
+binding, as specified in [Data model](DATA_MODEL.md#1-paths-and-ownership). Provisioning and real-data
+operations require explicit owner authorization. No production verification root was created for this
+milestone. Preserve the main inventory; never wipe a destination to make restore pass.

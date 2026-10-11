@@ -1,8 +1,8 @@
 # M3 second slice — Full photo export
 
-This milestone records the export slice on 2026-10-10 before restore and the schema-v2 refactor.
-Use [Current operations and acceptance](OPERATIONS.md) for current schema/format v2, photo policy,
-restore/release steps and acceptance status. CLI releases below are historical evidence only.
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
 
 Implemented under the owner's instruction to continue while away. This supplies the export half of the
 version-1 backup contract. Import/restore and its real recovery gate remain outstanding.
@@ -55,7 +55,7 @@ Node gRPC override. The full audit still reports 11 development dependency findi
 claim is made for tooling. The existing Firebase chunk size warning remains 591.77 kB (176.82 kB gzip).
 Synthetic fixtures/downloads remain ignored. No real personal backup or restore was attempted.
 
-## Historical production release — 2026-10-10
+## Production release
 
 Source `996ea2d` passed production build, explicit destination preflight, and ignored release preparation.
 Hosting deployed successfully on 2026-10-10 under standing owner authorization. An isolated signed-out

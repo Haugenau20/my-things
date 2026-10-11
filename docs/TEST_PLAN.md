@@ -1,17 +1,16 @@
 # Verification and release gates
 
-Status: M0–M3 and the UI refactor have automated synthetic coverage. Use
-[Current operations and acceptance](OPERATIONS.md) for dated evidence and remaining manual gates.
-The owner-confirmed PR #25 production photo upload/delete smoke check does not establish actual iPhone
-compatibility or isolated cloud backup recovery. The scenarios below remain the acceptance checklist;
-record evidence without private data or credentials.
+Status: M0–M3 and the approved UI refactor are implemented with automated coverage. The
+[current operations guide](OPERATIONS.md) consolidates dated release/owner evidence and outstanding
+actual-device and real-cloud recovery gates. Use the scenarios below as the release checklist; record
+what was actually run without private data or credentials.
 
 ## 1. Automated test layers
 
 Use unit tests for domain transitions/validation, component tests for interaction states, Firebase
 emulator tests for SDK/rules integration, and browser tests for end-to-end workflows. The Firebase rules
 test tooling supports synthetic authenticated and unauthenticated contexts; see
-[References S14](REFERENCES.md#s14). The pinned runners and commands are documented in [Setup](SETUP.md).
+[References S14](REFERENCES.md#s14). Runners and commands are pinned in the repository.
 
 Every automated feature test setup must assert the demo project ID and emulator connections. Every
 new or changed feature needs relevant coverage before merge, including failure/recovery and positive/
@@ -23,6 +22,14 @@ Production releases run only through [GitHub Actions](GITHUB_ACTIONS.md) after m
 successful complete `npm run check`. Never bypass failed checks with a local CLI or console release.
 Retry the workflow after a fix; roll back with a reviewed revert PR. Emulator verification does not
 replace the device/cloud acceptance scenarios below.
+
+Custom-domain preparation must accept `things.muninn.quest` and the configured project's Firebase
+Hosting name while rejecting unreviewed/lookalike names and mismatched production targets. Test
+configuration fingerprints and generated exact-origin CORS with synthetic values. Check the public
+shell's `noindex` marker against demo emulators. Before activation, separately verify DNS/HTTPS,
+Google redirect sign-in, unrelated-account rejection, authenticated photo upload/recovery/export and
+the unaffected `muninn.quest` website. Record the deployed commit/workflow and actual-device results;
+see [custom-domain gates](plans/2026-10-11-custom-domain-design.md).
 
 ## 2. Authorization matrix - release blocking
 

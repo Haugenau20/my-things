@@ -1,6 +1,7 @@
 import type { AppConfig } from '../src/data/config.ts';
 import { assertDeployment } from './safety.ts';
 import { createHash } from 'node:crypto';
+import { assertReviewedHostingDomain } from './hosting-domain.ts';
 
 export function configFingerprint(config: AppConfig): string {
   return createHash('sha256').update(JSON.stringify(config)).digest('hex');
@@ -18,8 +19,7 @@ export function releaseSettings(config: AppConfig, manifest: unknown, fingerprin
     projectId: config.firebase.projectId,
     inventoryId: config.inventoryId,
   });
-  if (config.firebase.authDomain !== `${config.firebase.projectId}.firebaseapp.com`)
-    throw new Error('This release supports the reviewed Firebase Hosting auth origin only.');
+  assertReviewedHostingDomain(config.firebase.projectId, config.firebase.authDomain);
   const origin = `https://${config.firebase.authDomain}`;
   return {
     csp: [

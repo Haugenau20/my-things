@@ -3,6 +3,85 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { unzipSync } from 'fflate';
 
+test('sanitizes an unknown export failure even with familiar wording, then permits retry and cancellation', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const createObjectURL = URL.createObjectURL.bind(URL);
+    let fail = true;
+    URL.createObjectURL = (value) => {
+      if (fail && value instanceof Blob && value.type === 'application/zip') {
+        fail = false;
+        throw new Error(
+          'Inventory changed during export inventories/private/items/private https://example.invalid/?token=private',
+        );
+      }
+      return createObjectURL(value);
+    };
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
+  await page.getByText('Backup export', { exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Full export' });
+  const start = panel.getByRole('button', { name: 'Start full export', exact: true });
+  await start.click();
+  await expect(panel.getByRole('alert')).toHaveText(
+    'Export could not finish. No complete backup was confirmed. Resolve unfinished operations, check your connection and stored photos, then retry.',
+  );
+  await expect(panel.getByRole('link')).toHaveCount(0);
+  await expect(start).toBeEnabled();
+  await start.click();
+  await expect(panel.getByRole('alert')).toHaveCount(0);
+  await expect(panel.getByRole('link', { name: /^Download inventory-/ })).toBeVisible();
+  await panel.getByRole('button', { name: 'Cancel export', exact: true }).click();
+  await expect(panel.getByRole('alert')).toContainText('Any saved parts are incomplete');
+  await expect(panel.getByRole('link')).toHaveCount(0);
+  await expect(start).toBeEnabled();
+});
+
+test('a missing stored photo blocks export with safe guidance and can be retried', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
+  await page
+    .locator('.workspace-capture')
+    .getByLabel('Item name', { exact: true })
+    .fill('Synthetic missing export photo');
+  await selectPhoto(page);
+  await page.getByRole('button', { name: 'Save & next', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Open Synthetic missing export photo', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Backup & settings', exact: true }).click();
+  await page.getByText('Backup export', { exact: true }).click();
+  await page.route('**/127.0.0.1:19199/**', async (route) => {
+    if (route.request().method() === 'GET')
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: { code: 404, message: 'inventories/private/items/private ?token=private' },
+        }),
+      });
+    else await route.continue();
+  });
+  const panel = page.getByRole('region', { name: 'Full export' });
+  const start = panel.getByRole('button', { name: 'Start full export', exact: true });
+  await start.click();
+  await expect(panel.getByRole('alert')).toHaveText(
+    'A photo could not be read and verified. Missing or changed photo bytes block a complete export. Check your connection and stored photos, then retry.',
+  );
+  await expect(panel.getByRole('link')).toHaveCount(0);
+  await page.unroute('**/127.0.0.1:19199/**');
+  await start.click();
+  await expect(panel.getByRole('link', { name: /^Download inventory-/ })).toBeVisible();
+  await panel.getByRole('button', { name: 'Cancel export', exact: true }).click();
+  await expect(panel.getByRole('alert')).toContainText('Export canceled');
+});
+
 async function selectPhoto(page: import('@playwright/test').Page) {
   const base64 = await page.evaluate(() => {
     const canvas = document.createElement('canvas');

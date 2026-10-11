@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 20
     environment:
       name: production
-      url: https://my-things-c7305.firebaseapp.com
+      url: ${{ steps.web-config.outputs.origin }}
     permissions:
       contents: read
       id-token: write
@@ -58,6 +58,7 @@ jobs:
           version: 2026.9.18
       - run: mise exec -- npm ci
       - name: Prepare public Web configuration
+        id: web-config
         run: mise exec -- node scripts/prepare-ci.mjs production
         env:
           FIREBASE_WEB_CONFIG: ${{ vars.FIREBASE_WEB_CONFIG }}

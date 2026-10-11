@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test';
 
 test('multipart and resumable uploads send empty custom metadata and retain failed captures', async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
   await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
@@ -75,8 +77,94 @@ test('multipart and resumable uploads send empty custom metadata and retain fail
   }
   await expect(page.getByRole('textbox', { name: 'Item name', exact: true })).toHaveValue(name);
   await expect(page.getByText(/Up to two photos · 1 selected/)).toBeVisible();
+  const diagnostics = page.getByRole('button', { name: 'Copy diagnostics', exact: true });
+  await diagnostics.click();
+  await expect(page.getByRole('status').filter({ hasText: 'Diagnostics copied.' })).toBeVisible();
+  // Windows clipboard text uses CRLF; the report fields stay identical across platforms.
+  const report = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n');
+  expect(report).toMatch(
+    /^Photo operation diagnostics v1\nPhase: upload\nCode: storage\/unauthorized\nBuild: (local|[a-f0-9]{40})\nEnvironment: local$/,
+  );
+  expect(report).not.toMatch(/Synthetic|inventories|token|https:|127\.0\.0\.1/);
+  await page.evaluate(() =>
+    Object.defineProperty(navigator.clipboard, 'writeText', {
+      configurable: true,
+      value: async () => {
+        throw new Error('private clipboard failure');
+      },
+    }),
+  );
+  await diagnostics.click();
+  await expect(
+    page.getByText('Clipboard unavailable. Select and copy the report below.'),
+  ).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Photo diagnostics report' })).toHaveValue(report);
+  await expect(page.getByText('private clipboard failure')).toHaveCount(0);
   await page.unrouteAll();
   await page.getByRole('button', { name: 'Retry this capture', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: `Saved ${name}` })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Unfinished captures' })).toHaveCount(0);
+  await expect(diagnostics).toHaveCount(0);
+});
+
+test('sign-out removes diagnostics even if a clipboard request resolves later', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await page.getByRole('button', { name: '+ Add a thing', exact: false }).click();
+  const png = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 8;
+    canvas.height = 8;
+    return canvas.toDataURL('image/png').split(',')[1]!;
+  });
+  await page.route('**/127.0.0.1:19199/**', async (route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: '{"error":{"code":403,"message":"Synthetic denial"}}',
+      });
+    } else await route.continue();
+  });
+  await page
+    .getByRole('textbox', { name: 'Item name', exact: true })
+    .fill('Synthetic delayed diagnostics');
+  await page
+    .getByRole('region', { name: 'Desktop capture', exact: true })
+    .getByLabel('Choose photos')
+    .setInputFiles({
+      name: 'synthetic.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from(png, 'base64'),
+    });
+  await page.getByRole('button', { name: 'Save & next', exact: true }).click();
+  const copy = page.getByRole('button', { name: 'Copy diagnostics', exact: true });
+  await expect(copy).toBeVisible();
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: () =>
+          new Promise<void>((resolve) => {
+            (
+              globalThis as typeof globalThis & { finishSyntheticCopy?: () => void }
+            ).finishSyntheticCopy = resolve;
+          }),
+      },
+    });
+  });
+  await copy.click();
+  await expect(copy).toBeDisabled();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Your things, together.' })).toBeVisible();
+  await page.evaluate(() =>
+    (
+      globalThis as typeof globalThis & { finishSyntheticCopy?: () => void }
+    ).finishSyntheticCopy?.(),
+  );
+  await expect(copy).toHaveCount(0);
+  await expect(page.getByText('Diagnostics copied.')).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Photo diagnostics report' })).toHaveCount(0);
 });

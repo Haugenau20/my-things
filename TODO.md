@@ -45,6 +45,12 @@ authorization. Use "None beyond normal change review" when applicable.
 **Completion record:** Pending. Replace with date, PR/commit, checks/results, and remaining limitations.
 ```
 
+## Approved implementation batch
+
+On 2026-10-11 the owner approved independent PRs for TODO-005, TODO-002, TODO-013 and TODO-004,
+with parallel subagents in isolated worktrees. See the [approved plan](docs/plans/2026-10-11-backlog-design.md).
+Implementation approval does not authorize merging or executing production maintenance.
+
 ## Lessons to apply while working this backlog
 
 - Isolate one rule condition at a time and turn confirmed findings into regression cases. The
@@ -82,7 +88,7 @@ and export contracts; do not restore authorization from an archive.
 
 ## TODO-002 — Add safe photo-operation diagnostics
 
-- Status: Open
+- Status: In progress
 - Priority: High
 - Effort: Small–Medium
 - Evidence: Observed debt
@@ -102,7 +108,7 @@ errors remain visible and retryable without exposing raw SDK messages.
 **Dependencies and authorization:** None beyond normal change review. External telemetry or error-reporting
 services would require a separate privacy/scope decision.
 
-**Completion record:** Pending.
+**Completion record:** 2026-10-11 — implemented in [PR #29](https://github.com/Haugenau20/my-things/pull/29) (`11b6ab1`), pending review/merge. Capture, phone queue, attachment and recovery offer explicit copyable phase/code/build/environment diagnostics with fixed allowlists, selectable fallback and no raw SDK messages or private identifiers. Acknowledged saves retain truthful status if the subsequent inventory refresh fails. All required local stages passed: lint/typecheck, 197 unit, 117 rules, 31 SDK integration, 62 Chromium tests and build (407 tests). The initial full check exposed a Windows clipboard CRLF assertion; normalizing only CRLF corrected the test assumption, then lint, the full browser suite and build passed. Exact evidence is in the PR and its design record. Existing bundle warning and actual-device/cloud acceptance gates remain; no external telemetry or production operation was added.
 
 ## TODO-003 — Expand cloud rules regression coverage before merge
 
@@ -132,7 +138,7 @@ Existing emulator authorization tests remain required.
 
 ## TODO-004 — Triage development-tooling dependency advisories
 
-- Status: Open
+- Status: In progress
 - Priority: High
 - Effort: Medium
 - Evidence: Confirmed gap
@@ -152,7 +158,7 @@ clean while findings remain.
 
 **Dependencies and authorization:** None beyond normal change review; retain pinned supported tooling.
 
-**Completion record:** Pending.
+**Completion record:** 2026-10-11 — exposure assessment implemented in [PR #27](https://github.com/Haugenau20/my-things/pull/27) (`bcfb575`), pending review/merge. Four underlying advisories and their actual tooling paths have explicit assessments and revisit conditions. Pins/lockfile unchanged: full audit still reports 11 affected packages (7 high, 4 moderate); production audit reports zero. Clean `npm ci`, `mise exec -- npm run check` (180 unit, 117 rules, 30 SDK, 58 Chromium; lint/typecheck/build), 30 synthetic cloud-policy cases, and synthetic production build/preflight/release preparation passed. Actual-production-configuration preflight and deployment were not performed; see PR evidence for the safe synthetic alternative. This completes triage, not vulnerability elimination.
 
 ## TODO-005 — Correct and consolidate current operating instructions
 
@@ -178,17 +184,21 @@ can find authoritative restore/release steps without following obsolete instruct
 **Dependencies and authorization:** None beyond normal change review. Documentation changes do not
 authorize executing the described cloud operations.
 
-**Completion record:** 2026-10-11 — implemented in
-[commit 04ac303](https://github.com/Haugenau20/my-things/commit/04ac303552f3f07e18d1639e3ca77cce2fe03b52).
-Current procedures and acceptance evidence are consolidated in [OPERATIONS.md](docs/OPERATIONS.md).
-Restore and bootstrap instructions require schema v2; milestone histories retain their dates/context,
-and the owner-confirmed PR #25 upload/delete smoke check and successful deployment are recorded.
-`mise exec -- npm run check` passed lint/formatting, typecheck, 180 unit tests, 117 rules tests,
-30 SDK integration tests, all 58 Chromium browser tests and the local build. A read-only Node Markdown
-scan validated 163 local paths/anchors across the 16 changed/new documents; `git diff --check` passed.
-The final TODO entry also passed `mise exec -- node node_modules/prettier/bin/prettier.cjs --check TODO.md`.
-Device acceptance and isolated real-cloud recovery stay open. No cloud provisioning, maintenance or
-real-data operations were performed; this review branch is not a production release.
+**Completion record:** 2026-10-11 — the original implementation merged in
+[PR #26](https://github.com/Haugenau20/my-things/pull/26) (`e2b4b88`). It corrected restore schema and
+reset status, added the current operations/acceptance guide and historical notices, and made the
+verification destination explicit. Its local `mise exec -- npm run check` passed lint/format,
+TypeScript, 180 unit, 117 rules, 30 SDK integration and 58 Chromium tests, plus build (385 tests).
+Local documentation links and `git diff --check` passed.
+
+[PR #31](https://github.com/Haugenau20/my-things/pull/31) retains that implementation and subsequent
+main changes, corrects the remaining schema-v1 bootstrap table and SDK/bearer-link wording, and
+consolidates restore instructions with explicit confirmation/resume controls. After resolving the
+overlap with main, `mise exec -- npm run check` passed lint/format, TypeScript, 230 unit, 117 rules,
+31 SDK integration and all 65 Chromium tests, plus build (443 tests). Local documentation links,
+conflict-marker checks, TODO formatting and `git diff --check` passed. The follow-up remains subject
+to normal PR review. The existing bundle warning, actual-device and isolated real-cloud recovery
+gates remain; no production provisioning, maintenance or real-data operation was performed.
 
 ## TODO-006 — Reduce full-inventory refresh work
 
@@ -361,7 +371,7 @@ correct. Do not merely suppress the warning.
 
 ## TODO-013 — Replace message matching with typed operational errors
 
-- Status: Open
+- Status: In progress
 - Priority: Low
 - Effort: Small–Medium
 - Evidence: Observed debt
@@ -381,4 +391,4 @@ Do not expose raw SDK messages, personal paths, or token URLs.
 **Dependencies and authorization:** None beyond normal change review. Coordinate error categories with
 TODO-002 without building an elaborate provider abstraction.
 
-**Completion record:** Pending.
+**Completion record:** 2026-10-11 — implemented in [PR #28](https://github.com/Haugenau20/my-things/pull/28) (`4133a51`), pending review/merge. Export producers now emit explicit categories and the panel uses fixed safe messages; display wording cannot change classification. Cancellation, incomplete backups, changed inventory and unknown failures retain safe recovery behavior. All required local stages passed: lint/typecheck, 199 unit, 117 rules, 30 SDK integration, 60 Chromium tests and build (406 tests). The initial check stopped at missing emulator configuration; after supplying the tracked demo example, the browser suite passed on an unchanged retry following a Chromium resource error. Exact evidence is in the PR and its `docs/EXPORT_ERRORS.md`. Existing bundle warning and real-cloud/device acceptance limitations remain; no production operation was performed.

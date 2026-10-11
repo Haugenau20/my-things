@@ -1,3 +1,4 @@
+import { ExportError } from './export-errors';
 import { Timestamp } from 'firebase/firestore';
 import { Zip, ZipPassThrough } from 'fflate';
 import type { Item, PhotoFile, Room } from '../domain/item';
@@ -35,10 +36,9 @@ export type ExportManifest = {
 };
 const encoder = new TextEncoder();
 function unique<T extends { id: string }>(records: T[]): T[] {
-  if (records.length > EXPORT_MAX_RECORDS)
-    throw new Error('Export exceeds the tested record limit.');
+  if (records.length > EXPORT_MAX_RECORDS) throw new ExportError('record_limit');
   if (new Set(records.map((record) => record.id)).size !== records.length)
-    throw new Error('Duplicate record IDs block export.');
+    throw new ExportError('duplicate_records');
   return records.sort((a, b) => a.id.localeCompare(b.id));
 }
 export function preflightExport(source: ExportSnapshot): ExportSnapshot {
@@ -66,14 +66,12 @@ export function preflightExport(source: ExportSnapshot): ExportSnapshot {
   const boxes = new Set(snapshot.boxes.map((box) => box.id));
   for (const item of snapshot.items) {
     if (item.recordState !== 'ready' || item.photos.some((photo) => photo.state !== 'ready'))
-      throw new Error(
-        'Resolve unfinished captures, photo operations, and deletions before exporting.',
-      );
+      throw new ExportError('unfinished_operations');
     if (
       (item.roomId !== null && !rooms.has(item.roomId)) ||
       (item.boxId !== null && !boxes.has(item.boxId))
     )
-      throw new Error('A missing room or box reference blocks a complete export.');
+      throw new ExportError('missing_reference');
   }
   return snapshot;
 }
@@ -199,7 +197,7 @@ export function serializeExport(snapshot: ExportSnapshot): Payload[] {
     },
   ];
   if (payload.reduce((sum, file) => sum + file.bytes.byteLength, 0) > EXPORT_METADATA_BYTES)
-    throw new Error('Export metadata exceeds the tested memory limit.');
+    throw new ExportError('metadata_limit');
   return payload;
 }
 function stamp(snapshot: ExportSnapshot): string {
@@ -225,7 +223,7 @@ async function archive(entries: Payload[], createdAt: Date, signal: AbortSignal)
     }
     size += chunk.byteLength;
     if (size > EXPORT_PART_BYTES + ZIP_OVERHEAD_BYTES) {
-      failure = new Error('ZIP exceeds its bounded output limit.');
+      failure = new ExportError('archive_limit');
       return;
     }
     chunks.push(chunk);
@@ -311,7 +309,7 @@ export async function* exportParts(
   for (let cursor = 0; cursor < planned.length; cursor++) {
     signal.throwIfAborted();
     const next = planned[cursor]!;
-    if (next.file.byteSize > limit) throw new Error('A photo exceeds the ZIP part limit.');
+    if (next.file.byteSize > limit) throw new ExportError('photo_limit');
     if (multipart && entries.length && payloadBytes + next.file.byteSize > limit) {
       const name = partName();
       names.push(name);
@@ -326,10 +324,16 @@ export async function* exportParts(
       ++index;
     }
     progress(`Verifying photo file ${cursor + 1} of ${planned.length}…`);
-    const bytes = new Uint8Array(await readPhoto(next.file, signal));
+    let bytes: Uint8Array<ArrayBuffer>;
+    try {
+      bytes = new Uint8Array(await readPhoto(next.file, signal));
+    } catch {
+      signal.throwIfAborted();
+      throw new ExportError('photo_unverified');
+    }
     signal.throwIfAborted();
     if (bytes.byteLength !== next.file.byteSize || (await sha256(bytes)) !== next.file.sha256)
-      throw new Error('Missing or changed photo bytes block a complete export.');
+      throw new ExportError('photo_unverified');
     entries.push({ path: next.path, bytes });
     payloadBytes += bytes.length;
     options.retained?.(payloadBytes);
@@ -354,8 +358,7 @@ export async function* exportParts(
   progress('Rechecking inventory before finalizing the manifest…');
   const current = preflightExport(await recheck());
   signal.throwIfAborted();
-  if (stamp(current) !== stamp(snapshot))
-    throw new Error('Inventory changed during export. No complete backup was finalized.');
+  if (stamp(current) !== stamp(snapshot)) throw new ExportError('inventory_changed');
   const manifest: ExportManifest = {
     format: 'home-inventory-export',
     formatVersion: 2,
@@ -380,7 +383,7 @@ export async function* exportParts(
   const manifestBytes = json(manifest);
   entries.push({ path: 'manifest.json', bytes: manifestBytes });
   payloadBytes += manifestBytes.length;
-  if (payloadBytes > EXPORT_PART_BYTES) throw new Error('Metadata ZIP exceeds its payload limit.');
+  if (payloadBytes > EXPORT_PART_BYTES) throw new ExportError('archive_limit');
   options.retained?.(payloadBytes);
   progress('Finalizing the metadata and manifest ZIP…');
   const blob = await archive(entries, createdAt, signal);

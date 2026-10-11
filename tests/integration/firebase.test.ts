@@ -16,6 +16,7 @@ import type { CaptureInput } from '../../src/domain/item';
 import { Timestamp } from 'firebase/firestore';
 import { deleteObject, getBytes, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { sha256 } from '../../src/media/processing';
+import { photoDiagnosticReport } from '../../src/media/capture-errors';
 import { ensureDraft, loadItems, createRoom } from '../../src/data/capture-repository';
 import * as captureRepository from '../../src/data/capture-repository';
 import { ensureFirstPhotos } from '../../src/data/photo-attachment-repository';
@@ -179,7 +180,7 @@ describe('real client SDK and trusted synthetic seed', () => {
         signal,
         () => {},
       ),
-    ).rejects.toThrow('identity conflict');
+    ).rejects.toMatchObject({ phase: 'registration', code: 'unknown' });
     expect((await captureRepository.loadItem(services.db, 'main', saved.id))?.quantity).toBe(7);
     await signInWithEmailAndPassword(
       services.auth,
@@ -188,7 +189,10 @@ describe('real client SDK and trusted synthetic seed', () => {
     );
     const foreign = await attempt('sdk-foreign-detailed');
     foreign.input = { ...foreign.input, ...details };
-    await expect(saveAttempt(services, 'main', foreign, signal, () => {})).rejects.toThrow();
+    await expect(saveAttempt(services, 'main', foreign, signal, () => {})).rejects.toMatchObject({
+      phase: 'registration',
+      code: 'permission-denied',
+    });
   });
 
   it('saves acknowledged capture bytes and retries without duplicate records', async () => {
@@ -201,6 +205,32 @@ describe('real client SDK and trusted synthetic seed', () => {
     expect((await saveAttempt(services, 'main', plan, signal, () => {})).id).toBe(saved.id);
     expect(
       (await loadItems(services.db, 'main')).filter((item) => item.id === plan.id),
+    ).toHaveLength(1);
+  });
+  it('reports failed finalization and recovers verified emulator files under the same identity', async () => {
+    const services = await owner('diagnostic-finalization-owner');
+    const plan = await attempt('sdk-diagnostic-finalization');
+    const signal = new AbortController().signal;
+    const finish = vi
+      .spyOn(captureRepository, 'finishDraft')
+      .mockRejectedValueOnce({ code: 'unavailable', message: 'Synthetic private detail' });
+    let failure: unknown;
+    try {
+      failure = await saveAttempt(services, 'main', plan, signal, () => {}).catch(
+        (error: unknown) => error,
+      );
+    } finally {
+      finish.mockRestore();
+    }
+    expect(photoDiagnosticReport(failure, { version: 'local', environment: 'local' })).toBe(
+      'Photo operation diagnostics v1\nPhase: finalization\nCode: unavailable\nBuild: local\nEnvironment: local',
+    );
+    const draft = (await captureRepository.loadItem(services.db, 'main', plan.id))!;
+    expect(draft.recordState).toBe('draft');
+    const saved = await recoverAttempt(services, 'main', draft, signal, () => {});
+    expect(saved).toMatchObject({ id: plan.id, recordState: 'ready' });
+    expect(
+      (await loadItems(services.db, 'main')).filter((entry) => entry.id === plan.id),
     ).toHaveLength(1);
   });
   it('requires owner authorization to issue URLs while copied tokens work until object deletion', async () => {
@@ -933,7 +963,9 @@ describe('real client SDK and trusted synthetic seed', () => {
         .ref(photo.detail.storagePath)
         .delete();
     });
-    await expect(createExport(services, inventory, signal, () => {}).next()).rejects.toThrow();
+    await expect(createExport(services, inventory, signal, () => {}).next()).rejects.toMatchObject({
+      code: 'photo_unverified',
+    });
   });
   it('does not overwrite an existing different owner binding', async () => {
     await environment.withSecurityRulesDisabled(async (context) => {

@@ -1,98 +1,87 @@
 # Current operations and acceptance
 
-Reviewed: 2026-10-11. Start here for current operating steps and acceptance status. Milestone documents
-record implementation, delivery policy and checks at their dates; older CLI releases and schema-v1
-descriptions are historical evidence, not current procedures. This summary does not authorize cloud
-provisioning, real-data operations or maintenance.
+Reviewed 2026-10-11. Start here for current operating instructions and acceptance status.
+Milestone documents preserve the behavior, policies and checks at the time they were written;
+their historical deployment commands and pending statements are not current instructions.
 
-[SPEC](../SPEC.md) owns product behavior, [Data model](DATA_MODEL.md) owns schema v2,
-[Security](SECURITY.md) owns authorization and photo delivery, and [Export format](EXPORT_FORMAT.md)
-owns backup/restore. Use [Setup](SETUP.md) for local commands, [GitHub Actions](GITHUB_ACTIONS.md) for
-releases and [Test plan](TEST_PLAN.md) for the complete acceptance checklist.
+## Current contracts
 
-## Current acceptance status
+- Schema and backup format are **v2 only**. V1 records/archives are rejected. Room tags and box
+  packing are independent; see [data model](DATA_MODEL.md) and [export contract](EXPORT_FORMAT.md).
+- Only the administratively bound owner may access records or issue photo URLs. The owner approved
+  token-bearing gallery URLs on 2026-10-11: copied links remain readable after sign-out until token
+  revocation or object deletion. URLs stay in session memory, never records or backups. Upload
+  recovery and backups still verify authenticated bytes and checksums. Clearing app URL references
+  on sign-out does not revoke copied links. See [security](SECURITY.md).
+- Local development and automated tests use synthetic `demo-inventory` Auth, Firestore and Storage
+  emulators. Missing emulator configuration fails closed. See [local setup](SETUP.md#4-local-windows-toolchain).
+- Production releases use the reviewed GitHub pipeline after an owner-authorized merge to `main`.
+  Provisioning, real-data recovery and destructive maintenance require separate authorization.
+  This guide neither grants that authorization nor calls for repeating completed setup.
 
-| Area | Evidence and status as of 2026-10-11 |
-| --- | --- |
-| Implemented application | M0–M3 and the ten-stage UI refactor are implemented with synthetic emulator/browser coverage. See [UI refactor evidence](UI_REFACTOR.md) and the [nullable-metadata repair](PHOTO_UPLOAD_FIX.md#2026-10-11-owner-confirmed-nullable-metadata-repair) for dated check results. |
-| Production release | [PR #25](https://github.com/Haugenau20/my-things/pull/25) deployed commit `c6bcc093ce99726540b769340e6ede128ea76b18`. [Workflow 38128423827](https://github.com/Haugenau20/my-things/actions/runs/38128423827) completed both Verify and Deploy production successfully, including synthetic cloud policy evaluation and Hosting, Firestore rules/indexes and Storage rules deployment. |
-| Photo upload/delete smoke check | The owner confirmed on 2026-10-11 that adding and deleting photos works in production after PR #25, as recorded in [the backlog](../TODO.md). This closes the reported smoke check; device/browser versions and broader scenarios were not supplied. |
-| Owner authentication | Owner reauthentication and rejection of another Google account are owner-verified; see [deployment evidence](M1_RELEASE.md). This does not establish every current photo-link or cross-device session scenario. |
-| Actual-device acceptance | Pending: the complete iPhone-to-Windows twenty-item/two-room scenario, Safari camera/library HEIC/JPEG/PNG, rotation, keyboard, safe areas, interruption/backgrounding and recovery. Home Screen acceptance is separate. See [Test plan sections 6–7](TEST_PLAN.md#6-real-browser-and-authorized-cloud-checks) and [TODO-009](../TODO.md#todo-009--complete-actual-iphone-compatibility-acceptance). |
-| Isolated real-cloud backup recovery | Pending: reopen saved archives and restore into a separate empty, trusted-owner inventory in the existing project; verify relationships, counts, hashes and photo readability. [M3 restore](M3_RESTORE.md) records synthetic round trips, which do not close [TODO-001](../TODO.md#todo-001--prove-real-cloud-backup-recovery). |
-| Remaining cloud/operating checks | Record current issued-link behavior, absent/wrong-token denial, invalidation after object deletion, cross-tab sign-out, actual latency/usage/billing and retention posture as specified in [Test plan](TEST_PLAN.md). The upload/delete smoke check does not establish these. |
+## Evidence and remaining acceptance
 
-Usable V1's complete acceptance gate remains open until the real-device and isolated cloud-recovery
-scenarios pass. Optional M4 polish is not a prerequisite for those checks.
+| Check                                   | Current evidence                                                                                                                                                                                                                                       | Remaining boundary                                                                                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Latest verified release                 | PR #25 merged as `c6bcc093ce99726540b769340e6ede128ea76b18`; [workflow 38128423827](https://github.com/Haugenau20/my-things/actions/runs/38128423827) completed Verify and Deploy production successfully                                              | A release does not prove device or recovery acceptance                                                                            |
+| Photo upload and deletion               | Owner confirmed both work in production after PR #25 on 2026-10-11; recorded in [backlog](../TODO.md) and [upload investigation](PHOTO_UPLOAD_FIX.md#2026-10-11-owner-confirmed-nullable-metadata-repair)                                              | Does not establish HEIC/camera/backgrounding, a full token audit or backup recovery                                               |
+| Owner authentication                    | Owner reauthentication and another account's rejection are recorded in [decision log](DECISIONS.md#2026-10-10--owner-only-sign-in)                                                                                                                     | Broader device/session acceptance remains separate                                                                                |
+| Schema-v2 cutover                       | Scoped test-data reset and preservation of the trusted root are recorded in [setup evidence](SETUP.md#executed-production-maintenance-evidence); the v2 release is recorded in [UI evidence](UI_REFACTOR.md#pr-02-workspace-shell-and-dedicated-views) | Historical completed maintenance, not a repeatable routine step                                                                   |
+| Automated application/recovery coverage | Latest PR #25 local record: 180 unit, 117 rules, 30 SDK and 58 Chromium tests, plus lint/typecheck/build; [evidence](PHOTO_UPLOAD_FIX.md)                                                                                                              | Synthetic emulator results do not prove actual cloud backup/restore or device behavior                                            |
+| Actual iPhone compatibility             | Pending: [TODO-009](../TODO.md#todo-009--complete-actual-iphone-compatibility-acceptance)                                                                                                                                                              | Camera/library, HEIC/JPEG/PNG, rotation, keyboard, backgrounding, interruption and Home Screen checks need actual device evidence |
+| Real-cloud backup recovery              | Pending: [TODO-001](../TODO.md#todo-001--prove-real-cloud-backup-recovery)                                                                                                                                                                             | Requires separate authorization, an empty trusted-owner verification destination and saved-archive round-trip evidence            |
+| First complete acceptance scenario      | Pending: [test plan](TEST_PLAN.md#7-first-real-acceptance-scenario)                                                                                                                                                                                    | Twenty real items in two rooms, iPhone-to-Windows organization and isolated cloud restore                                         |
 
-## Photo delivery and capture recovery
+The implemented M0–M3 application is deployed. The complete usable-V1 acceptance gate remains open.
+No claim of a full production security audit or real backup/recovery proof follows from these results.
 
-Gallery, detail and restored-photo previews use owner-authorized `getDownloadURL()` issuance under the
-policy approved on 2026-10-11. Issued URLs stay in session memory and are excluded from records,
-exports, logs and telemetry. Anyone possessing a copied valid URL can read that photo after sign-out;
-clearing the app's URL references does not revoke it. Uploads, URL issuance, metadata reads, listings
-and deletion still require the bound owner. No public bucket access is authorized.
+## Export and verification restore
 
-Upload acknowledgment/recovery and backup/restore verification continue to use authenticated photo
-bytes and checksums; a gallery URL list is not a backup. Follow the [photo pipeline](PHOTO_PIPELINE.md)
-for retry/discard behavior. Keep the tab open until required writes and selected uploads are
-acknowledged. The phone queue and source files are memory-only; reload/sign-out cannot preserve unsent
-captures. Server-side unfinished records remain recoverable.
+1. Refresh all open app tabs. Finish or explicitly resolve unfinished captures, photo operations,
+   deletions and restores. Avoid edits in other tabs/devices while exporting.
+2. In **Backup & settings**, start a full export. Save and acknowledge every numbered photo ZIP and
+   the final metadata/manifest ZIP. Keep all original filenames together, outside Firebase and this
+   repository. Archives are unencrypted personal data; a browser acknowledgment cannot prove the
+   files were persisted. A partial set is not a complete backup.
+3. Before a real-cloud recovery exercise, obtain separate owner authorization for provisioning and
+   operations on real data. A trusted administrator must provision a **separate, empty** destination
+   in the existing project, retaining the existing verified owner identity. Do not use or clear the
+   main inventory. Do not create another cloud project.
+4. The destination root `/inventories/{verificationId}` must have exactly the current root fields:
+   integer `schemaVersion: 2`, the independently verified `ownerUid`, `displayName`, explicit
+   `defaultCurrency: null` or a supported selected currency, and Firestore `createdAt`/`updatedAt`
+   timestamps. Use a valid, distinct inventory ID. The [data model](DATA_MODEL.md#1-paths-and-ownership)
+   and [owner bootstrap contract](SECURITY.md#2-authentication-and-owner-bootstrap) are authoritative.
+   Neither the browser, an archive nor a local environment variable may establish ownership.
+5. Reopen the saved ZIPs in Restore backup. Set **Destination inventory ID** to the separately provisioned
+   verification ID from steps 3–4; the initial value is the workspace inventory, normally `main`.
+   Choose **Validate backup and destination**, inspect all parts and the dry-run summary, and confirm
+   the environment and verification ID before choosing **Restore validated backup**. A nonempty
+   destination or unexpected objects block a new restore; never wipe data to bypass that protection.
+   Restore never imports owner authority. Restoring inventory name/default currency is optional;
+   destination owner, root schema and root creation metadata remain intact.
+6. After interruption, reconnect, refresh and reselect the same archive and destination. Validate,
+   then choose **Resume restore**. The exact manifest/export identity and claims must match. Changed
+   records, missing parts or checksum conflicts require investigation; keep the destination and
+   original archive intact. Only an interrupted report with zero claims offers **Release unused
+   import lock**. A completed report can be verified again with the same archive.
+7. Confirm record counts, room/box relationships, grouped values, completed/trashed entries, photo
+   counts and exact derivative hashes. Use **Check restored photos** to inspect representative images
+   and label close-ups. Record actual browser/device versions and results without committing records,
+   photos, archives, owner identifiers or token URLs. Preserve the main inventory.
 
-## Export and isolated restore
+See [export/restore contract](EXPORT_FORMAT.md#5-restore-behavior) for validation, resumability and
+limits, and [M3 restore evidence](M3_RESTORE.md) for historical automated results. A completed report
+cannot be reused for a different archive; that needs another separately authorized empty destination.
 
-These steps describe separately authorized recovery work. Normal development and automated tests remain
-on `demo-inventory` with Auth, Firestore and Storage emulators.
+## Release, retry and rollback
 
-1. Refresh all open app tabs. Finish or explicitly resolve pending captures, photo operations, deletions
-   and restores before full export. Avoid edits from other tabs/devices during export. Missing referenced
-   photo files or detected concurrent changes block a complete backup.
-2. In Backup & settings, export and save every ZIP outside Firebase and this repository in an
-   owner-controlled location. Archives are unencrypted. Keep original filenames and every numbered photo
-   ZIP together with the final metadata/manifest ZIP. Download acknowledgment does not prove the files
-   were saved; reopen the saved files for validation.
-3. Obtain explicit owner authorization for provisioning the verification root and operations on real
-   data. In the existing project, a trusted administrator creates a separate empty
-   `/inventories/{verificationInventoryId}` root; for example, `restore-verification`. Its fields must
-   satisfy the [inventory-root contract](DATA_MODEL.md#1-paths-and-ownership): `schemaVersion: 2`, the
-   existing trusted `ownerUid`, a nonblank `displayName`, `defaultCurrency: null` or an explicitly chosen
-   supported currency, and Firestore `createdAt`/`updatedAt` timestamps. Browser clients cannot provision
-   it; an archive cannot grant ownership. No new cloud project is needed, and the main inventory is
-   preserved. V1 roots, documents and archives are unsupported.
-4. Select every saved ZIP in Backup ZIP files, set Destination inventory ID to the separate verification
-   root and choose **Validate backup and destination**. Review the archive summary, environment and
-   destination before confirming. New imports refuse existing records or orphan files. Restore inventory
-   name/default currency only if explicitly selected; destination owner, root schema and root creation
-   metadata remain intact.
-5. Confirm and choose **Restore validated backup**. Success requires final counts, references and
-   authenticated file/checksum verification. Use **Check restored photos** to inspect representative
-   images, including label close-ups, Gone and Trash entries. Verify room tags and box packing separately,
-   grouped values, cover choices, photo counts and exact derivative hashes against the saved archive.
-   The main workspace retains its configured inventory.
-6. If interrupted, preserve the destination and every original ZIP. Reconnect, refresh, select the same
-   archive and destination, validate and choose **Resume restore**. The exact manifest/export identity
-   and claims must match. Never clear records/photos to make recovery succeed. Changed or unrelated data
-   requires administrator review. Only an interrupted report with zero claims offers **Release unused
-   import lock**; a completed report can be verified again with the same archive, but a different archive
-   requires another authorized empty destination.
-7. Record date, deployed commit/workflow, device/browser versions, scenarios actually run, matching
-   counts/relationships/hashes, readability and remaining limitations. Keep personal records/photos,
-   archives, tokens and private logs out of GitHub and external tools. Follow
-   [Test plan section 8](TEST_PLAN.md#8-sign-off-record).
+Run `mise exec -- npm run check`, review the PR and obtain merge authorization. After merge, the
+[GitHub pipeline](GITHUB_ACTIONS.md) reruns verification, builds production, validates the destination,
+evaluates synthetic cloud policy requests and deploys Hosting, Firestore rules/indexes and Storage rules.
+Record the actual deployed commit and workflow result. A PR check, build or merge alone is insufficient.
 
-The [export contract](EXPORT_FORMAT.md) defines validation, packaging limits and recovery invariants.
-[M3 export](M3_EXPORT.md) and [M3 restore](M3_RESTORE.md) retain dated synthetic evidence; neither proves
-personal cloud recovery or large-browser memory behavior.
-
-## Production releases
-
-Run the repository checks locally, open/update the review PR and obtain owner authorization before
-merging. GitHub reruns `npm run check`; after merge to `main`, successful verification allows the
-production job to build, validate its destination, evaluate synthetic cloud policy requests and deploy
-Hosting, Firestore rules/indexes and Storage rules. Record the deployed commit and successful workflow;
-a local build, passing PR check or merge alone is not deployment evidence.
-
-Use GitHub Actions on `main` for pipeline retries and a reviewed revert PR for rollback. Never release
-through a local CLI, console or agent session. Provisioning, owner seeding, real-data recovery, resets,
-destructive maintenance and billing/IAM/Auth/CORS changes retain separate authorization requirements.
-See [the release procedure](GITHUB_ACTIONS.md) for exact workflow and configuration details.
+Retry through GitHub Actions on `main`; fix failures in a PR. Roll back with a reviewed revert PR
+through the same pipeline. Never deploy from a local CLI, console or agent session. Reverting application
+code does not restore deleted data or undo a schema change. Retain v2 support and restore-aware clients.
+Use the [test plan](TEST_PLAN.md) for separately required cloud/device gates.

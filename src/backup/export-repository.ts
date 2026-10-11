@@ -1,3 +1,4 @@
+import { ExportError } from './export-errors';
 import type { FirebaseServices } from '../data/firebase';
 import { loadInventory } from '../data/inventory-repository';
 import { loadItems, loadRooms } from '../data/capture-repository';
@@ -14,7 +15,7 @@ export async function loadExportSnapshot(
 ): Promise<ExportSnapshot> {
   signal.throwIfAborted();
   const uid = services.auth.currentUser?.uid;
-  if (!uid) throw new Error('Owner authentication is required for export.');
+  if (!uid) throw new ExportError('authentication_required');
   const [inventory, items, rooms, boxes, restore] = await Promise.all([
     loadInventory(services.db, inventoryId, uid),
     loadItems(services.db, inventoryId),
@@ -23,8 +24,7 @@ export async function loadExportSnapshot(
     loadRestoreReport(services.db, inventoryId),
   ]);
   signal.throwIfAborted();
-  if (restore && restore.state !== 'completed')
-    throw new Error('Finish the interrupted restore before exporting a full backup.');
+  if (restore && restore.state !== 'completed') throw new ExportError('unfinished_restore');
   return { inventoryId, inventory, items, rooms, boxes };
 }
 export async function* createExport(

@@ -236,7 +236,7 @@ future fields during an older client's write.
 
 The 2026-10 schema-v2 change is the owner-approved clean-reset exception. V1 is rejected; no migration
 or legacy archive reader is implemented. Preserve authorization and update the root version through a
-trusted administrative cutover, never a client write. Production reset has not been executed.
+trusted administrative cutover, never a client write. The scoped reset was executed; see the dated [setup evidence](SETUP.md#executed-production-maintenance-evidence). It is not an instruction to repeat maintenance.
 
 ## Capture details and retry identity
 

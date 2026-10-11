@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
 
+test('public login shell asks search engines not to index the inventory app', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+  await expect(page.getByRole('heading', { name: 'Your things, together.' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Inventory views' })).toHaveCount(0);
+});
+
 test('workspace navigation starts at Things and keeps administrative tools in settings', async ({
   page,
 }) => {

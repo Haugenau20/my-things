@@ -1,5 +1,9 @@
 # First pipeline release: Storage discovery failure
 
+> Historical evidence: behavior, authorization and pending checks below describe their recorded
+> milestone. For current schema, photo policy, release procedure and acceptance status, start with
+> [current operations](OPERATIONS.md). Earlier permissions do not authorize new maintenance or merges.
+
 The first main deployment [run 38083084954](https://github.com/Haugenau20/my-things/actions/runs/38083084954)
 for commit `b44c0ca` passed the complete emulator verification suite, production configuration/build,
 destination preflight, release preparation, GitHub OIDC authentication and nine synthetic Storage policy
