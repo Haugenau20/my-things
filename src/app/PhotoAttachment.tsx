@@ -1,3 +1,4 @@
+import { PhotoDiagnostics } from './PhotoDiagnostics';
 import { useMutationState } from './mutation-activity';
 import { useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
@@ -39,6 +40,7 @@ export function PhotoAttachment({
   const [busy, setBusy] = useMutationState();
   const [locked, setLocked] = useState(false);
   const [error, setError] = useState<string>();
+  const [diagnosticFailure, setDiagnosticFailure] = useState<unknown>();
   const [status, setStatus] = useState('');
   const attempt = useRef<{ item: Item; prepared: PreparedPhoto[] } | undefined>(undefined);
   function select(selected: File[], append: boolean) {
@@ -48,7 +50,9 @@ export function PhotoAttachment({
     setError(next.length > MAX_PHOTOS ? 'Choose at most two photos.' : undefined);
   }
   async function save() {
+    let acknowledged = false;
     setError(undefined);
+    setDiagnosticFailure(undefined);
     if (!files.length || files.length > MAX_PHOTOS) {
       setError('Choose one or two photos to attach.');
       return;
@@ -78,6 +82,7 @@ export function PhotoAttachment({
         },
       );
       signal.throwIfAborted();
+      acknowledged = true;
       attempt.current = undefined;
       setLocked(false);
       setFiles([]);
@@ -85,13 +90,16 @@ export function PhotoAttachment({
       await onSaved();
     } catch (failure) {
       if (!signal.aborted) {
-        setStatus('');
+        setDiagnosticFailure(acknowledged ? undefined : failure);
+        if (!acknowledged) setStatus('');
         setError(
-          attempt.current
-            ? `${captureFailureDetail(failure)} Photo upload is unfinished. Your item remains saved. Retry these photos, or return to the gallery to recover or cancel the attachment.`.trim()
-            : failure instanceof Error
-              ? failure.message
-              : 'Could not prepare these photos.',
+          acknowledged
+            ? 'Photo attachment finished, but the inventory could not refresh. Reload to see the saved photos.'
+            : attempt.current
+              ? `${captureFailureDetail(failure)} Photo upload is unfinished. Your item remains saved. Retry these photos, or return to the gallery to recover or cancel the attachment.`.trim()
+              : failure instanceof Error
+                ? failure.message
+                : 'Could not prepare these photos.',
         );
         if (attempt.current) await onAttempt(item.id);
       }
@@ -121,6 +129,7 @@ export function PhotoAttachment({
           onClick={() => {
             setFiles([]);
             setError(undefined);
+            setDiagnosticFailure(undefined);
             setStatus('');
           }}
         >
@@ -136,6 +145,7 @@ export function PhotoAttachment({
         {busy ? 'Saving photos…' : locked ? 'Retry photo upload' : 'Save photos'}
       </button>
       {status && <p role="status">{status}</p>}
+      {error && <PhotoDiagnostics failure={diagnosticFailure} />}
       {error && (
         <p role="alert" className="error-message">
           {error}

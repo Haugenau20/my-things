@@ -116,6 +116,7 @@ test('failed attachment cleanup remains retryable and never deletes the saved it
   await detail.getByLabel('Choose photos').setInputFiles(await image(page));
   await detail.getByRole('button', { name: 'Save photos', exact: true }).click();
   await expect(detail.getByRole('alert')).toContainText('Your item remains saved');
+  await expect(detail.getByRole('button', { name: 'Copy diagnostics', exact: true })).toBeVisible();
   await detail.getByRole('button', { name: 'Back to gallery', exact: true }).click();
   await expect(page.getByRole('button', { name: `Open ${name}`, exact: true })).toBeVisible();
   await page.unrouteAll();
@@ -164,6 +165,7 @@ test('reload recovery attaches original files to a saved photo-free item', async
   await detail.getByLabel('Choose photos').setInputFiles(source);
   await detail.getByRole('button', { name: 'Save photos', exact: true }).click();
   await expect(detail.getByRole('alert')).toContainText('Your item remains saved');
+  await expect(detail.getByRole('button', { name: 'Copy diagnostics', exact: true })).toBeVisible();
   await page.unrouteAll();
   await page.reload();
   const recovery = page.getByRole('region', { name: 'Unfinished captures' });
@@ -263,6 +265,9 @@ test('an interrupted upload stays unfinished and can be explicitly discarded aft
   await expect(recovery.getByText('Synthetic interrupted capture', { exact: true })).toBeVisible();
   await recovery.getByRole('button', { name: 'Verify & finish' }).click();
   await expect(recovery.getByRole('alert')).toContainText('Reselect');
+  await expect(
+    recovery.getByRole('button', { name: 'Copy diagnostics', exact: true }),
+  ).toBeVisible();
   await recovery.getByRole('button', { name: 'Discard unfinished capture', exact: true }).click();
   await recovery.getByRole('button', { name: 'Confirm discard', exact: true }).click();
   await expect(

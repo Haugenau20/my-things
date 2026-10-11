@@ -115,6 +115,9 @@ test('phone uploads queue sequentially with no early saved toast or duplicate re
   await expect(
     capture.getByRole('status').filter({ hasText: 'Saved Synthetic second queued phone' }),
   ).toHaveCount(0);
+  await expect(
+    capture.getByRole('button', { name: 'Copy diagnostics', exact: true }),
+  ).toBeVisible();
   deny = false;
   await capture.getByRole('button', { name: 'Retry queued capture', exact: true }).click();
   await expect(

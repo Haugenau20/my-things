@@ -1,3 +1,4 @@
+import { photoPhase, PhotoOperationFailure } from './capture-errors';
 import { getBytes, getMetadata, ref, uploadBytesResumable } from 'firebase/storage';
 import type { FirebaseStorage } from 'firebase/storage';
 import type { PhotoFile } from '../domain/item';
@@ -47,49 +48,50 @@ export async function ensureFile(
     await verifiedBytes(storage, file, signal);
     return;
   } catch (error) {
-    if (!missing(error)) throw error;
+    if (!missing(error)) throw new PhotoOperationFailure('verification', error);
   }
-  signal.throwIfAborted();
-  if (!source)
-    throw new Error(
-      'Some uploads are missing. Reselect the original photos to retry, or discard this unfinished capture.',
-    );
-  const bytes = new Uint8Array(await source.arrayBuffer());
-  if (
-    source.type !== 'image/jpeg' ||
-    bytes.length !== file.byteSize ||
-    (await sha256(bytes)) !== file.sha256
-  )
-    throw new Error(
-      'Reselected photos do not match this attempt. Choose the original files or discard and start again.',
-    );
-  signal.throwIfAborted();
-  const task = uploadBytesResumable(ref(storage, file.storagePath), bytes, {
-    contentType: 'image/jpeg',
-    cacheControl: PRIVATE_CACHE,
-    customMetadata: {},
+  const bytes = await photoPhase('verification', async () => {
+    signal.throwIfAborted();
+    if (!source) throw new PhotoOperationFailure('verification', { code: 'photo/source-missing' });
+    const bytes = new Uint8Array(await source.arrayBuffer());
+    if (
+      source.type !== 'image/jpeg' ||
+      bytes.length !== file.byteSize ||
+      (await sha256(bytes)) !== file.sha256
+    )
+      throw new PhotoOperationFailure('verification', { code: 'photo/source-mismatch' });
+    signal.throwIfAborted();
+    return bytes;
   });
-  await new Promise<void>((resolve, reject) => {
-    const cancel = () => {
-      task.cancel();
-    };
-    signal.addEventListener('abort', cancel, { once: true });
-    task.on(
-      'state_changed',
-      (snapshot) =>
-        progress(
-          `Uploading photos · ${Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)}%`,
-        ),
-      (error) => {
-        signal.removeEventListener('abort', cancel);
-        reject(error);
-      },
-      () => {
-        signal.removeEventListener('abort', cancel);
-        resolve();
-      },
-    );
-    if (signal.aborted) cancel();
+  await photoPhase('upload', async () => {
+    signal.throwIfAborted();
+    const task = uploadBytesResumable(ref(storage, file.storagePath), bytes, {
+      contentType: 'image/jpeg',
+      cacheControl: PRIVATE_CACHE,
+      customMetadata: {},
+    });
+    await new Promise<void>((resolve, reject) => {
+      const cancel = () => {
+        task.cancel();
+      };
+      signal.addEventListener('abort', cancel, { once: true });
+      task.on(
+        'state_changed',
+        (snapshot) =>
+          progress(
+            `Uploading photos · ${Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)}%`,
+          ),
+        (error) => {
+          signal.removeEventListener('abort', cancel);
+          reject(error);
+        },
+        () => {
+          signal.removeEventListener('abort', cancel);
+          resolve();
+        },
+      );
+      if (signal.aborted) cancel();
+    });
   });
-  await verifiedBytes(storage, file, signal);
+  await photoPhase('verification', () => verifiedBytes(storage, file, signal));
 }

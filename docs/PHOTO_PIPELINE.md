@@ -133,3 +133,11 @@ Desktop capture occupies the shared right panel and retains the name, optional d
 The phone uses native camera/library file inputs, including `capture="environment"`, and a shoot/name loop with optional second photo. No live-camera service or persistent/offline photo queue is introduced. Up to three captures (one active, two waiting) are retained in memory; the next draft remains in the form when capacity is full. Only the active capture prepares sources and runs the existing bounded file upload/finalization pipeline. Item/photo IDs are assigned once, and a prepared attempt is retained unchanged for retry. A failure pauses later captures and never drops its source files. Preparation-only failures can return to name for explicit correction; attempted writes require retry or confirmed discard. Partial discard remains retryable against the matching draft/deletion marker.
 
 A saved toast and Undo appear only after record/all-file acknowledgment. Undo is a revision-checked Trash patch, not photo deletion. Sources, derivatives and temporary preview URLs are released after acknowledged save/discard or session disposal. Pending queue entries register as mutations and block export/restore; leaving capture keeps visible progress/retry controls. Page unload prompts while pending; sign-out cancels and clears private memory. Only the room-ID preference is retained per project/inventory/owner/device in localStorage, never as an authorization source. Reload/sign-out cannot preserve entries that had not reached the server; keep the tab open until it finishes. Server-side interrupted records continue through existing RecoveryPanel. Native iPhone camera/library/HEIC, keyboard, safe-area and Home Screen behavior require actual device acceptance.
+
+## Explicit diagnostics
+
+Failed registration, upload, verification, and finalization operations offer **Copy diagnostics** in
+capture, first-photo attachment and recovery. Reports include only a fixed phase/code, pipeline commit
+and environment label; unknown SDK codes become `unknown`. They omit record fields, owner/inventory
+identifiers, photo paths, raw SDK text and tokens. Clipboard denial shows a selectable report without
+interrupting retry. There is no external telemetry. See [diagnostic design and coverage](plans/2026-10-11-photo-diagnostics-design.md).

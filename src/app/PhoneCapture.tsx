@@ -1,3 +1,4 @@
+import { PhotoDiagnostics } from './PhotoDiagnostics';
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { FirebaseServices } from '../data/firebase';
@@ -286,6 +287,7 @@ export function PhoneCapture({
               ? 'Capture is unfinished; its original selection and identity are retained.'
               : 'Your original selection is retained.'}
           </p>
+          <PhotoDiagnostics failure={failed.error} />
           <button
             type="button"
             className="secondary-button"

@@ -1,3 +1,4 @@
+import { PhotoDiagnostics } from './PhotoDiagnostics';
 import { useMutationState } from './mutation-activity';
 import { useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
@@ -46,6 +47,7 @@ export function CaptureForm({
   const [busy, setBusy] = useMutationState();
   const [status, setStatus] = useState('');
   const [error, setError] = useState<string>();
+  const [diagnosticFailure, setDiagnosticFailure] = useState<unknown>();
   const [locked, setLocked] = useState(false);
   const attempt = useRef<CaptureAttempt | undefined>(undefined);
   const nameField = useRef<HTMLInputElement>(null);
@@ -77,6 +79,7 @@ export function CaptureForm({
   }, [roomRequest, rooms, busy, locked]);
   function select(selected: File[], append = false) {
     setError(undefined);
+    setDiagnosticFailure(undefined);
     setStatus('');
     const next = append ? [...files, ...selected] : selected;
     setFiles(next);
@@ -88,6 +91,7 @@ export function CaptureForm({
   }
   async function addRoom() {
     setError(undefined);
+    setDiagnosticFailure(undefined);
     if (!roomName.trim()) {
       setError('Enter a room name.');
       return;
@@ -125,6 +129,7 @@ export function CaptureForm({
   async function save(reviewed: boolean) {
     let acknowledged = false;
     setError(undefined);
+    setDiagnosticFailure(undefined);
     setStatus('');
     if (!name.trim() || name.trim().length > 200) {
       setError('Enter an item name, up to 200 characters.');
@@ -186,13 +191,16 @@ export function CaptureForm({
       signal.throwIfAborted();
     } catch (failure) {
       if (!signal.aborted) {
-        setStatus('');
+        setDiagnosticFailure(acknowledged ? undefined : failure);
+        if (!acknowledged) setStatus('');
         setError(
-          attempt.current
-            ? `${captureFailureDetail(failure)} Capture is unfinished. Retry the same attempt, or reload to recover or explicitly discard it. Your selection is retained.`.trim()
-            : failure instanceof Error
-              ? failure.message
-              : 'Could not prepare this photo. Choose a smaller JPEG or PNG.',
+          acknowledged
+            ? 'Capture finished, but the inventory could not refresh. Reload to see the saved item.'
+            : attempt.current
+              ? `${captureFailureDetail(failure)} Capture is unfinished. Retry the same attempt, or reload to recover or explicitly discard it. Your selection is retained.`.trim()
+              : failure instanceof Error
+                ? failure.message
+                : 'Could not prepare this photo. Choose a smaller JPEG or PNG.',
         );
         if (attempt.current) await onAttempt(attempt.current.id);
       }
@@ -358,6 +366,7 @@ export function CaptureForm({
               onClick={() => {
                 setFiles([]);
                 setError(undefined);
+                setDiagnosticFailure(undefined);
               }}
             >
               Clear selected photos
@@ -388,6 +397,7 @@ export function CaptureForm({
             {status}
           </p>
         )}
+        {error && <PhotoDiagnostics failure={diagnosticFailure} />}
         {error && (
           <p role="alert" className="error-message">
             {error}
