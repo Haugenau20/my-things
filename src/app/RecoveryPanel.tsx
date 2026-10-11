@@ -1,3 +1,5 @@
+import { captureFailureDetail, PhotoOperationFailure } from '../media/capture-errors';
+import { PhotoDiagnostics } from './PhotoDiagnostics';
 import { useMutationState } from './mutation-activity';
 import { useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
@@ -30,13 +32,16 @@ function RecoveryItem({
   const [busy, setBusy] = useMutationState();
   const [confirmation, setConfirmation] = useState(false);
   const [error, setError] = useState<string>();
+  const [diagnosticFailure, setDiagnosticFailure] = useState<unknown>();
   const [status, setStatus] = useState('');
   const attachment = item.recordState === 'ready';
   const cleaning =
     item.recordState === 'deleting' || item.photos.some((photo) => photo.state === 'deleting');
   async function perform(discard: boolean) {
+    let acknowledged = false;
     setBusy(true);
     setError(undefined);
+    setDiagnosticFailure(undefined);
     try {
       if (discard) {
         setStatus(attachment ? 'Canceling unfinished photos…' : 'Discarding unfinished capture…');
@@ -71,16 +76,23 @@ function RecoveryItem({
         );
       }
       signal.throwIfAborted();
+      acknowledged = true;
+      setStatus('Photo operation finished.');
       await reload();
     } catch (failure) {
       if (!signal.aborted) {
-        setStatus('');
+        setDiagnosticFailure(acknowledged ? undefined : failure);
+        if (!acknowledged) setStatus('');
         setError(
-          discard
-            ? 'Cleanup is unfinished. Its recovery marker remains; refresh and retry cleanup.'
-            : failure instanceof Error
-              ? failure.message
-              : 'Could not finish this capture. Reselect original photos or explicitly discard it.',
+          acknowledged
+            ? 'Photo operation finished, but the inventory could not refresh. Reload to see the updated inventory.'
+            : discard
+              ? 'Cleanup is unfinished. Its recovery marker remains; refresh and retry cleanup.'
+              : failure instanceof PhotoOperationFailure
+                ? `${captureFailureDetail(failure)} Could not finish this capture. Retry verification. Reselect original photos or explicitly discard it.`.trim()
+                : failure instanceof Error
+                  ? failure.message
+                  : 'Could not finish this capture. Reselect original photos or explicitly discard it.',
         );
       }
     } finally {
@@ -138,6 +150,7 @@ function RecoveryItem({
         </div>
       )}
       {status && <p role="status">{status}</p>}
+      {error && <PhotoDiagnostics failure={diagnosticFailure} />}
       {error && (
         <p role="alert" className="error-message">
           {error}
