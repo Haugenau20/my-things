@@ -156,14 +156,14 @@ clean while findings remain.
 
 ## TODO-005 — Correct and consolidate current operating instructions
 
-- Status: In progress
+- Status: Done
 - Priority: High
 - Effort: Small
 - Evidence: Confirmed gap
 - Added: 2026-10-11
 
-**Problem and evidence:** The operating steps in [M3_RESTORE.md](docs/M3_RESTORE.md) still instruct an
-administrator to seed schema version 1, while [the current data model](docs/DATA_MODEL.md) requires v2.
+**Problem and evidence:** At review, the operating steps in [M3_RESTORE.md](docs/M3_RESTORE.md) instructed
+an administrator to seed schema version 1, while [the current data model](docs/DATA_MODEL.md) requires v2.
 Milestone histories also contain older delivery policies and pending acceptance statements, making
 current instructions harder to distinguish from historical evidence.
 
@@ -178,11 +178,17 @@ can find authoritative restore/release steps without following obsolete instruct
 **Dependencies and authorization:** None beyond normal change review. Documentation changes do not
 authorize executing the described cloud operations.
 
-**Completion record:** Current procedures and acceptance evidence are consolidated in
-[OPERATIONS.md](docs/OPERATIONS.md). Restore and bootstrap instructions require schema v2; milestone
-histories are explicitly dated, and the owner-confirmed PR #25 upload/delete smoke check is recorded.
-Final verification and review PR pending. Device acceptance and isolated real-cloud recovery stay open;
-this documentation change performs no cloud provisioning or real-data operation.
+**Completion record:** 2026-10-11 — implemented in
+[commit 04ac303](https://github.com/Haugenau20/my-things/commit/04ac303552f3f07e18d1639e3ca77cce2fe03b52).
+Current procedures and acceptance evidence are consolidated in [OPERATIONS.md](docs/OPERATIONS.md).
+Restore and bootstrap instructions require schema v2; milestone histories retain their dates/context,
+and the owner-confirmed PR #25 upload/delete smoke check and successful deployment are recorded.
+`mise exec -- npm run check` passed lint/formatting, typecheck, 180 unit tests, 117 rules tests,
+30 SDK integration tests, all 58 Chromium browser tests and the local build. A read-only Node Markdown
+scan validated 163 local paths/anchors across the 16 changed/new documents; `git diff --check` passed.
+The final TODO entry also passed `mise exec -- node node_modules/prettier/bin/prettier.cjs --check TODO.md`.
+Device acceptance and isolated real-cloud recovery stay open. No cloud provisioning, maintenance or
+real-data operations were performed; this review branch is not a production release.
 
 ## TODO-006 — Reduce full-inventory refresh work
 
