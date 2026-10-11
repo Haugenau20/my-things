@@ -67,6 +67,7 @@ object deleted. URLs remain in memory and are excluded from records/backups. See
 | [Data model](docs/DATA_MODEL.md) | Fields, location semantics, workflow transitions, and invariants |
 | [Security](docs/SECURITY.md) | Owner authorization, private photos, bootstrap, and threat boundaries |
 | [Setup](docs/SETUP.md) | Repository/Firebase setup, Windows workflow, and deployment checklist |
+| [Custom domain](docs/plans/2026-10-11-custom-domain-design.md) | Selected `things.muninn.quest` address and separate DNS/Auth/CORS/activation gates |
 | [Photo pipeline](docs/PHOTO_PIPELINE.md) | Conversion, upload acknowledgment, retries, and cleanup |
 | [Export format](docs/EXPORT_FORMAT.md) | Portable backup contract and restore behavior |
 | [Test plan](docs/TEST_PLAN.md) | Security, functional, failure, device, and recovery tests |

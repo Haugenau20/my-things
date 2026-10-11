@@ -28,9 +28,16 @@ const prepareStorage = (
   }
 ).default;
 
-it.each(['synthetic-photos.firebasestorage.app', 'synthetic-photos.appspot.com'])(
-  'prepares rules for the configured bucket %s even when default discovery is unavailable',
-  async (bucket) => {
+it.each([
+  {
+    bucket: 'synthetic-photos.firebasestorage.app',
+    authDomain: 'synthetic-project.firebaseapp.com',
+  },
+  { bucket: 'synthetic-photos.appspot.com', authDomain: 'synthetic-project.firebaseapp.com' },
+  { bucket: 'synthetic-photos.firebasestorage.app', authDomain: 'things.muninn.quest' },
+])(
+  'prepares $authDomain with bucket $bucket even when default discovery is unavailable',
+  async ({ bucket, authDomain }) => {
     const temporaryRoot = resolve('.firebase');
     await mkdir(temporaryRoot, { recursive: true });
     const directory = await mkdtemp(join(temporaryRoot, 'release-test-'));
@@ -42,7 +49,7 @@ it.each(['synthetic-photos.firebasestorage.app', 'synthetic-photos.appspot.com']
       emulators: null,
       firebase: {
         projectId: 'synthetic-project',
-        authDomain: 'synthetic-project.firebaseapp.com',
+        authDomain,
         storageBucket: bucket,
         apiKey: 'synthetic-key',
         appId: 'synthetic-app',
@@ -63,7 +70,7 @@ it.each(['synthetic-photos.firebasestorage.app', 'synthetic-photos.appspot.com']
           'VITE_INVENTORY_ID=main',
           'APP_PRODUCTION_PROJECT_ID=synthetic-project',
           'VITE_FIREBASE_PROJECT_ID=synthetic-project',
-          'VITE_FIREBASE_AUTH_DOMAIN=synthetic-project.firebaseapp.com',
+          `VITE_FIREBASE_AUTH_DOMAIN=${authDomain}`,
           `VITE_FIREBASE_STORAGE_BUCKET=${bucket}`,
           'VITE_FIREBASE_API_KEY=synthetic-key',
           'VITE_FIREBASE_APP_ID=synthetic-app',
@@ -95,6 +102,11 @@ it.each(['synthetic-photos.firebasestorage.app', 'synthetic-photos.appspot.com']
         await readFile(join(directory, '.firebase/production.firebase.json'), 'utf8'),
       );
       const storage = (release as { storage: unknown }).storage;
+      expect((release as { hosting: { site: string } }).hosting.site).toBe('synthetic-project');
+      const cors: unknown = JSON.parse(
+        await readFile(join(directory, '.firebase/production.cors.json'), 'utf8'),
+      );
+      expect(cors).toMatchObject([{ origin: [`https://${authDomain}`], method: ['GET', 'HEAD'] }]);
       // Only cloud operations are replaced; the real pinned CLI reads and selects the rule file.
       const discovery = vi
         .spyOn(cliStorage, 'getDefaultBucket')

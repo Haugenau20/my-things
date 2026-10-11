@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { validateConfig } from '../src/data/config.ts';
 import { assertBuildTarget } from './safety.ts';
+import { assertReviewedHostingDomain } from './hosting-domain.ts';
 
 const webConfig = z.object({
   apiKey: z.string().regex(/^[A-Za-z0-9_-]+$/),
@@ -24,7 +25,6 @@ export function productionEnvironment(raw: string, projectId: string): Record<st
     VITE_FIREBASE_APP_ID: web.appId,
   };
   assertBuildTarget(validateConfig(env), 'production', env);
-  if (web.authDomain !== `${projectId}.firebaseapp.com`)
-    throw new Error('CI requires the reviewed canonical Firebase Hosting auth domain.');
+  assertReviewedHostingDomain(projectId, web.authDomain);
   return env;
 }

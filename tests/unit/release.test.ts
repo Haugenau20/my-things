@@ -54,4 +54,31 @@ describe('validation-only cloud release settings', () => {
       ),
     ).toThrow();
   });
+  it('prepares exact-origin custom-domain CORS while preserving same-origin auth frames', () => {
+    const custom: AppConfig = {
+      ...config,
+      firebase: { ...config.firebase, authDomain: 'things.muninn.quest' },
+    };
+    const settings = releaseSettings(custom, manifest, configFingerprint(custom));
+    expect(settings.cors[0]?.origin).toEqual(['https://things.muninn.quest']);
+    expect(settings.cors[0]?.method).toEqual(['GET', 'HEAD']);
+    expect(settings.csp).toBe(releaseSettings(config, manifest, configFingerprint(config)).csp);
+    expect(settings.csp).toContain("frame-src 'self'");
+    expect(settings.csp).not.toMatch(/unsafe-inline|unsafe-eval|\*/);
+    expect(() => releaseSettings(custom, manifest, configFingerprint(config))).toThrow();
+    expect(() =>
+      releaseSettings(
+        custom,
+        { ...manifest, projectId: 'different-project' },
+        configFingerprint(custom),
+      ),
+    ).toThrow();
+  });
+  it.each(['muninn.quest', 'storage.muninn.quest', 'things.muninn.quest.example'])(
+    'rejects unreviewed release origins even with a matching fingerprint: %s',
+    (authDomain) => {
+      const unreviewed: AppConfig = { ...config, firebase: { ...config.firebase, authDomain } };
+      expect(() => releaseSettings(unreviewed, manifest, configFingerprint(unreviewed))).toThrow();
+    },
+  );
 });
