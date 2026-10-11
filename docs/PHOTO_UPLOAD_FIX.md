@@ -1,5 +1,9 @@
 # Photo upload denial investigation
 
+Current resolution: the owner's 2026-10-11 diagnostic uploads identified null custom metadata as a
+blocker and succeeded with the complete nullable-metadata candidate. See the final section below;
+earlier sections retain the history of repairs and unconfirmed hypotheses.
+
 Date: 2026-10-10. The owner reported photo capture failing on phone and desktop. The desktop
 network log showed Storage metadata probes returning 404 followed by an upload POST returning 403.
 The initial missing-object probes are expected; the denied upload leaves the recoverable draft.
@@ -145,3 +149,47 @@ Pipeline release evidence is recorded in the follow-up PR. The owner must retry 
 actual upload after deployment; passing simulated/emulator requests still does not prove that the
 production 403 is resolved. No bucket change, new infrastructure, migration or real inventory operation
 is part of this release.
+
+## 2026-10-11: owner-confirmed nullable metadata repair
+
+The owner still received upload 403 after PR #24. Their temporary UID-only rule allowed the same
+application to upload. A diagnostic using the trusted Firestore root owner/schema check also worked.
+The owner then tested progressively constrained rules: the file/path/type/size/create checks worked
+without custom-metadata validation, while metadata key allowlists, direct key equality and an `is map`
+check failed. Adding `request.resource.metadata == null` before map operations allowed the upload.
+Finally, the owner confirmed that the complete candidate also worked after pending-photo registration,
+exact byte matching, token UUID validation and replacement denial were restored. The owner explicitly
+approved implementing this repair after that test. No inventory records, request tokens or photos from
+these tests were read or retained by the agent.
+
+This isolates null metadata as a blocker; it does not establish that token-bearing gallery delivery or
+Firestore call-count caching caused the upload denial. JPG source names are not the issue: derivative
+uploads explicitly use `image/jpeg`. The earlier optional-map guard covered an omitted field but not a
+present null value. Map methods on null caused a denial. The emulator's normalized empty map concealed
+the shape, and the previous synthetic cases had tested a null token inside a map, not a null map itself.
+
+The tracked rules adopt the owner-tested null-first validation, with direct key equality for an empty
+map or the single approved UUID-token field. One compatibility addition retains the existing omitted-
+metadata allowance after the null check: the exact console candidate failed that previously allowed
+synthetic case, so it must not regress. Populated maps still reject malformed/non-string/multiple tokens
+and additional fields. Every metadata update remains denied. Owner authorization, paths, pending
+registration, exact bytes, JPEG limits, deletion and immutability retain their constraints.
+
+The tested lookup structure reads each of the inventory policy and item once, without separate
+existence calls. Missing documents/required fields still fail closed; new emulator cases use otherwise
+valid pending registration and an existing synthetic photo to test all SDK access modes under absent,
+incomplete, wrong-schema and foreign-owner policies. This avoids relying on caching to stay within the
+two cross-service access-call limit; call count was not confirmed as the production cause.
+
+The cloud regression failed for owner detail/thumbnail uploads with null metadata before the change.
+After the repair and omitted-field compatibility addition, all 30 synthetic cases passed, including
+anonymous/foreign null uploads, wrong registered bytes/content type and replacement denial. These
+mocked requests read no inventory and write no objects or deployed rules. Frontend code, bucket
+configuration, IAM, schema and backup format are unchanged. Required local and pipeline verification
+and release evidence are recorded in the follow-up PR. The owner-tested candidate is manual production
+evidence; the tracked pipeline release and a subsequent owner smoke check are recorded separately.
+
+`mise exec -- npm run check` passed lint/formatting, TypeScript, 180 unit tests, 117 rules tests,
+30 SDK integration tests, 58 Chromium browser tests and the local build (385 tests). The separate
+`mise exec -- npm run test:rules:cloud -- --project my-things-c7305` passed all 30 synthetic cases.
+The existing large Firebase bundle warning remains.

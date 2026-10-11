@@ -2,12 +2,14 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function owns(inventoryId) {
+      let policy = firestore.get(
+        /databases/(default)/documents/inventories/$(inventoryId)
+      ).data;
+
       return request.auth != null
         && inventoryId.matches('[A-Za-z0-9_-]{1,128}')
-        && firestore.exists(/databases/(default)/documents/inventories/$(inventoryId))
-        && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.keys().hasAll(['schemaVersion', 'ownerUid'])
-        && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.schemaVersion == 2
-        && firestore.get(/databases/(default)/documents/inventories/$(inventoryId)).data.ownerUid == request.auth.uid;
+        && policy.schemaVersion == 2
+        && policy.ownerUid == request.auth.uid;
     }
 
     match /inventories/{inventoryId}/items/{path=**} {
@@ -21,29 +23,46 @@ service firebase.storage {
           && variant in ['detail.jpg', 'thumb.jpg'];
       }
       function pendingPhoto(photo) {
-        return photo.id == photoId && photo.state == 'pending'
-          && request.resource.size == (variant == 'detail.jpg' ? photo.detail.byteSize : photo.thumbnail.byteSize);
+        return photo.id == photoId
+          && photo.state == 'pending'
+          && request.resource.size ==
+            (variant == 'detail.jpg'
+              ? photo.detail.byteSize
+              : photo.thumbnail.byteSize);
       }
       function pendingCapture() {
-        let item = firestore.get(/databases/(default)/documents/inventories/$(inventoryId)/items/$(itemId)).data;
-        return item.recordState in ['draft','ready'] && item.photos.size() > 0 && item.photos.size() <= 2
-          && (pendingPhoto(item.photos[0]) || (item.photos.size() == 2 && pendingPhoto(item.photos[1])));
+        let item = firestore.get(
+          /databases/(default)/documents/inventories/$(inventoryId)/items/$(itemId)
+        ).data;
+
+        return item.recordState in ['draft', 'ready']
+          && item.photos.size() > 0
+          && item.photos.size() <= 2
+          && (pendingPhoto(item.photos[0])
+            || (item.photos.size() == 2
+              && pendingPhoto(item.photos[1])));
       }
       function validMetadata() {
-        return !('metadata' in request.resource)
-          || (request.resource.metadata.keys().hasOnly(['firebaseStorageDownloadTokens'])
-            && (!('firebaseStorageDownloadTokens' in request.resource.metadata)
-              || (request.resource.metadata.firebaseStorageDownloadTokens is string
-                && request.resource.metadata.firebaseStorageDownloadTokens.matches('[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'))));
+        // Cloud uploads can present null instead of an empty custom-metadata map.
+        return request.resource.metadata == null
+          || !('metadata' in request.resource)
+          || request.resource.metadata.keys() == []
+          || (request.resource.metadata.keys()
+                == ['firebaseStorageDownloadTokens']
+            && request.resource.metadata.firebaseStorageDownloadTokens is string
+            && request.resource.metadata.firebaseStorageDownloadTokens.matches(
+              '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'
+            ));
       }
       allow get: if owns(inventoryId) && validPath();
-      allow create: if owns(inventoryId) && validPath()
+      allow create: if owns(inventoryId)
+        && validPath()
         && resource == null
-        && firestore.exists(/databases/(default)/documents/inventories/$(inventoryId)/items/$(itemId))
         && pendingCapture()
         && request.resource.contentType == 'image/jpeg'
         && request.resource.size > 0
-        && request.resource.size <= (variant == 'detail.jpg' ? 8388608 : 524288)
+        && request.resource.size <=
+          (variant == 'detail.jpg' ? 8388608 : 524288)
         // The owner approved one UUID download token; every other custom field stays denied.
         && validMetadata();
       // Verified retries reuse existing bytes; replacements require a new photo ID.

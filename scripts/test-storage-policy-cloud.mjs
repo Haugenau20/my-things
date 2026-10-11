@@ -48,6 +48,37 @@ const functionMocks = [
 const cases = [
   { name: 'owner without optional metadata', expectation: 'ALLOW' },
   { name: 'owner with empty metadata', expectation: 'ALLOW', metadata: {} },
+  { name: 'owner with null metadata', expectation: 'ALLOW', metadata: null },
+  {
+    name: 'thumbnail with null metadata',
+    expectation: 'ALLOW',
+    variant: 'thumb.jpg',
+    metadata: null,
+  },
+  ...[null, 'synthetic-unrelated'].map((uid) => ({
+    name: `${uid === null ? 'anonymous' : 'unrelated'} upload with null metadata`,
+    expectation: 'DENY',
+    uid,
+    metadata: null,
+  })),
+  {
+    name: 'null metadata does not bypass exact byte registration',
+    expectation: 'DENY',
+    size: 3,
+    metadata: null,
+  },
+  {
+    name: 'null metadata does not authorize replacement',
+    expectation: 'DENY',
+    existing: true,
+    metadata: null,
+  },
+  {
+    name: 'null metadata does not permit another content type',
+    expectation: 'DENY',
+    contentType: 'text/html',
+    metadata: null,
+  },
   {
     name: 'owner with one UUID download token',
     expectation: 'ALLOW',

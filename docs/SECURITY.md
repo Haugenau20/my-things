@@ -89,7 +89,8 @@ owner checks to SDK reads, URL issuance, metadata reads, writes, deletion, and p
 must not expose other inventory namespaces.
 
 Constrain uploaded file names, JPEG content type, and size according to the photo specification. Treat
-an absent custom-metadata map as equivalent to an empty map; cloud requests may omit it. The owner
+an absent or null custom-metadata map as equivalent to an empty map; cloud requests may omit it or
+present null during upload evaluation. Check null before invoking map methods. The owner
 approved the single `firebaseStorageDownloadTokens` field containing one lowercase UUID v4 on creation.
 Firebase-generated and owner-supplied UUIDs cannot be distinguished by rules. Malformed/non-string/
 multiple tokens, additional custom fields and all metadata updates remain denied. See
@@ -102,6 +103,11 @@ Firestore-dependent Storage rules require cross-service permission setup. Confir
 integration when deploying, and test it in the owner's cloud project when authorized. Emulator success alone does
 not verify that IAM integration. Monitor both services' usage after deploying the integration.
 [References S05](REFERENCES.md#s05).
+
+Upload evaluation reads the trusted inventory policy once and the registered item once, without separate
+existence calls. Missing documents or required fields still deny access. This stays within the two
+Firestore access-call budget without relying on repeated-call caching; the owner diagnosis identified
+null metadata, not the call budget, as a blocker. See [photo upload investigation](PHOTO_UPLOAD_FIX.md).
 
 The inventory policy is the security authority. Item/filename guessing is not a defense. Rules should
 reject foreign inventory paths even when their IDs are known.
