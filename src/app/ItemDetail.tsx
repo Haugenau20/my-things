@@ -69,7 +69,9 @@ export function ItemDetail({
           >
             ‹
           </button>
-          <span>
+          <span
+            title={index >= 0 ? `${index + 1} of ${visible.length}` : 'Outside current filters'}
+          >
             {index >= 0 ? `${index + 1} of ${visible.length}` : 'Outside current filters'}
           </span>
           <button
@@ -80,8 +82,13 @@ export function ItemDetail({
           >
             ›
           </button>
-          <button className="text-button" onClick={fullView}>
-            Open full view
+          <button
+            className="text-button"
+            aria-label="Open full view"
+            title="Open full view"
+            onClick={fullView}
+          >
+            ↗
           </button>
           <button className="text-button" aria-label="Close inspector" onClick={close}>
             ×

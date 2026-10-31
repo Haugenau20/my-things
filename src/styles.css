@@ -810,9 +810,26 @@ input::file-selector-button {
   line-height: 1.6;
 }
 .item-editor-status {
-  /* Keep routine status changes within the same two-line space. */
-  min-block-size: 3.2em;
+  position: fixed;
+  inset-inline-start: 24px;
+  inset-block-end: 24px;
+  z-index: 40;
+  max-inline-size: min(360px, calc(100vw - 48px));
   margin: 0;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.item-editor-status:not(:empty) {
+  padding: 10px 14px;
+  border: 1px solid #b7b8a8;
+  border-radius: 8px;
+  background: #e8eee4;
+  box-shadow: 0 4px 16px #263c3220;
+}
+@media (max-width: 850px) {
+  .item-editor-status {
+    inset-block-end: calc(80px + env(safe-area-inset-bottom));
+  }
 }
 .selected-files {
   margin: 0;
@@ -891,24 +908,26 @@ input::file-selector-button {
   top: 0;
   z-index: 2;
   background: #fffefa;
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) repeat(3, 44px);
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 16px;
 }
 .inspector-navigation .text-button {
-  font-size: 12px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  font-size: 22px;
 }
 .inspector-navigation span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
   color: #626b60;
-}
-.inspector-navigation > button:first-child,
-.inspector-navigation > button:nth-child(3),
-.inspector-navigation > button:last-child {
-  min-width: 44px;
-  font-size: 22px;
 }
 .inspector-cover,
 .inspector-panel .detail-photo {

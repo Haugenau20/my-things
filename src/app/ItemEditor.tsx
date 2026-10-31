@@ -1,5 +1,5 @@
 import { useMutationState } from './mutation-activity';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Item, Room } from '../domain/item';
@@ -65,6 +65,11 @@ export function ItemEditor({
   const [busy, setBusy] = useMutationState();
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  useEffect(() => {
+    if (busy || !message) return;
+    const timer = setTimeout(() => setMessage(''), 5000);
+    return () => clearTimeout(timer);
+  }, [busy, message]);
   const [confirmation, setConfirmation] = useState<{
     command: ItemCommand;
     message: string;
