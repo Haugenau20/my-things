@@ -86,6 +86,7 @@ protection. Verify that deleting/renaming a frontend route does not affect backe
 | T-EDIT-01 | Bulk updates only selected fields and report individual conflicts/failures |
 | T-EDIT-02 | Two-tab revision conflict is surfaced instead of overwriting a newer edit |
 | T-BRW-01 | Search includes metadata beyond the currently displayed page; indexing progress is honest |
+| T-BRW-02 | Decision/progress/review edits, explicit refresh and conflict recovery retain unchanged gallery/inspector images without new Storage URL or media requests; photo retry and sign-out still work |
 | T-DEL-01 | Trash/restore preserve data; restoring a sold item does not silently make it owned |
 | T-DEL-02 | Cover points to a ready photo when one exists; otherwise it is null |
 

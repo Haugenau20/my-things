@@ -123,7 +123,11 @@ cap their registered encoded sizes at 24 MiB, and bound concurrent URL requests 
 application working-set limit, not a browser decoded-image memory guarantee. Eviction/sign-out drops
 local references and suppresses late results; copied bearer URLs remain valid until token revocation or
 object deletion. Failed URL issuance or image requests offer retry. Never persist these URLs in records,
-backups or a service worker. Upload acknowledgment/recovery and export still use authenticated
+backups or a service worker. Metadata-only inventory refreshes preserve mounted image elements and
+URL leases when every photo-file field is unchanged; compare those field values rather than the
+identity of the freshly parsed metadata object. Actual file changes, visibility changes, retry and
+session changes still run the normal release/acquire lifecycle. Upload acknowledgment/recovery and
+export still use authenticated
 metadata/byte/checksum verification with their own bounded concurrency and cancellation.
 
 Desktop capture occupies the shared right panel and retains the name, optional details and selected source files when closed. Two drag-and-drop slots preview at most two local files using temporary object URLs, revoked on replacement/unmount. Camera/library selection still uses native file inputs; the existing two-photo limit, derivative preparation, locked retry identity and explicit unfinished-attempt recovery apply. Recent saves use authenticated thumbnail retrieval and appear only after record/photo acknowledgment.
