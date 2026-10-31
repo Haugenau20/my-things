@@ -280,7 +280,9 @@ export function ItemEditor({
   );
   return (
     <section className="item-editor" aria-label="Edit item">
-      {busy && <p role="status">Saving…</p>}
+      <p role="status" aria-atomic="true" className="save-status item-editor-status">
+        {busy ? 'Saving…' : message}
+      </p>
       {changed && !busy && (
         <p role="status">
           This item changed since these fields were loaded.{' '}
@@ -302,11 +304,6 @@ export function ItemEditor({
       {error && (
         <p role="alert" className="error-message">
           {error}
-        </p>
-      )}
-      {message && (
-        <p role="status" className="save-status">
-          {message}
         </p>
       )}
       {base.deletedAt !== null ? (
