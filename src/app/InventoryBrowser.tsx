@@ -287,12 +287,6 @@ export function InventoryBrowser({
       {announcement && <p role="status">{announcement}</p>}
       {capturePanel}
       <div className="browse-column" hidden={!captureOpen && !!detail && (fullView || narrow)}>
-        {!metadataReady && (
-          <p role="status">
-            Loading the complete metadata index. Search and bulk actions are unavailable until every
-            page is loaded successfully.
-          </p>
-        )}
         <BrowseFilters
           items={items}
           rooms={rooms}
