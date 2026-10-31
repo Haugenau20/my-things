@@ -12,6 +12,8 @@ for (const phone of [false, true]) {
     await page.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }).click();
     const editor = page.getByRole('region', { name: 'Edit item', exact: true });
     const decisionButton = phone ? 'Save decision' : 'Store';
+    const status = editor.getByRole('status');
+    expect(await status.evaluate((element) => element.getBoundingClientRect().height)).toBe(0);
     // Measure every DOM update, including brief Saving/result overlap and scroll changes.
     await editor.evaluate((element, decisionButton) => {
       const names = [decisionButton, 'Mark reviewed'];
@@ -63,6 +65,9 @@ for (const phone of [false, true]) {
     await expectStableStatus('Progress saved');
     await editor.getByRole('button', { name: 'Mark reviewed', exact: true }).click();
     await expectStableStatus('Reviewed');
+    await expect(status).toHaveText([''], { timeout: 6500 });
+    expect(await status.evaluate((element) => element.getBoundingClientRect().height)).toBe(0);
+    expect(Number(await editor.getAttribute('data-status-button-movement'))).toBeLessThan(0.5);
     await page.screenshot({
       path: test.info().outputPath('stable-editor-status.png'),
       fullPage: true,
