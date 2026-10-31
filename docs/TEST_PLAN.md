@@ -85,6 +85,7 @@ protection. Verify that deleting/renaming a frontend route does not affect backe
 | T-VAL-02 | Currency parsing handles supported fractional digits; mixed-currency totals are not combined |
 | T-EDIT-01 | Bulk updates only selected fields and report individual conflicts/failures |
 | T-EDIT-02 | Two-tab revision conflict is surfaced instead of overwriting a newer edit |
+| T-EDIT-03 | Desktop inspector and phone full-view decision/review controls retain their positions through idle, Saving and acknowledged success messages; a persistent live status region reserves two text lines without clipping longer content; actionable errors and warnings remain readable |
 | T-BRW-01 | Search includes metadata beyond the currently displayed page; initial metadata loading and refresh errors remain visible; routine decision/review saves and explicit/conflict refreshes do not insert a loading paragraph above the filters; search/bulk readiness safeguards remain active |
 | T-BRW-02 | Decision/progress/review edits, explicit refresh and conflict recovery retain unchanged gallery/inspector images without new Storage URL or media requests; photo retry and sign-out still work |
 | T-DEL-01 | Trash/restore preserve data; restoring a sold item does not silently make it owned |

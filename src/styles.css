@@ -809,6 +809,11 @@ input::file-selector-button {
   font-size: 14px;
   line-height: 1.6;
 }
+.item-editor-status {
+  /* Keep routine status changes within the same two-line space. */
+  min-block-size: 3.2em;
+  margin: 0;
+}
 .selected-files {
   margin: 0;
   padding-left: 18px;
