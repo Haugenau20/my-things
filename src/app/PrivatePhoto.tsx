@@ -13,6 +13,7 @@ export function PrivatePhoto({
   alt: string;
   detail?: boolean;
 }) {
+  const { storagePath, contentType, byteSize, width, height, sha256 } = file;
   const element = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(detail);
   const [url, setUrl] = useState<string>();
@@ -31,26 +32,29 @@ export function PrivatePhoto({
     if (!visible) return;
     const controller = new AbortController();
     let lease: PhotoLease | undefined;
-    void session.acquire(file, controller.signal).then(
-      (result) => {
-        if (controller.signal.aborted) {
-          result.release();
-          return;
-        }
-        lease = result;
-        setFailed(false);
-        setUrl(result.url);
-      },
-      () => {
-        if (!controller.signal.aborted) setFailed(true);
-      },
-    );
+    // Inventory refreshes recreate metadata objects even when the photo is unchanged.
+    void session
+      .acquire({ storagePath, contentType, byteSize, width, height, sha256 }, controller.signal)
+      .then(
+        (result) => {
+          if (controller.signal.aborted) {
+            result.release();
+            return;
+          }
+          lease = result;
+          setFailed(false);
+          setUrl(result.url);
+        },
+        () => {
+          if (!controller.signal.aborted) setFailed(true);
+        },
+      );
     return () => {
       controller.abort();
       lease?.release();
       setUrl(undefined);
     };
-  }, [session, file, visible, retry]);
+  }, [session, storagePath, contentType, byteSize, width, height, sha256, visible, retry]);
   return (
     <div
       ref={element}
