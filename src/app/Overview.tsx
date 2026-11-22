@@ -2,7 +2,9 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Item, Room } from '../domain/item';
 import type { Box } from '../domain/organize';
-import { overviewMatrix } from '../domain/overview';
+import { overviewMatrix, sellingSummary } from '../domain/overview';
+import type { SellingGroup } from '../domain/overview';
+import { moneyInput } from '../domain/organize';
 import { useNarrow } from './use-narrow';
 
 export function Overview({
@@ -14,9 +16,10 @@ export function Overview({
   items: Item[];
   rooms: Room[];
   boxes: Box[];
-  browse: (room: string, box: string) => void;
+  browse: (room: string, box: string, decision?: string) => void;
 }) {
   const matrix = overviewMatrix(items, rooms, boxes);
+  const selling = sellingSummary(items);
   const narrow = useNarrow();
   const [summary, setSummary] = useState('Choose a count to see its things.');
   const maximum = Math.max(1, ...matrix.rows.flatMap((row) => row.cells.map((cell) => cell.count)));
@@ -42,6 +45,27 @@ export function Overview({
       </button>
     );
   }
+  function sellingLine(title: string, group: SellingGroup, box: string) {
+    const amounts = group.totals.map((total) => `${total.currency} ${moneyInput(total)}`);
+    const details = [
+      `${group.count} ${group.count === 1 ? 'thing' : 'things'}`,
+      ...(group.unvalued ? [`${group.unvalued} without a value`] : []),
+    ];
+    return (
+      <button
+        type="button"
+        className="overview-selling-line"
+        aria-label={`Browse ${title}: ${[amounts.join(', ') || 'no values', ...details].join(' · ')}`}
+        onClick={() => browse('', box, 'sell')}
+      >
+        <span className="eyebrow">{title}</span>
+        <span className="overview-selling-amounts">
+          {amounts.length ? amounts.map((amount) => <strong key={amount}>{amount}</strong>) : '—'}
+        </span>
+        <span className="overview-selling-details">{details.join(' · ')}</span>
+      </button>
+    );
+  }
   return (
     <section aria-label="Inventory overview" className="overview">
       <header className="overview-heading">
@@ -54,6 +78,10 @@ export function Overview({
           boxes · {matrix.totals.gone} gone
         </p>
       </header>
+      <section aria-label="Selling totals" className="overview-selling">
+        {sellingLine('Still to sell', selling.open, '')}
+        {sellingLine('Sold so far', selling.sold, 'gone')}
+      </section>
       {narrow ? (
         <div className="overview-room-list">
           {matrix.rows.map((row) => (
@@ -142,7 +170,10 @@ export function Overview({
           <span className="unpacked-key">Not packed</span> ·{' '}
           <span className="packed-key">In a box</span> · <span className="gone-key">Gone</span>
         </p>
-        <p>Totals include Gone. Room links show owned things.</p>
+        <p>
+          Totals include Gone. Room links show owned things. Selling totals add each entry&apos;s
+          value and keep currencies separate.
+        </p>
         <p aria-live="polite">{summary}</p>
       </footer>
     </section>

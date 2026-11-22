@@ -97,7 +97,7 @@ export function parseMoney(input: string, currency: string): ItemDocument['estim
   if (value > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('The amount is too large.');
   return { amountMinor: Number(value), currency };
 }
-export function moneyInput(value: NonNullable<ItemDocument['estimatedValue']>): string {
+export function moneyInput(value: { amountMinor: number | bigint; currency: string }): string {
   const digits = currencyDigits(value.currency);
   const text = String(value.amountMinor).padStart(digits + 1, '0');
   return digits ? `${text.slice(0, -digits)}.${text.slice(-digits)}` : text;

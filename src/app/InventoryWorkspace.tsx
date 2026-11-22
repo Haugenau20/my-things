@@ -356,11 +356,12 @@ export function InventoryWorkspace({
                     items={items}
                     rooms={rooms}
                     boxes={boxes}
-                    browse={(room, box) => {
+                    browse={(room, box, decision) => {
                       setBrowseLocation((current) => ({
                         sequence: (current?.sequence ?? 0) + 1,
                         room,
                         box,
+                        decision: decision ?? '',
                       }));
                       navigate('things');
                     }}

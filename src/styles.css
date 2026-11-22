@@ -45,14 +45,49 @@
 .filter-popover {
   position: relative;
 }
-.filter-popover summary {
+.filter-trigger {
   cursor: pointer;
-  list-style: none;
   border: 1px solid #b7b8a8;
   border-radius: 16px;
   background: #fffefa;
+  color: inherit;
   font-size: 12px;
+  font-weight: 400;
+  min-height: 0;
   padding: 7px 10px;
+}
+.filter-trigger[aria-expanded='true'] {
+  border-color: #365a3d;
+}
+.filter-choices {
+  display: grid;
+  gap: 4px;
+}
+.filter-choice {
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #263c32;
+  font-weight: 400;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+.filter-choice::first-letter {
+  text-transform: uppercase;
+}
+.filter-choice:hover,
+.filter-choice:focus-visible {
+  background: #f2f0e8;
+}
+.filter-choice[aria-pressed='true'] {
+  border-color: #365a3d;
+  background: #e7ece2;
+  font-weight: 600;
+}
+.filter-sheet-groups h3 {
+  font-size: 13px;
+  margin: 12px 0 6px;
 }
 .filter-popup {
   position: absolute;
@@ -62,7 +97,7 @@
   background: #fffefa;
   border: 1px solid #deded2;
   border-radius: 10px;
-  padding: 16px;
+  padding: 8px;
   box-shadow: 0 10px 24px #263c3226;
   width: 230px;
   max-width: calc(100vw - 32px);
@@ -843,6 +878,7 @@ input::file-selector-button {
   align-items: baseline;
   justify-content: space-between;
   gap: 15px;
+  margin-bottom: 20px;
 }
 .gallery-heading > span {
   font-size: 13px;
@@ -2033,6 +2069,45 @@ input[type='checkbox'] {
 .overview-heading > p {
   color: #5d685e;
   font-size: 14px;
+}
+.overview-selling {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.overview-selling-line {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid #d8dbce;
+  border-radius: 12px;
+  background: #fffefa;
+  color: #263c32;
+}
+.overview-selling-line:hover,
+.overview-selling-line:focus-visible {
+  border-color: #365a3d;
+}
+.overview-selling-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-family: Georgia, serif;
+  font-size: 24px;
+}
+.overview-selling-amounts strong {
+  font-weight: 400;
+}
+.overview-selling-details {
+  color: #5d685e;
+  font-size: 13px;
+}
+@media (max-width: 850px) {
+  .overview-selling {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .overview-matrix-scroll {
   max-width: 100%;

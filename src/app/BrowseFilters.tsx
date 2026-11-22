@@ -28,6 +28,29 @@ export function BrowseFilters({
   const facets = facetOptions(items, rooms, boxes, filters);
   const narrow = useNarrow();
   const [picker, setPicker] = useState<'Room' | 'Box' | 'Decision' | 'More'>();
+  const [popover, setPopover] = useState<'decision' | 'progress' | 'reviewStatus' | 'more'>();
+  const popovers = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!popover) return;
+    popovers.current
+      ?.querySelector<HTMLElement>('.filter-popup [aria-pressed="true"], .filter-popup input')
+      ?.focus();
+    const outside = (event: PointerEvent) => {
+      if (!(event.target instanceof Node) || !popovers.current?.contains(event.target))
+        setPopover(undefined);
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      popovers.current?.querySelector<HTMLElement>('[aria-expanded="true"]')?.focus();
+      setPopover(undefined);
+    };
+    document.addEventListener('pointerdown', outside);
+    window.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      window.removeEventListener('keydown', key);
+    };
+  }, [popover]);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (
@@ -81,43 +104,60 @@ export function BrowseFilters({
       </div>
     </div>
   );
-  const secondary = (
-    name: string,
-    key: 'decision' | 'progress' | 'reviewStatus',
-    options: readonly string[],
-  ) => (
+  type ChoiceKey = 'decision' | 'progress' | 'reviewStatus';
+  const CHOICES = {
+    decision: { name: 'Decision', options: DECISIONS },
+    progress: { name: 'Progress', options: PROGRESS },
+    reviewStatus: { name: 'Review', options: ['needs_review', 'reviewed'] as const },
+  };
+  // Options are listed directly in the popover/sheet so one click opens and one click chooses.
+  const choices = (key: ChoiceKey, done: () => void) => (
+    <div className="filter-choices" role="group" aria-label={CHOICES[key].name + ' filter'}>
+      {['', ...CHOICES[key].options].map((value) => (
+        <button
+          key={value || 'any'}
+          type="button"
+          className="filter-choice"
+          aria-pressed={filters[key] === value}
+          onClick={() => {
+            change({ [key]: value });
+            done();
+          }}
+        >
+          {value ? value.replaceAll('_', ' ') : 'Any ' + CHOICES[key].name.toLowerCase()}
+        </button>
+      ))}
+    </div>
+  );
+  const popoverTrigger = (id: ChoiceKey | 'more', label: string) => (
+    <button
+      type="button"
+      className="filter-trigger"
+      aria-expanded={popover === id}
+      aria-controls={'filter-popup-' + id}
+      onClick={() => setPopover(popover === id ? undefined : id)}
+    >
+      {label} ▾
+    </button>
+  );
+  const secondary = (key: ChoiceKey) => (
     <div className="secondary-filter">
-      <details className="filter-popover">
-        <summary>
-          {name}
-          {filters[key] ? ': ' + filters[key].replaceAll('_', ' ') : ''} ▾
-        </summary>
-        <div className="filter-popup">
-          <label>
-            {name} filter
-            <select
-              aria-label={name + ' filter'}
-              value={filters[key]}
-              onChange={(event) => {
-                change({ [key]: event.target.value });
-                event.currentTarget.closest('details')?.removeAttribute('open');
-              }}
-            >
-              <option value="">Any {name.toLowerCase()}</option>
-              {options.map((value) => (
-                <option key={value} value={value}>
-                  {value.replaceAll('_', ' ')}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </details>
+      <div className="filter-popover">
+        {popoverTrigger(
+          key,
+          CHOICES[key].name + (filters[key] ? ': ' + filters[key].replaceAll('_', ' ') : ''),
+        )}
+        {popover === key && (
+          <div className="filter-popup" id={'filter-popup-' + key}>
+            {choices(key, () => setPopover(undefined))}
+          </div>
+        )}
+      </div>
       {filters[key] && (
         <button
           className="clear-chip"
           type="button"
-          aria-label={'Clear ' + name + ' filter'}
+          aria-label={'Clear ' + CHOICES[key].name + ' filter'}
           onClick={() => change({ [key]: '' })}
         >
           ×
@@ -143,23 +183,25 @@ export function BrowseFilters({
           />
         </label>
         {!narrow && (
-          <div className="secondary-filters">
-            {secondary('Decision', 'decision', DECISIONS)}
-            {secondary('Progress', 'progress', PROGRESS)}
-            {secondary('Review', 'reviewStatus', ['needs_review', 'reviewed'])}
-            <details className="filter-popover">
-              <summary>More ▾{filters.missingPhotos ? ' · Missing photos' : ''}</summary>
-              <div className="filter-popup">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={filters.missingPhotos}
-                    onChange={(event) => change({ missingPhotos: event.target.checked })}
-                  />
-                  Missing photos
-                </label>
-              </div>
-            </details>
+          <div className="secondary-filters" ref={popovers}>
+            {secondary('decision')}
+            {secondary('progress')}
+            {secondary('reviewStatus')}
+            <div className="filter-popover">
+              {popoverTrigger('more', 'More' + (filters.missingPhotos ? ' · Missing photos' : ''))}
+              {popover === 'more' && (
+                <div className="filter-popup" id="filter-popup-more">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={filters.missingPhotos}
+                      onChange={(event) => change({ missingPhotos: event.target.checked })}
+                    />
+                    Missing photos
+                  </label>
+                </div>
+              )}
+            </div>
             {filters.missingPhotos && (
               <button
                 type="button"
@@ -252,53 +294,13 @@ export function BrowseFilters({
                   picker === 'Room' ? 'room' : 'box',
                 )
               ) : picker === 'Decision' ? (
-                <label>
-                  Decision filter
-                  <select
-                    aria-label="Decision filter"
-                    value={filters.decision}
-                    onChange={(event) => {
-                      change({ decision: event.target.value });
-                      setPicker(undefined);
-                    }}
-                  >
-                    <option value="">Any decision</option>
-                    {DECISIONS.map((value) => (
-                      <option value={value} key={value}>
-                        {value.replaceAll('_', ' ')}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                choices('decision', () => setPicker(undefined))
               ) : (
-                <div>
-                  <label>
-                    Progress filter
-                    <select
-                      aria-label="Progress filter"
-                      value={filters.progress}
-                      onChange={(event) => change({ progress: event.target.value })}
-                    >
-                      <option value="">Any progress</option>
-                      {PROGRESS.map((value) => (
-                        <option value={value} key={value}>
-                          {value.replaceAll('_', ' ')}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Review filter
-                    <select
-                      aria-label="Review filter"
-                      value={filters.reviewStatus}
-                      onChange={(event) => change({ reviewStatus: event.target.value })}
-                    >
-                      <option value="">Any review state</option>
-                      <option value="needs_review">needs review</option>
-                      <option value="reviewed">reviewed</option>
-                    </select>
-                  </label>
+                <div className="filter-sheet-groups">
+                  <h3>Progress</h3>
+                  {choices('progress', () => undefined)}
+                  <h3>Review</h3>
+                  {choices('reviewStatus', () => undefined)}
                   <label className="checkbox-label">
                     <input
                       type="checkbox"

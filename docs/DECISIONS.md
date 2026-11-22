@@ -267,7 +267,7 @@ PR-09 uses the approved native camera/file-input alternative rather than a live 
 
 ### 2026-10-11 — Overview counts and navigation
 
-The approved archived-room reconciliation applies to the Room × Box matrix. Totals include Gone and exclude Trash/unfinished records; room-only links preserve the owned Things default, stated beside the totals. Individual cells use the shared Things filter. Many boxes scroll within the desktop card with Room sticky; phone uses a room list with the same cell links. Navigation resets search, secondary filters, selection and explicit grouping so each count opens its exact selection.
+The approved archived-room reconciliation applies to the Room × Box matrix. Totals include Gone and exclude Trash/unfinished records; room-only links preserve the owned Things default, stated beside the totals. Individual cells use the shared Things filter. Many boxes scroll within the desktop card with Room sticky; phone uses a room list with the same cell links. Navigation resets search, secondary filters, selection and explicit grouping so each count opens its exact selection. The owner approved Selling totals on 2026-11-22: per-currency sums of sell entries' estimated values (open vs. sold), sums held as bigint so many safe per-entry amounts cannot overflow, and the estimated value doubling as the sale price once sold.
 
 ### 2026-11-22 — Efficient data loading and cacheable photos
 
