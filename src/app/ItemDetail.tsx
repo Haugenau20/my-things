@@ -7,6 +7,7 @@ import type { PhotoSession } from '../media/photo-session';
 import { PrivatePhoto } from './PrivatePhoto';
 import { PhotoAttachment } from './PhotoAttachment';
 import { ItemEditor } from './ItemEditor';
+import type { Sync } from './use-inventory';
 
 export function ItemDetail({
   item,
@@ -20,7 +21,7 @@ export function ItemDetail({
   signal,
   activeAttempt,
   setActiveAttempt,
-  reload,
+  sync,
   defaultCurrency,
   setDefaultCurrency,
   requestDeletion,
@@ -40,7 +41,7 @@ export function ItemDetail({
   signal: AbortSignal;
   activeAttempt: string | undefined;
   setActiveAttempt: (id: string | undefined) => void;
-  reload: () => Promise<void>;
+  sync: Sync;
   defaultCurrency: string | null;
   setDefaultCurrency: (currency: string) => Promise<void>;
   requestDeletion: (item: Item) => void;
@@ -124,6 +125,8 @@ export function ItemDetail({
               <PrivatePhoto
                 key={photo.id}
                 file={photo.detail}
+                // The compact inspector starts from the cached gallery thumbnail.
+                preview={compact ? photo.thumbnail : undefined}
                 session={session}
                 detail
                 alt={`${item.name} · photo ${ready.indexOf(photo) + 1}`}
@@ -137,14 +140,12 @@ export function ItemDetail({
               services={services}
               inventoryId={inventoryId}
               signal={signal}
-              onSaved={async () => {
+              session={session}
+              onSaved={(saved) => {
                 setActiveAttempt(undefined);
-                await reload();
+                sync({ items: [saved] });
               }}
-              onAttempt={async (id) => {
-                setActiveAttempt(id);
-                await reload();
-              }}
+              onAttempt={setActiveAttempt}
             />
           )}
         </div>
@@ -170,7 +171,7 @@ export function ItemDetail({
           setDefaultCurrency={setDefaultCurrency}
           requestDeletion={requestDeletion}
           signal={signal}
-          reload={reload}
+          sync={sync}
           next={nextReview}
         />
       </div>

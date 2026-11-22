@@ -9,12 +9,12 @@ export async function permanentlyDelete(
   item: Item,
   signal: AbortSignal,
   progress: (message: string) => void,
-  marked: () => Promise<void> = async () => {},
+  marked: (marker: Item) => void = () => {},
 ): Promise<void> {
   progress('Saving the deletion recovery marker…');
   const marker = await markPermanentDelete(services.db, inventory, item, signal);
   if (!marker) return;
-  await marked();
+  marked(marker);
   signal.throwIfAborted();
   progress('Removing live photo files…');
   await deleteItemPhotos(services.storage, inventory, item.id, signal, (count) =>

@@ -148,7 +148,7 @@ export async function finishPhotoCancellation(
   inventory: string,
   item: Item,
   signal: AbortSignal,
-): Promise<void> {
+): Promise<Item> {
   const target = reference(db, inventory, item);
   await runTransaction(db, async (transaction) => {
     signal.throwIfAborted();
@@ -171,4 +171,5 @@ export async function finishPhotoCancellation(
   });
   const result = await acknowledged(db, inventory, item.id, signal);
   if (result.photos.length) throw new Error('Photo cleanup acknowledgment could not be verified.');
+  return result;
 }

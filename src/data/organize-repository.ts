@@ -18,7 +18,7 @@ import {
   isDisposed,
 } from '../domain/organize';
 import type { Box, ItemCommand } from '../domain/organize';
-import { loadItem, loadItems } from './capture-repository';
+import { loadBoxItems, loadItem } from './capture-repository';
 
 export class RevisionConflict extends Error {
   constructor() {
@@ -95,6 +95,8 @@ export type BulkResult = {
   name: string;
   status: 'saved' | 'conflict' | 'failed';
   message: string;
+  /** The acknowledged record for a saved entry. */
+  item?: Item;
 };
 export async function bulkEdit(
   db: Firestore,
@@ -113,8 +115,14 @@ export async function bulkEdit(
         const index = cursor++;
         const item = items[index]!;
         try {
-          await editItem(db, inventory, item, command, signal);
-          results[index] = { id: item.id, name: item.name, status: 'saved', message: 'Saved' };
+          const saved = await editItem(db, inventory, item, command, signal);
+          results[index] = {
+            id: item.id,
+            name: item.name,
+            status: 'saved',
+            message: 'Saved',
+            item: saved,
+          };
         } catch (error) {
           results[index] = {
             id: item.id,
@@ -196,12 +204,15 @@ export async function updateLocation(
     id: expected.id,
   };
 }
+function parseLocation(kind: 'room' | 'box', data: unknown, id: string): Room | Box {
+  return { ...(kind === 'room' ? roomSchema.parse(data) : boxSchema.parse(data)), id };
+}
 export async function reactivateLocation(
   db: Firestore,
   inventory: string,
   kind: 'room' | 'box',
   id: string,
-): Promise<void> {
+): Promise<Room | Box> {
   const target = reference(db, inventory, kind === 'room' ? 'rooms' : 'boxes', id);
   await runTransaction(db, async (tx) => {
     const data = (await tx.get(target)).data();
@@ -213,19 +224,20 @@ export async function reactivateLocation(
       updatedAt: serverTimestamp(),
     });
   });
-  await getDocFromServer(target);
+  return parseLocation(kind, (await getDocFromServer(target)).data(), id);
 }
 export async function archiveLocation(
   db: Firestore,
   inventory: string,
   kind: 'room' | 'box',
   id: string,
-): Promise<void> {
+): Promise<Room | Box> {
   const target = reference(db, inventory, kind === 'room' ? 'rooms' : 'boxes', id);
   const initial = (await getDocFromServer(target)).data();
-  const before = kind === 'room' ? roomSchema.parse(initial) : boxSchema.parse(initial);
-  if (before.archivedAt !== null) return;
-  const items = kind === 'box' ? await loadItems(db, inventory) : [];
+  const before = parseLocation(kind, initial, id);
+  if (before.archivedAt !== null) return before;
+  // Only this box's packed records matter, so read those rather than the whole inventory.
+  const items = kind === 'box' ? await loadBoxItems(db, inventory, id) : [];
   // Room tags remain readable after archive. Only boxes represent physical packing.
   if (
     items.some(
@@ -248,5 +260,5 @@ export async function archiveLocation(
       revision: current.revision + 1,
     });
   });
-  await getDocFromServer(target);
+  return parseLocation(kind, (await getDocFromServer(target)).data(), id);
 }

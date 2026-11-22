@@ -41,7 +41,8 @@ export async function mountRefreshFailure(kind: 'capture' | 'attachment' | 'reco
   host.setAttribute('aria-label', 'Synthetic diagnostic harness');
   document.body.append(host);
   const root = createRoot(host);
-  const failRefresh = async () => {
+  // Applying the acknowledged record locally fails after the save itself was confirmed.
+  const failRefresh = () => {
     throw new Error('Synthetic private SDK path inventories/main/items/private?token=secret');
   };
   const common = { services, inventoryId: 'main', signal };
@@ -52,7 +53,7 @@ export async function mountRefreshFailure(kind: 'capture' | 'attachment' | 'reco
         rooms: [],
         onRoom: () => {},
         onSaved: failRefresh,
-        onAttempt: async () => {},
+        onAttempt: () => {},
         roomRequest: { sequence: 0, room: 'none' },
         defaultCurrency: null,
         session: new PhotoSession(services.storage),
@@ -74,8 +75,9 @@ export async function mountRefreshFailure(kind: 'capture' | 'attachment' | 'reco
       createElement(PhotoAttachment, {
         ...common,
         item,
+        session: new PhotoSession(services.storage),
         onSaved: failRefresh,
-        onAttempt: async () => {},
+        onAttempt: () => {},
       }),
     );
     return;
@@ -108,5 +110,5 @@ export async function mountRefreshFailure(kind: 'capture' | 'attachment' | 'reco
     signal,
     () => {},
   );
-  root.render(createElement(RecoveryPanel, { ...common, items: [item], reload: failRefresh }));
+  root.render(createElement(RecoveryPanel, { ...common, items: [item], sync: failRefresh }));
 }

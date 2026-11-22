@@ -76,3 +76,43 @@ export async function changeSyntheticNotes(name: string, notes: string): Promise
     await environment.cleanup();
   }
 }
+
+/**
+ * Live listeners deliver outside edits before the next click, so a stale-tab conflict must be
+ * raced into a running operation: the page's first transaction commit waits for `change`.
+ */
+export async function raceFirstCommit(page: Page, change: () => Promise<void>): Promise<void> {
+  let raced = false;
+  await page.route(
+    (url) => url.pathname.endsWith('/documents:commit'),
+    async (route) => {
+      if (!raced) {
+        raced = true;
+        await change();
+      }
+      await route.continue();
+    },
+  );
+}
+
+// Makes the trusted demo root briefly invalid (or valid again) to exercise listener failure.
+export async function setSyntheticDisplayName(displayName: string): Promise<void> {
+  assertLocalTarget('demo-inventory', process.env);
+  if (displayName && !displayName.startsWith('Synthetic '))
+    throw new Error('Synthetic fixture only');
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-inventory',
+    firestore: { host: '127.0.0.1', port: 18080 },
+  });
+  try {
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const reference = context.firestore().doc('inventories/main');
+      const root = (await reference.get()).data();
+      if (root?.ownerUid !== LOCAL_ACCOUNTS.owner.uid || root.schemaVersion !== 2)
+        throw new Error('Trusted demo owner required');
+      await reference.update({ displayName, updatedAt: Timestamp.now() });
+    });
+  } finally {
+    await environment.cleanup();
+  }
+}

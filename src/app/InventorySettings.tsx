@@ -4,17 +4,18 @@ import type { FirebaseServices } from '../data/firebase';
 import type { Inventory } from '../domain/inventory';
 import { CURRENCIES } from '../domain/organize';
 import { updateSettings } from '../data/inventory-repository';
+import type { Sync } from './use-inventory';
 
 export function InventorySettings({
   inventory,
   services,
   inventoryId,
-  reload,
+  sync,
 }: {
   inventory: Inventory;
   services: FirebaseServices;
   inventoryId: string;
-  reload: () => Promise<void>;
+  sync: Sync;
 }) {
   const [name, setName] = useState(inventory.displayName);
   const [currency, setCurrency] = useState(inventory.defaultCurrency ?? '');
@@ -32,7 +33,7 @@ export function InventorySettings({
         defaultCurrency: currency || null,
       });
       setBase(saved);
-      await reload();
+      sync({ settings: saved });
       setMessage('Settings saved; existing item values retain their own currency.');
     } catch {
       setError('Could not save settings. Check the name/currency and refresh before retrying.');

@@ -13,6 +13,7 @@
     "dev": "node scripts/dev.mjs",
     "emulators": "node scripts/emulators.mjs start",
     "seed:local": "node scripts/seed-local.mjs",
+    "photos:cache": "node scripts/update-photo-cache.mjs",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",

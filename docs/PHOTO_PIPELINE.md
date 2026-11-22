@@ -13,7 +13,7 @@ Process one source image at a time. Decode, normalize orientation, resize, and e
 
 | Output | Initial target | Hard uploaded size limit |
 | --- | --- | --- |
-| Detail | Longest edge at most 2,000 px; never upscale; starting quality about 0.85 | 8 MiB |
+| Detail | Longest edge at most 1,600 px for new captures (2,000 px before 2026-11-22, still accepted); never upscale; starting quality about 0.85 | 8 MiB |
 | Thumbnail | Longest edge at most 400 px; preserve whole image; crop only visually in gallery | 512 KiB |
 
 Starting input guardrails: at most 40 MiB and 50 megapixels per source; at most 2 photo entries per item.
@@ -42,8 +42,11 @@ same IDs; do not overwrite a ready photo in place with a different image.
 1. Validate name/details. If no photos were selected, create a ready item with an empty photo list and
    null cover, await server acknowledgment, and finish. Otherwise prepare derivatives with stable IDs.
 2. Write an item with `recordState: draft`, pending photo metadata, and a null cover. Await acknowledgment.
-3. Upload the derivatives at their planned paths with image/jpeg and private cache metadata. Show progress.
-4. Mark each photo ready only after both files are confirmed. When all selected photos are ready, set the
+3. Upload the derivatives at their planned paths with image/jpeg and private, immutable cache
+   metadata. Show progress.
+4. Mark each photo ready only after both files are confirmed. A fresh upload is confirmed when the
+   upload response's path, size, type, Cache-Control and MD5 match the SHA-256-checked bytes just sent;
+   otherwise (no reported MD5, or an object that already existed) download and check the bytes. When all selected photos are ready, set the
    cover and mark the item ready in a revision-checked Firestore update.
 5. Only then show **Saved** and advance to the next item. Release temporary blobs and previews.
 
@@ -118,19 +121,26 @@ does not delete files or check referenced photo bytes; it must not be mistaken f
 check. See [M3 recovery evidence](M3_RECOVERY.md).
 
 Resolve thumbnails lazily with owner-authorized `getDownloadURL()` and load full detail photos only when
-opened. The owner approved token-bearing delivery on 2026-10-11. Hold URL leases only for mounted images,
-cap their registered encoded sizes at 24 MiB, and bound concurrent URL requests to two. This is an
+opened. The compact inspector shows the thumbnail first and requests the detail derivative only after
+the item stays open for 400 ms, so stepping through items does not download every detail photo. The
+owner approved token-bearing delivery on 2026-10-11. Hold URL leases only for mounted images,
+cap their registered encoded sizes at 24 MiB, and bound concurrent URL requests to two. A released URL
+stays in session memory for ten minutes (at most 500 entries), so scrolling back or returning to a
+view needs no new request; with cacheable object metadata the browser then serves the bytes from its
+HTTP cache. Views hidden with `display:none` keep their mounted photos. Acknowledged captures and
+attachments register their verified local thumbnails (at most 16 MiB in total) as temporary object URLs, so new items need no
+Storage request to appear; those URLs are revoked on expiry and sign-out. This is an
 application working-set limit, not a browser decoded-image memory guarantee. Eviction/sign-out drops
 local references and suppresses late results; copied bearer URLs remain valid until token revocation or
 object deletion. Failed URL issuance or image requests offer retry. Never persist these URLs in records,
 backups or a service worker. Metadata-only inventory refreshes preserve mounted image elements and
 URL leases when every photo-file field is unchanged; compare those field values rather than the
-identity of the freshly parsed metadata object. Actual file changes, visibility changes, retry and
-session changes still run the normal release/acquire lifecycle. Upload acknowledgment/recovery and
+identity of the freshly parsed metadata object. Actual file changes, scrolling out of view, retry and
+session changes still run the normal release/acquire lifecycle. Upload recovery and
 export still use authenticated
 metadata/byte/checksum verification with their own bounded concurrency and cancellation.
 
-Desktop capture occupies the shared right panel and retains the name, optional details and selected source files when closed. Two drag-and-drop slots preview at most two local files using temporary object URLs, revoked on replacement/unmount. Camera/library selection still uses native file inputs; the existing two-photo limit, derivative preparation, locked retry identity and explicit unfinished-attempt recovery apply. Recent saves use authenticated thumbnail retrieval and appear only after record/photo acknowledgment.
+Desktop capture occupies the shared right panel and retains the name, optional details and selected source files when closed. Two drag-and-drop slots preview at most two local files using temporary object URLs, revoked on replacement/unmount. Camera/library selection still uses native file inputs; the existing two-photo limit, derivative preparation, locked retry identity and explicit unfinished-attempt recovery apply. Recent saves show the acknowledged local thumbnail and appear only after record/photo acknowledgment.
 
 ## Phone capture queue
 

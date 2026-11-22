@@ -18,6 +18,11 @@ import { bulkEdit, createBox } from '../data/organize-repository';
 import type { BulkResult } from '../data/organize-repository';
 import { useMutationState } from './mutation-activity';
 import { clickSelection } from '../domain/selection';
+import type { Sync } from './use-inventory';
+
+function savedItems(results: BulkResult[]): Item[] {
+  return results.flatMap((result) => (result.item ? [result.item] : []));
+}
 
 export function InventoryBrowser({
   items,
@@ -30,7 +35,7 @@ export function InventoryBrowser({
   signal,
   activeAttempt,
   setActiveAttempt,
-  reload,
+  sync,
   defaultCurrency,
   metadataReady,
   browseLocation,
@@ -52,7 +57,7 @@ export function InventoryBrowser({
   signal: AbortSignal;
   activeAttempt: string | undefined;
   setActiveAttempt: (id: string | undefined) => void;
-  reload: () => Promise<void>;
+  sync: Sync;
   defaultCurrency: string | null;
   metadataReady: boolean;
   browseLocation: BrowseRequest | undefined;
@@ -232,17 +237,18 @@ export function InventoryBrowser({
     setGroupResults([]);
     try {
       signal.throwIfAborted();
-      const boxId =
-        'boxId' in destination
-          ? destination.boxId
-          : (
-              await createBox(
-                services.db,
-                inventoryId,
-                destination.newLabel,
-                Math.min(100000, boxes.length),
-              )
-            ).id;
+      let boxId: string;
+      if ('boxId' in destination) boxId = destination.boxId;
+      else {
+        const created = await createBox(
+          services.db,
+          inventoryId,
+          destination.newLabel,
+          Math.min(100000, boxes.length),
+        );
+        sync({ boxes: [created] });
+        boxId = created.id;
+      }
       signal.throwIfAborted();
       const results = await bulkEdit(
         services.db,
@@ -256,7 +262,7 @@ export function InventoryBrowser({
         setSelection(
           new Set(results.filter((result) => result.status !== 'saved').map((result) => result.id)),
         );
-        await reload();
+        sync({ items: savedItems(results) });
       }
     } catch {
       if (!signal.aborted) {
@@ -264,7 +270,6 @@ export function InventoryBrowser({
           'Could not finish group packing. Refresh before retrying; any created box is retained.',
         );
         setSelection(new Set(group.items.map((item) => item.id)));
-        await reload();
       }
     } finally {
       if (!signal.aborted) setGroupBusy(false);
@@ -384,7 +389,7 @@ export function InventoryBrowser({
                 results.filter((result) => result.status !== 'saved').map((result) => result.id),
               ),
             );
-            await reload();
+            sync({ items: savedItems(results) });
           }}
         />
         {groupBusy && <p role="status">Packing this visible group…</p>}
@@ -557,7 +562,7 @@ export function InventoryBrowser({
           signal={signal}
           activeAttempt={activeAttempt}
           setActiveAttempt={setActiveAttempt}
-          reload={reload}
+          sync={sync}
           defaultCurrency={defaultCurrency}
           setDefaultCurrency={setDefaultCurrency}
           requestDeletion={requestDeletion}

@@ -18,7 +18,6 @@ export function RestorePanel({
   signal,
   disabled,
   pause,
-  reload,
   session,
 }: {
   services: FirebaseServices;
@@ -27,7 +26,6 @@ export function RestorePanel({
   signal: AbortSignal;
   disabled: boolean;
   pause: (value: boolean) => void;
-  reload: () => Promise<void>;
   session: PhotoSession;
 }) {
   const [files, setFiles] = useState<File[]>([]);
@@ -88,7 +86,7 @@ export function RestorePanel({
       signal.removeEventListener('abort', abort);
       active.current = undefined;
       setBusy(false);
-      await reload();
+      // Restored records and the restore lock arrive through the live inventory listeners.
       pause(false);
     }
   }

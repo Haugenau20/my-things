@@ -1,8 +1,9 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { getMetadata, getBytes, uploadBytesResumable } from 'firebase/storage';
 import type { FirebaseStorage } from 'firebase/storage';
-import { ensureFile, PRIVATE_CACHE } from '../../src/media/files';
+import { ensureFile, LEGACY_PHOTO_CACHE, PHOTO_CACHE } from '../../src/media/files';
 import { sha256 } from '../../src/media/processing';
+import { md5Base64 } from '../../src/media/md5';
 vi.mock('firebase/storage', () => ({
   ref: vi.fn(() => ({})),
   getMetadata: vi.fn(),
@@ -47,7 +48,7 @@ it('labels failed transfers as upload and allows a verified retry', async () => 
   vi.mocked(getMetadata).mockResolvedValue({
     size: bytes.length,
     contentType: 'image/jpeg',
-    cacheControl: PRIVATE_CACHE,
+    cacheControl: PHOTO_CACHE,
   } as Awaited<ReturnType<typeof getMetadata>>);
   vi.mocked(getBytes).mockResolvedValue(bytes.buffer);
   await expect(ensureFile(storage, file, source, signal, () => {})).resolves.toBeUndefined();
@@ -59,7 +60,7 @@ it('labels post-upload byte failures as verification', async () => {
     .mockResolvedValue({
       size: bytes.length,
       contentType: 'image/jpeg',
-      cacheControl: PRIVATE_CACHE,
+      cacheControl: PHOTO_CACHE,
     } as Awaited<ReturnType<typeof getMetadata>>);
   vi.mocked(uploadBytesResumable).mockImplementation(
     () =>
@@ -95,5 +96,81 @@ it('reports changed source bytes as verification before upload', async () => {
       () => {},
     ),
   ).rejects.toMatchObject({ phase: 'verification', code: 'photo/source-mismatch' });
+  expect(uploadBytesResumable).not.toHaveBeenCalled();
+});
+
+function completedUpload(metadata: Record<string, unknown> | undefined) {
+  vi.mocked(uploadBytesResumable).mockImplementation(
+    () =>
+      ({
+        on: (_event: unknown, _progress: unknown, _error: unknown, complete: () => void) =>
+          complete(),
+        cancel: vi.fn(),
+        snapshot: { metadata },
+      }) as unknown as ReturnType<typeof uploadBytesResumable>,
+  );
+}
+const uploadedMetadata = {
+  fullPath: file.storagePath,
+  size: bytes.length,
+  contentType: 'image/jpeg',
+  cacheControl: PHOTO_CACHE,
+  md5Hash: md5Base64(bytes),
+};
+it('verifies a fresh upload from its reported MD5 without downloading it', async () => {
+  vi.mocked(getMetadata).mockRejectedValueOnce({ code: 'storage/object-not-found' });
+  completedUpload(uploadedMetadata);
+  await expect(ensureFile(storage, file, source, signal, () => {})).resolves.toBeUndefined();
+  expect(uploadBytesResumable).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+    contentType: 'image/jpeg',
+    cacheControl: PHOTO_CACHE,
+    customMetadata: {},
+  });
+  expect(getBytes).not.toHaveBeenCalled();
+  expect(getMetadata).toHaveBeenCalledTimes(1);
+});
+it('rejects an upload whose reported MD5 differs from the sent bytes', async () => {
+  vi.mocked(getMetadata).mockRejectedValueOnce({ code: 'storage/object-not-found' });
+  completedUpload({ ...uploadedMetadata, md5Hash: md5Base64(new Uint8Array([0])) });
+  await expect(ensureFile(storage, file, source, signal, () => {})).rejects.toMatchObject({
+    phase: 'verification',
+  });
+  expect(getBytes).not.toHaveBeenCalled();
+});
+it('rejects an upload whose reported metadata differs from the capture', async () => {
+  for (const change of [
+    { size: bytes.length + 1 },
+    { contentType: 'image/png' },
+    { cacheControl: 'public, max-age=60' },
+    { fullPath: 'inventories/main/items/other/photos/private/detail.jpg' },
+  ]) {
+    vi.mocked(getMetadata).mockRejectedValueOnce({ code: 'storage/object-not-found' });
+    completedUpload({ ...uploadedMetadata, ...change });
+    await expect(ensureFile(storage, file, source, signal, () => {})).rejects.toMatchObject({
+      phase: 'verification',
+    });
+  }
+});
+it('falls back to authenticated bytes when no MD5 is reported', async () => {
+  vi.mocked(getMetadata)
+    .mockRejectedValueOnce({ code: 'storage/object-not-found' })
+    .mockResolvedValue({
+      size: bytes.length,
+      contentType: 'image/jpeg',
+      cacheControl: PHOTO_CACHE,
+    } as Awaited<ReturnType<typeof getMetadata>>);
+  completedUpload({ ...uploadedMetadata, md5Hash: undefined });
+  vi.mocked(getBytes).mockResolvedValue(bytes.slice().buffer);
+  await expect(ensureFile(storage, file, source, signal, () => {})).resolves.toBeUndefined();
+  expect(getBytes).toHaveBeenCalledTimes(1);
+});
+it('still accepts existing photos stored with the legacy no-store value', async () => {
+  vi.mocked(getMetadata).mockResolvedValue({
+    size: bytes.length,
+    contentType: 'image/jpeg',
+    cacheControl: LEGACY_PHOTO_CACHE,
+  } as Awaited<ReturnType<typeof getMetadata>>);
+  vi.mocked(getBytes).mockResolvedValue(bytes.slice().buffer);
+  await expect(ensureFile(storage, file, source, signal, () => {})).resolves.toBeUndefined();
   expect(uploadBytesResumable).not.toHaveBeenCalled();
 });

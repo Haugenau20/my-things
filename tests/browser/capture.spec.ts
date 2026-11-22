@@ -424,3 +424,35 @@ test('phone-width photo capture saves into the review inbox', async ({ page }) =
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: test.info().outputPath('capture-mobile.png'), fullPage: true });
 });
+
+test('new detail derivatives are at most 1600 px on the long edge', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    const modulePath = '/src/media/processing.ts';
+    const { preparePhoto } = (await import(
+      modulePath
+    )) as typeof import('../../src/media/processing');
+    const canvas = document.createElement('canvas');
+    canvas.width = 3000;
+    canvas.height = 2000;
+    const context = canvas.getContext('2d')!;
+    context.fillStyle = '#8a5a2b';
+    context.fillRect(0, 0, 3000, 2000);
+    const source = await new Promise<Blob>((resolve) =>
+      canvas.toBlob((blob) => resolve(blob!), 'image/jpeg'),
+    );
+    const prepared = await preparePhoto(
+      new File([source], 'synthetic-large.jpg', { type: 'image/jpeg' }),
+      'main',
+      'synthetic',
+      'photo-large',
+      new AbortController().signal,
+    );
+    return {
+      detail: [prepared.photo.detail.width, prepared.photo.detail.height],
+      thumbnail: [prepared.photo.thumbnail.width, prepared.photo.thumbnail.height],
+    };
+  });
+  expect(result.detail).toEqual([1600, 1067]);
+  expect(result.thumbnail).toEqual([400, 267]);
+});

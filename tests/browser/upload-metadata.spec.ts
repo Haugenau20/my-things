@@ -72,7 +72,7 @@ test('multipart and resumable uploads send empty custom metadata and retain fail
   expect(requests.map((request) => request.protocol).sort()).toEqual(['multipart', 'resumable']);
   for (const { metadata } of requests) {
     expect(metadata.contentType).toBe('image/jpeg');
-    expect(metadata.cacheControl).toBe('private, no-store, max-age=0');
+    expect(metadata.cacheControl).toBe('private, max-age=31536000, immutable');
     expect(metadata.metadata).toEqual({});
   }
   await expect(page.getByRole('textbox', { name: 'Item name', exact: true })).toHaveValue(name);

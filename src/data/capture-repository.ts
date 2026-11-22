@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   startAfter,
   Timestamp,
+  where,
 } from 'firebase/firestore';
 import type { Firestore, QueryDocumentSnapshot, QueryConstraint } from 'firebase/firestore';
 import { captureDraft, idSchema, parseItem, roomSchema } from '../domain/item';
@@ -46,6 +47,22 @@ async function pages(
 }
 export async function loadItems(db: Firestore, inventory: string): Promise<Item[]> {
   return (await pages(db, inventory, 'items')).map((record) => ({
+    ...parseItem(record.data(), inventory, record.id),
+    id: record.id,
+  }));
+}
+/** Every item packed in one box, read without loading the rest of the inventory. */
+export async function loadBoxItems(
+  db: Firestore,
+  inventory: string,
+  boxId: string,
+): Promise<Item[]> {
+  idSchema.parse(inventory);
+  idSchema.parse(boxId);
+  const result = await getDocsFromServer(
+    query(collection(db, 'inventories', inventory, 'items'), where('boxId', '==', boxId)),
+  );
+  return result.docs.map((record) => ({
     ...parseItem(record.data(), inventory, record.id),
     id: record.id,
   }));

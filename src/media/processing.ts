@@ -1,6 +1,10 @@
 import { photoPath } from '../domain/item';
 import type { Photo, PhotoFile } from '../domain/item';
 
+/** New detail derivatives (owner choice 2026-11-22). Rules still accept existing 2,000 px photos. */
+export const DETAIL_EDGE = 1600;
+export const THUMBNAIL_EDGE = 400;
+
 export { MAX_PHOTOS } from '../domain/item';
 export function fitWithin(
   width: number,
@@ -161,8 +165,8 @@ export async function preparePhoto(
         canvas.height = 0;
       }
     }
-    const detail = await derivative('detail', 2000, 8388608);
-    const thumbnail = await derivative('thumb', 400, 524288);
+    const detail = await derivative('detail', DETAIL_EDGE, 8388608);
+    const thumbnail = await derivative('thumb', THUMBNAIL_EDGE, 524288);
     return {
       photo: { id, state: 'pending', detail: detail.metadata, thumbnail: thumbnail.metadata },
       detail: detail.blob,

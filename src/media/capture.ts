@@ -105,7 +105,8 @@ export async function discardAttempt(
   inventory: string,
   item: Item,
   signal: AbortSignal,
-): Promise<void> {
+): Promise<Item | null> {
+  // Resolves with the acknowledged item, or null once the unfinished capture no longer exists.
   if (item.recordState === 'ready') {
     const marker = await markPhotoCancellation(services.db, inventory, item, signal);
     await runBounded(
@@ -121,12 +122,12 @@ export async function discardAttempt(
       },
       signal,
     );
-    await finishPhotoCancellation(services.db, inventory, marker, signal);
-    return;
+    return finishPhotoCancellation(services.db, inventory, marker, signal);
   }
   const marker = await markDiscard(services.db, inventory, item, signal);
-  if (!marker) return;
+  if (!marker) return null;
   await deleteItemPhotos(services.storage, inventory, item.id, signal);
   signal.throwIfAborted();
   await deleteDiscardedDraft(services.db, inventory, marker, signal);
+  return null;
 }

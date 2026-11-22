@@ -5,6 +5,7 @@ import {
   getDocFromServer,
   getDocsFromServer,
   limit,
+  onSnapshot,
   orderBy,
   query,
   runTransaction,
@@ -12,7 +13,7 @@ import {
   startAfter,
   Timestamp,
 } from 'firebase/firestore';
-import type { Firestore, QueryDocumentSnapshot } from 'firebase/firestore';
+import type { Firestore, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore';
 import type { Item, Room } from '../domain/item';
 import { idSchema, parseItem, roomSchema } from '../domain/item';
 import { boxSchema } from '../domain/organize';
@@ -123,6 +124,28 @@ export async function loadRestoreReport(
 ): Promise<RestoreReport | null> {
   const snapshot = await getDocFromServer(reportRef(db, inventory));
   return snapshot.exists() ? restoreReportSchema.parse(snapshot.data()) : null;
+}
+/** Streams the persistent restore lock; parse failures are reported instead of applied. */
+export function subscribeRestoreReport(
+  db: Firestore,
+  inventory: string,
+  next: (report: RestoreReport | null) => void,
+  failed: (error: unknown) => void,
+): Unsubscribe {
+  return onSnapshot(
+    reportRef(db, inventory),
+    (snapshot) => {
+      let report: RestoreReport | null;
+      try {
+        report = snapshot.exists() ? restoreReportSchema.parse(snapshot.data()) : null;
+      } catch (error) {
+        failed(error);
+        return;
+      }
+      next(report);
+    },
+    failed,
+  );
 }
 export async function loadRestoreClaims(
   db: Firestore,

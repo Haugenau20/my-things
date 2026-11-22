@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { seedExamples, openFullView } from './fixtures';
+import { changeSyntheticNotes, raceFirstCommit, seedExamples, openFullView } from './fixtures';
 
 test('group actions pack only visible items and retain independent card tags', async ({ page }) => {
   await seedExamples();
@@ -64,7 +64,6 @@ test('group packing reports a stale item separately and leaves it selected', asy
   await second.getByRole('button', { name: 'Pack / unpack', exact: true }).click();
   await expect(second.getByRole('status').filter({ hasText: 'Packing saved' })).toBeVisible();
   await second.getByRole('button', { name: 'Back to gallery', exact: true }).click();
-  await page.getByRole('button', { name: 'Refresh inventory', exact: true }).click();
   await page
     .getByRole('group', { name: 'Room filter', exact: true })
     .getByRole('button', { name: /^Synthetic bedroom\s*3$/ })
@@ -74,12 +73,10 @@ test('group packing reports a stale item separately and leaves it selected', asy
     .getByRole('button', { name: /^Not packed\s*2$/ })
     .click();
   await page.getByLabel('Group by').selectOption('box');
-  await second.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }).click();
-  await openFullView(second);
-  await second.getByLabel('Notes', { exact: true }).fill('Newer synthetic group details');
-  await second.getByRole('button', { name: 'Save details', exact: true }).click();
-  await expect(second.getByRole('status').filter({ hasText: 'Details saved' })).toBeVisible();
   const group = page.getByRole('region', { name: 'Not packed', exact: true });
+  await raceFirstCommit(page, () =>
+    changeSyntheticNotes('Synthetic Wool blanket', 'Synthetic newer group details'),
+  );
   await group.getByRole('button', { name: 'Pack into box…', exact: true }).click();
   await group.getByRole('button', { name: 'Pack into B002', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: '1 saved · 1 not saved' })).toBeVisible();
@@ -90,7 +87,7 @@ test('group packing reports a stale item separately and leaves it selected', asy
   await page.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }).click();
   await openFullView(page);
   await expect(page.getByLabel('Notes', { exact: true })).toHaveValue(
-    'Newer synthetic group details',
+    'Synthetic newer group details',
   );
 });
 

@@ -64,6 +64,12 @@ JPEG content type or replacement denial. Missing policy documents/owner/schema f
 SDK downloads, URL issuance, metadata inspection, listing, uploads and deletion after lookup simplification.
 Sign-out clears app images/URL leases but does not revoke copied links.
 
+After the 2026-11-22 cacheable-photo release, manually confirm in production DevTools that a new
+photo download carries `Cache-Control: private, max-age=31536000, immutable`, that revisiting the
+gallery serves photos from the browser cache, and that a save issues no full items query. Then run
+the owner-started [cache metadata migration](OPERATIONS.md#photo-cache-metadata-migration) dry run
+and apply, and confirm an older photo's header changed while its existing link still downloads.
+
 Run direct SDK/HTTP requests, not only UI navigation tests. A route guard passing says nothing about data
 protection. Verify that deleting/renaming a frontend route does not affect backend authorization.
 
@@ -177,7 +183,7 @@ Cards/group tests verify independent tags and redundant-tag hiding, visible-grou
 
 Contextual selection tests cover forward/reverse Shift ranges, stale anchors, Escape and Clear, hidden bulk controls with no selection, Select all filtered, acknowledged results and expandable per-item conflicts, room/category/packing commands, moving warnings, Trash/Restore, and clearance for the last card row below the floating bar.
 
-Inspector tests cover the mounted filtered grid, selected-card ring, filtered previous/next and keyboard navigation, retained full view, phone fallback, save-on-change acknowledgment and rollback, confirmed/canceled disposal, retained unsaved details on conflict and explicit Load latest. Retained full-view regressions continue exercising private photos, attachment recovery and money validation.
+Inspector tests cover the mounted filtered grid, selected-card ring, filtered previous/next and keyboard navigation, retained full view, phone fallback, save-on-change acknowledgment and rollback, confirmed/canceled disposal, retained unsaved details on conflict and explicit Load latest, and live loading of outside changes when nothing is unsaved. Retained full-view regressions continue exercising private photos, attachment recovery and money validation.
 
 PR-07: verify desktop Add/N switches the shared panel, current-room defaults, close/reopen retained name/files, drag-and-drop previews, optional metadata, Enter and Ctrl/Cmd+Enter, acknowledged recent-item navigation and cleared-name focus. Rule/SDK cases must accept valid optional fields for the owner, deny foreign/unauthenticated and invalid fields, and reject a changed metadata payload under the same capture ID. Existing upload/attachment/discard failure tests must continue passing. Real camera/HEIC device checks remain separate.
 

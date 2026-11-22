@@ -68,24 +68,35 @@ Store image object paths and derivative metadata in records, never base64 images
 URLs. The owner approved bearer gallery URLs on 2026-10-11: resolve them through owner-authorized
 `getDownloadURL()` and keep them only in session memory. Copied links remain readable after sign-out.
 Upload recovery and backup downloads still authenticate and verify file metadata/bytes/checksums;
-these direct SDK downloads require bucket CORS. See [Security](SECURITY.md).
+these direct SDK downloads require bucket CORS. A fresh upload is acknowledged from the MD5 the
+upload response reports. See [Security](SECURITY.md).
 
 Room tags, nullable packing-box references, review status, moving workflow, record readiness, and trash status are
 different concepts. See [Data model](DATA_MODEL.md); do not collapse them into a single `status` field.
 
 ## 4. Search, reads, and updates
 
-Start with a complete in-memory metadata index for the single owner's inventory. Read metadata in pages
-(default 250 documents), show loading progress, and expose whole-inventory search only after all pages
-are indexed. Fetch photos separately and only as needed. Query owned inventory paths, not all inventories.
+Start with a complete in-memory metadata index for the single owner's inventory. Snapshot listeners on
+the owned items, rooms and boxes collections plus the inventory root and restore report fill it: the
+first snapshot reads each record once, then Firestore delivers (and bills) only changed documents.
+Whole-inventory search is exposed only after every listener has delivered its first snapshot. Fetch
+photos separately and only as needed. Query owned inventory paths, not all inventories.
 
 A 5,000-item synthetic test is the initial scale gate. Profile startup size/time on the actual phone. Do
 not blindly load all photo bytes, or introduce a paid search service to solve an unmeasured problem.
 
-V1 does not need continuous cross-device live updates. Refresh on explicit request and appropriate app
-focus/navigation boundaries. Local successful writes update the local metadata index. Use per-item
+Saves never re-read the whole inventory. Each write already reads its acknowledged record back from
+the server; that record is merged into the local index at once and wins over any older listener
+version until the listener reaches the same revision (see `src/domain/live-collection.ts`). Changes
+from other tabs or devices arrive through the listeners, and an editor with no unsaved input
+shows them at once (unsaved input keeps the explicit **Load latest details** choice). There is no
+routine refresh button; if a listener fails, the error offers **Try again**, which resubscribes and
+re-reads everything while keeping the previous index visible until the new one is complete. Use per-item
 `revision` checks in transactions so stale tabs do not silently overwrite one another. Show conflicts
 and offer reload/reapply. Transactions are confined to Firestore; see [References S11](REFERENCES.md#s11).
+Export, restore and orphan inspection keep their own explicit paged server reads. The listeners
+pause while a restore runs and resubscribe once afterwards, instead of streaming every restored
+record as it is written.
 
 A bulk operation is a set of independently checked item updates, not a promised all-or-nothing operation
 across the entire selection. Use bounded concurrency and report exact successes, conflicts, and failures.
@@ -124,8 +135,10 @@ workaround. See [References S08](REFERENCES.md#s08).
 
 Keep inventory metadata/photo caching in memory in V1. No persistent Firestore data cache, offline data
 service worker, or offline photo queue. SDK pending writes must remain visibly pending until acknowledged.
-A session-scoped Auth persistence default is proposed; test it on the phone before changing it. Auth
-session persistence is separate from inventory data caching; see [References S09](REFERENCES.md#s09).
+Auth uses tab-session persistence by default. On a trusted device the owner may tick **Keep me signed
+in on this device** (owner decision 2026-11-22), which switches Firebase Auth to local persistence
+until Sign out; Sign out also forgets the choice. Auth persistence is separate from inventory data
+caching, which stays in memory; see [References S09](REFERENCES.md#s09).
 
 Home Screen manifest/icons are a later convenience. Do not introduce private-data caching merely to
 label the site a PWA. No guarantee of upload execution after a browser is suspended.

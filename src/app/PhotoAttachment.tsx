@@ -9,12 +9,14 @@ import { preparePhoto } from '../media/processing';
 import { attachFirstPhotos } from '../media/capture';
 import { PhotoInputs } from './PhotoInputs';
 import { captureFailureDetail } from '../media/capture-errors';
+import type { PhotoSession } from '../media/photo-session';
 
 export function PhotoAttachment({
   item,
   services,
   inventoryId,
   signal: sessionSignal,
+  session,
   onSaved,
   onAttempt,
 }: {
@@ -22,8 +24,9 @@ export function PhotoAttachment({
   services: FirebaseServices;
   inventoryId: string;
   signal: AbortSignal;
-  onSaved: () => Promise<void>;
-  onAttempt: (id: string) => Promise<void>;
+  session: PhotoSession;
+  onSaved: (saved: Item) => void;
+  onAttempt: (id: string) => void;
 }) {
   const [controller] = useState(() => new AbortController());
   const signal = controller.signal;
@@ -71,7 +74,9 @@ export function PhotoAttachment({
         attempt.current = { item, prepared };
         setLocked(true);
       }
-      await attachFirstPhotos(
+      // Registration makes the photos pending at once; keep this panel mounted while uploading.
+      onAttempt(item.id);
+      const saved = await attachFirstPhotos(
         services,
         inventoryId,
         attempt.current.item,
@@ -83,11 +88,12 @@ export function PhotoAttachment({
       );
       signal.throwIfAborted();
       acknowledged = true;
+      session.seedPrepared(attempt.current.prepared);
       attempt.current = undefined;
       setLocked(false);
       setFiles([]);
       setStatus('Photos saved.');
-      await onSaved();
+      onSaved(saved);
     } catch (failure) {
       if (!signal.aborted) {
         setDiagnosticFailure(acknowledged ? undefined : failure);
@@ -101,7 +107,7 @@ export function PhotoAttachment({
                 ? failure.message
                 : 'Could not prepare these photos.',
         );
-        if (attempt.current) await onAttempt(item.id);
+        if (attempt.current) onAttempt(item.id);
       }
     } finally {
       setBusy(false);

@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Item } from '../domain/item';
 import { permanentlyDelete } from '../media/permanent-deletion';
+import type { Sync } from './use-inventory';
 
 export function DeletionDialog({
   item,
   services,
   inventoryId,
   signal,
-  reload,
+  sync,
   closed,
   completed,
 }: {
@@ -16,9 +17,9 @@ export function DeletionDialog({
   services: FirebaseServices;
   inventoryId: string;
   signal: AbortSignal;
-  reload: () => Promise<void>;
+  sync: Sync;
   closed: () => void;
-  completed: () => Promise<void>;
+  completed: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [controller] = useState(() => new AbortController());
@@ -49,17 +50,16 @@ export function DeletionDialog({
         (message) => {
           if (!controller.signal.aborted) setStatus(message);
         },
-        reload,
+        (marker) => sync({ items: [marker] }),
       );
       controller.signal.throwIfAborted();
-      await completed();
+      completed();
     } catch {
       if (!controller.signal.aborted) {
         setStatus('');
         setError(
           'Deletion is unfinished or unconfirmed. Close and refresh to check the item, then retry its recovery marker. Failed photo cleanup never automatically removes the final record.',
         );
-        await reload();
       }
     } finally {
       if (!controller.signal.aborted) setBusy(false);

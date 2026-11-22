@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getDownloadURL, ref } from 'firebase/storage';
 import type { FirebaseStorage } from 'firebase/storage';
 import { verifiedBytes } from '../../src/media/files';
-import { PhotoSession } from '../../src/media/photo-session';
+import {
+  LOCAL_RETAIN_BYTES,
+  PhotoSession,
+  RETAIN_LIMIT,
+  RETAIN_MS,
+} from '../../src/media/photo-session';
 import type { PhotoFile } from '../../src/domain/item';
 
 vi.mock('../../src/media/files', () => ({ verifiedBytes: vi.fn() }));
@@ -28,8 +33,9 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 describe('token photo session lifetime', () => {
-  it('shares an issued URL only while a photo is mounted', async () => {
-    const session = new PhotoSession(storage);
+  it('shares an issued URL and keeps it briefly after the photo unmounts', async () => {
+    let now = 0;
+    const session = new PhotoSession(storage, { now: () => now });
     const signal = new AbortController().signal;
     const first = await session.acquire(file, signal);
     const second = await session.acquire(file, signal);
@@ -40,10 +46,88 @@ describe('token photo session lifetime', () => {
     expect(verifiedBytes).not.toHaveBeenCalled();
     first.release();
     second.release();
+    // Scrolling back or returning to a view within the retention window reuses the URL.
+    now = RETAIN_MS - 1;
     const third = await session.acquire(file, signal);
-    expect(getDownloadURL).toHaveBeenCalledTimes(2);
+    expect(third.url).toBe(url);
+    expect(getDownloadURL).toHaveBeenCalledTimes(1);
     third.release();
+    // Release restarts the window; once it lapses the URL is dropped and issued again.
+    now += RETAIN_MS;
+    const fourth = await session.acquire(file, signal);
+    expect(getDownloadURL).toHaveBeenCalledTimes(2);
+    fourth.release();
     session.dispose();
+  });
+  it('bounds retained URLs by count', async () => {
+    const session = new PhotoSession(storage, { now: () => 0 });
+    const signal = new AbortController().signal;
+    for (let index = 0; index <= RETAIN_LIMIT; ++index)
+      (await session.acquire({ ...file, storagePath: file.storagePath + index }, signal)).release();
+    expect(getDownloadURL).toHaveBeenCalledTimes(RETAIN_LIMIT + 1);
+    // The oldest entry was evicted; the newest remains.
+    (await session.acquire({ ...file, storagePath: file.storagePath + 0 }, signal)).release();
+    (
+      await session.acquire({ ...file, storagePath: file.storagePath + RETAIN_LIMIT }, signal)
+    ).release();
+    expect(getDownloadURL).toHaveBeenCalledTimes(RETAIN_LIMIT + 2);
+    session.dispose();
+  });
+  it('bounds the combined size of retained local thumbnails', async () => {
+    const revoked: string[] = [];
+    let created = 0;
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => 'blob:synthetic-' + created++);
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation((value) => {
+      revoked.push(value);
+    });
+    const session = new PhotoSession(storage, { now: () => 0 });
+    const size = 512 * 1024;
+    const count = LOCAL_RETAIN_BYTES / size + 2;
+    for (let index = 0; index < count; ++index)
+      session.seed(
+        { ...file, storagePath: file.storagePath + index, byteSize: size },
+        new Blob([new Uint8Array(size)]),
+      );
+    // The two oldest seeds were revoked to stay within the local byte cap.
+    expect(revoked).toEqual(['blob:synthetic-0', 'blob:synthetic-1']);
+    session.dispose();
+    expect(revoked).toHaveLength(count);
+  });
+  it('drops retained URLs on sign-out', async () => {
+    const session = new PhotoSession(storage);
+    const signal = new AbortController().signal;
+    (await session.acquire(file, signal)).release();
+    session.dispose();
+    await expect(session.acquire(file, signal)).rejects.toThrow();
+  });
+  it('serves seeded local thumbnails without Storage and revokes them', async () => {
+    const created: string[] = [];
+    const revoked: string[] = [];
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(() => {
+      created.push('blob:synthetic-' + created.length);
+      return created.at(-1)!;
+    });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation((value) => {
+      revoked.push(value);
+    });
+    let now = 0;
+    const session = new PhotoSession(storage, { now: () => now });
+    const signal = new AbortController().signal;
+    session.seed(file, new Blob([new Uint8Array(4)], { type: 'image/jpeg' }));
+    const lease = await session.acquire(file, signal);
+    expect(lease.url).toBe('blob:synthetic-0');
+    expect(getDownloadURL).not.toHaveBeenCalled();
+    lease.release();
+    expect(revoked).toEqual([]);
+    now = RETAIN_MS;
+    // Expiry revokes the temporary local URL and later views use Storage.
+    const later = await session.acquire(file, signal);
+    expect(revoked).toEqual(['blob:synthetic-0']);
+    expect(later.url).toBe(url);
+    later.release();
+    session.seed({ ...file, storagePath: file.storagePath + 'other' }, new Blob([]));
+    session.dispose();
+    expect(revoked).toEqual(['blob:synthetic-0', 'blob:synthetic-1']);
   });
   it('suppresses a late URL when sign-out happens during issuance', async () => {
     let finish!: (value: string) => void;
