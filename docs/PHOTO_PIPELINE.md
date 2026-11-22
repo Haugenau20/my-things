@@ -13,7 +13,7 @@ Process one source image at a time. Decode, normalize orientation, resize, and e
 
 | Output | Initial target | Hard uploaded size limit |
 | --- | --- | --- |
-| Detail | Longest edge at most 2,000 px; never upscale; starting quality about 0.85 | 8 MiB |
+| Detail | Longest edge at most 1,600 px for new captures (2,000 px before 2026-11-22, still accepted); never upscale; starting quality about 0.85 | 8 MiB |
 | Thumbnail | Longest edge at most 400 px; preserve whole image; crop only visually in gallery | 512 KiB |
 
 Starting input guardrails: at most 40 MiB and 50 megapixels per source; at most 2 photo entries per item.

@@ -12,6 +12,7 @@ import type { FirebaseServices } from '../data/firebase';
 import { loadInventory } from '../data/inventory-repository';
 import { googleSignInError } from '../data/auth-error';
 import { LOCAL_ACCOUNTS } from '../data/local-accounts';
+import { applySignInChoice, forgetSignInChoice, keepSignedIn } from '../data/sign-in-preference';
 import type { Inventory } from '../domain/inventory';
 import { InventoryWorkspace } from './InventoryWorkspace';
 
@@ -37,6 +38,8 @@ export function App({
 }) {
   const [access, setAccess] = useState<AccessState>({ kind: services ? 'checking' : 'signed-out' });
   const [pending, setPending] = useState(false);
+  const [keep, setKeep] = useState(keepSignedIn);
+  const [keepNotice, setKeepNotice] = useState('');
   const [error, setError] = useState<string | null>(null);
   const requestVersion = useRef(0);
   const channel = useRef<BroadcastChannel | null>(null);
@@ -97,6 +100,7 @@ export function App({
     setPending(true);
     setError(null);
     try {
+      await keepChoice();
       const fixture = LOCAL_ACCOUNTS[account];
       await signInWithEmailAndPassword(services.auth, fixture.email, fixture.password);
     } catch {
@@ -106,8 +110,15 @@ export function App({
     }
   }
 
+  // A keep-signed-in failure only shortens the sign-in; it never blocks it.
+  async function keepChoice() {
+    if (services && !(await applySignInChoice(services.auth, keep)))
+      setKeepNotice('This browser cannot keep you signed in; closing the tab will sign you out.');
+  }
   async function leave() {
     if (!services) return;
+    forgetSignInChoice();
+    setKeep(false);
     ++requestVersion.current;
     setAccess({ kind: 'checking' });
     setPending(true);
@@ -134,6 +145,7 @@ export function App({
     }
     setPending(true);
     try {
+      await keepChoice();
       await signInWithRedirect(services.auth, new GoogleAuthProvider());
     } catch (failure: unknown) {
       setError(googleSignInError(failure, 'start'));
@@ -216,6 +228,16 @@ export function App({
                     <p className="supporting">Access is limited to the inventory owner.</p>
                   </>
                 )}
+                <label className="keep-signed-in">
+                  <input
+                    type="checkbox"
+                    checked={keep}
+                    disabled={pending}
+                    onChange={(event) => setKeep(event.target.checked)}
+                  />
+                  Keep me signed in on this device
+                </label>
+                {keepNotice && <p className="supporting">{keepNotice}</p>}
                 <p className="supporting">Capture your things, one at a time.</p>
               </>
             )}

@@ -9,7 +9,10 @@ const renderer = createRoot(root);
 try {
   const config = validateConfig(__APP_ENV__);
   // Initialize services only after configuration is known to be safe.
-  const services = (await import('./data/firebase')).initializeFirebase(__APP_ENV__);
+  const { keepSignedIn } = await import('./data/sign-in-preference');
+  const services = (await import('./data/firebase')).initializeFirebase(__APP_ENV__, 'my-things', {
+    keepSignedIn: keepSignedIn(),
+  });
   renderer.render(<App config={config} services={services} />);
 } catch {
   renderer.render(

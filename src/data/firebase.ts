@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import type { FirebaseApp } from 'firebase/app';
 import {
+  browserLocalPersistence,
   browserSessionPersistence,
   browserPopupRedirectResolver,
   connectAuthEmulator,
@@ -28,12 +29,19 @@ export type FirebaseServices = {
 export function initializeFirebase(
   env: Record<string, unknown>,
   name = 'my-things',
+  options: { keepSignedIn?: boolean } = {},
 ): FirebaseServices {
   const config = validateConfig(env);
   const endpoints = config.emulators;
   const app = initializeApp(config.firebase, name);
   const auth = initializeAuth(app, {
-    persistence: typeof window === 'undefined' ? inMemoryPersistence : browserSessionPersistence,
+    // Session sign-in by default; the owner may opt in per device to stay signed in until Sign out.
+    persistence:
+      typeof window === 'undefined'
+        ? inMemoryPersistence
+        : options.keepSignedIn
+          ? browserLocalPersistence
+          : browserSessionPersistence,
     ...(typeof window !== 'undefined' && config.environment !== 'local'
       ? { popupRedirectResolver: browserPopupRedirectResolver }
       : {}),

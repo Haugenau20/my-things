@@ -36,11 +36,13 @@ test('decision and review saves refresh quietly without inserting the metadata-l
   await inspector.getByRole('button', { name: 'Mark reviewed', exact: true }).click();
   await expect(inspector.getByRole('status').filter({ hasText: 'Reviewed' })).toBeVisible();
   await expectQuietRefresh();
-  await page.getByRole('button', { name: 'Refresh inventory', exact: true }).click();
-  await expectQuietRefresh();
 
   await changeSyntheticNotes('Synthetic Wool blanket', 'Synthetic concurrent quiet refresh');
+  await expect(
+    inspector.getByRole('status').filter({ hasText: 'Latest details loaded' }),
+  ).toBeVisible();
+  await expectQuietRefresh();
   await inspector.getByRole('button', { name: 'In progress', exact: true }).click();
-  await expect(inspector.getByRole('alert')).toContainText('changed elsewhere');
+  await expect(inspector.getByRole('status').filter({ hasText: 'Progress saved' })).toBeVisible();
   await expectQuietRefresh();
 });

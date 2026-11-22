@@ -70,11 +70,14 @@ test('metadata edits preserve gallery and inspector photos without more Storage 
   await inspector.getByRole('button', { name: 'Mark reviewed', exact: true }).click();
   await expect(inspector.getByRole('status').filter({ hasText: 'Reviewed' })).toBeVisible();
   await expectPhotosRetained();
-  await page.getByRole('button', { name: 'Refresh inventory', exact: true }).click();
-  await expectPhotosRetained();
 
+  // An outside edit loads into the unchanged editor live, and the next save uses it.
   await changeSyntheticNotes(names[0]!, 'Synthetic concurrent edit');
+  await expect(
+    inspector.getByRole('status').filter({ hasText: 'Latest details loaded' }),
+  ).toBeVisible();
+  await expectPhotosRetained();
   await inspector.getByRole('button', { name: 'Not started', exact: true }).click();
-  await expect(inspector.getByRole('alert')).toContainText('changed elsewhere');
+  await expect(inspector.getByRole('status').filter({ hasText: 'Progress saved' })).toBeVisible();
   await expectPhotosRetained();
 });

@@ -2169,3 +2169,11 @@ input[type='checkbox'] {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+.keep-signed-in {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 400;
+  color: #263c32;
+}

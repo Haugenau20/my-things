@@ -89,6 +89,13 @@ export function ItemEditor({
   };
   const pending = item.photos.some((photo) => photo.state !== 'ready');
   const changed = item.revision !== base.revision;
+  const unsaved = JSON.stringify(form) !== JSON.stringify(fields(base, defaultCurrency));
+  // A change made elsewhere arrives live. With nothing typed or pending here, show it at once;
+  // otherwise keep the explicit "Load latest details" choice so local edits are never lost.
+  if (changed && !busy && !unsaved && !confirmation && !roomOpen && !boxOpen) {
+    reset(item);
+    setMessage('Latest details loaded');
+  }
   async function save(command: ItemCommand, text: string, detailsSaved = false) {
     setBusy(true);
     setError('');

@@ -64,7 +64,6 @@ test('group packing reports a stale item separately and leaves it selected', asy
   await second.getByRole('button', { name: 'Pack / unpack', exact: true }).click();
   await expect(second.getByRole('status').filter({ hasText: 'Packing saved' })).toBeVisible();
   await second.getByRole('button', { name: 'Back to gallery', exact: true }).click();
-  await page.getByRole('button', { name: 'Refresh inventory', exact: true }).click();
   await page
     .getByRole('group', { name: 'Room filter', exact: true })
     .getByRole('button', { name: /^Synthetic bedroom\s*3$/ })

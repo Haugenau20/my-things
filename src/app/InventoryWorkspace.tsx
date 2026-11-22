@@ -181,12 +181,11 @@ export function InventoryWorkspace({
           </div>
         </aside>
         <div className="workspace-main">
-          <div className="workspace-toolbar">
-            {!['things', 'review', 'trash', 'overview'].includes(view) && <h1>{titles[view]}</h1>}
-            <button className="text-button" disabled={busy} onClick={() => void resync()}>
-              Refresh inventory
-            </button>
-          </div>
+          {!['things', 'review', 'trash', 'overview'].includes(view) && (
+            <div className="workspace-toolbar">
+              <h1>{titles[view]}</h1>
+            </div>
+          )}
           {environment === 'local' && <p className="supporting">Local preview · synthetic data</p>}
           {restore && restore.state !== 'completed' && !restoreBusy && (
             <p role="alert" className="error-message">
@@ -208,7 +207,14 @@ export function InventoryWorkspace({
           {error && (
             <p role="alert" className="error-message">
               Could not refresh inventory. Records may be out of date or invalid. Check your
-              connection and refresh before continuing.
+              connection, then try again before continuing.
+              <button
+                className="text-button"
+                disabled={busy || refreshing}
+                onClick={() => void resync()}
+              >
+                Try again
+              </button>
             </p>
           )}
           {notice && (

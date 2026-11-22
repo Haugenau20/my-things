@@ -36,11 +36,11 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | D02 | Existing Storage `us-east1`; Firestore Standard `eur3` | Owner-created locations retained; test actual cloud behavior |
 | D03 | Local demo project and one production cloud project | Owner chose no second project; automated tests remain emulator-only |
 | D04 | Owner UID stored in trusted inventory root; Storage rules consult it | Change only with a reviewed policy and negative tests |
-| D05 | Google sign-in with session-scoped Auth persistence initially | Test phone usability; persistence is not offline data storage |
+| D05 | Google sign-in with session-scoped Auth persistence by default; opt-in "Keep me signed in on this device" (2026-11-22) | Sign out forgets the choice; persistence is not offline data storage |
 | D06 | Independent nullable roomId and boxId; Gone clears box and retains room | Correct the room tag explicitly, never silently on packing |
 | D07 | Value is total entry value in integer minor units | Never reinterpret existing amounts through default changes |
 | D08 | No currency selected; null default permitted | Choose at first value entry or in settings |
-| D09 | JPEG detail 2,000 px / thumbnail 400 px; no cloud originals | Validate readability and real device formats before mass use |
+| D09 | JPEG detail 1,600 px (2,000 px before 2026-11-22) / thumbnail 400 px; no cloud originals | Rules still accept existing 2,000 px photos; validate label readability on real devices |
 | D10 | 2 photos/item; bounded file sizes and processing concurrency | Full embedded-metadata rules validation exceeded the expression budget at higher counts in M1 |
 | D11 | Embedded bounded photo metadata, item revisions, staged recovery | Avoid a new backend merely to obtain cross-service transactions |
 | D12 | In-memory metadata search fed by snapshot listeners; 5,000-item test target | Saves merge acknowledged records; explicit refresh resubscribes. Measure before adding server search/pagination complexity |
@@ -282,3 +282,11 @@ than a second download; recovery and export keep authenticated byte checks. Nume
 /500-entry URL retention, a 16 MiB cap on retained local thumbnails and a 400 ms inspector detail dwell. Running the migration against production
 is a separate owner-started step after the reviewed release. See
 [design](plans/2026-11-22-efficient-loading-design.md).
+
+### 2026-11-22 — Live editor, sign-in choice and smaller photos
+
+Following the efficient-loading change, the owner approved removing the routine **Refresh inventory**
+button (a listener failure offers **Try again**), loading outside changes into an editor that has no
+unsaved input, an opt-in **Keep me signed in on this device** checkbox, 1,600 px detail photos for new
+captures, and no persistent on-device inventory cache. Existing photos are not re-encoded. Storage and
+Firestore rules keep their 2,000 px limits so older photos and backups stay valid.

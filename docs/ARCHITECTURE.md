@@ -88,8 +88,10 @@ not blindly load all photo bytes, or introduce a paid search service to solve an
 Saves never re-read the whole inventory. Each write already reads its acknowledged record back from
 the server; that record is merged into the local index at once and wins over any older listener
 version until the listener reaches the same revision (see `src/domain/live-collection.ts`). Changes
-from other tabs or devices arrive through the listeners. **Refresh inventory** resubscribes and
-re-reads everything, keeping the previous index visible until the new one is complete. Use per-item
+from other tabs or devices arrive through the listeners, and an editor with no unsaved input
+shows them at once (unsaved input keeps the explicit **Load latest details** choice). There is no
+routine refresh button; if a listener fails, the error offers **Try again**, which resubscribes and
+re-reads everything while keeping the previous index visible until the new one is complete. Use per-item
 `revision` checks in transactions so stale tabs do not silently overwrite one another. Show conflicts
 and offer reload/reapply. Transactions are confined to Firestore; see [References S11](REFERENCES.md#s11).
 Export, restore and orphan inspection keep their own explicit paged server reads. The listeners
@@ -133,8 +135,10 @@ workaround. See [References S08](REFERENCES.md#s08).
 
 Keep inventory metadata/photo caching in memory in V1. No persistent Firestore data cache, offline data
 service worker, or offline photo queue. SDK pending writes must remain visibly pending until acknowledged.
-A session-scoped Auth persistence default is proposed; test it on the phone before changing it. Auth
-session persistence is separate from inventory data caching; see [References S09](REFERENCES.md#s09).
+Auth uses tab-session persistence by default. On a trusted device the owner may tick **Keep me signed
+in on this device** (owner decision 2026-11-22), which switches Firebase Auth to local persistence
+until Sign out; Sign out also forgets the choice. Auth persistence is separate from inventory data
+caching, which stays in memory; see [References S09](REFERENCES.md#s09).
 
 Home Screen manifest/icons are a later convenience. Do not introduce private-data caching merely to
 label the site a PWA. No guarantee of upload execution after a browser is suspended.

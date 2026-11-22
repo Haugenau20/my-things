@@ -139,7 +139,7 @@ evicts them or the user clears site data. Use a trusted, unshared browser profil
 bounded in size, and keyed by account/environment. Released URLs stay in session memory for at most
 ten minutes (500 entries). Clear issued URL references on sign-out; revoke temporary local
 capture-preview and just-saved thumbnail URLs on eviction and sign-out. Clear metadata, selections,
-forms, and image caches on sign-out; communicate sign-out to
+forms, and image caches on sign-out; forget the opt-in keep-signed-in choice; communicate sign-out to
 other open same-origin app tabs. Do not promise to erase screenshots, downloaded backups, or all possible
 browser/OS remnants or revoke a copied token URL by signing out. Upload recovery and exports
 continue to use authenticated byte downloads with metadata, length and SHA-256 checks. A fresh upload

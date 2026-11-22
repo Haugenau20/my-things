@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page, Request } from '@playwright/test';
-import { changeSyntheticNotes, seedExamples } from './fixtures';
+import { changeSyntheticNotes, seedExamples, setSyntheticDisplayName } from './fixtures';
 
 // Firestore's WebChannel encodes listen targets as form data; decode to inspect query targets.
 function firestoreBody(request: Request): string {
@@ -42,15 +42,65 @@ test('saves update the gallery without re-reading the inventory and listen for o
     'true',
   );
   expect(queries).toHaveLength(0);
-  // An outside change arrives through the listener, with no refresh click.
+  // An outside change arrives through the listener and loads into the untouched editor.
   await changeSyntheticNotes('Synthetic Wool blanket', 'Synthetic live listener change');
   await expect(
-    inspector.getByText('This item changed since these fields were loaded.'),
+    inspector.getByRole('status').filter({ hasText: 'Latest details loaded' }),
   ).toBeVisible();
+  await inspector
+    .locator('summary')
+    .filter({ hasText: /^Details$/ })
+    .click();
+  await expect(inspector.getByLabel('Notes', { exact: true })).toHaveValue(
+    'Synthetic live listener change',
+  );
   expect(queries).toHaveLength(0);
-  // An explicit refresh still re-reads everything from the server.
-  await page.getByRole('button', { name: 'Refresh inventory', exact: true }).click();
-  await expect.poll(() => queries.length).toBeGreaterThan(0);
+  await expect(page.getByRole('button', { name: 'Refresh inventory' })).toHaveCount(0);
+});
+
+test('a broken live update offers Try again, which reloads once the record is valid', async ({
+  page,
+}) => {
+  await seedExamples();
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }),
+  ).toBeVisible();
+  try {
+    await setSyntheticDisplayName('');
+    await expect(page.getByRole('alert')).toContainText('Could not refresh inventory');
+  } finally {
+    await setSyntheticDisplayName('Synthetic inventory');
+  }
+  await page.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(page.getByText('Could not refresh inventory')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Open Synthetic Wool blanket', exact: true }),
+  ).toBeVisible();
+});
+
+test('keep me signed in survives a new tab and is forgotten on sign-out', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/');
+  await page.getByLabel('Keep me signed in on this device').check();
+  await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
+  // A new tab has no session storage; only the opted-in local sign-in carries over.
+  const kept = await context.newPage();
+  await kept.goto('/');
+  await expect(kept.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
+  await kept.close();
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Sign in as test owner' })).toBeVisible();
+  await expect(page.getByLabel('Keep me signed in on this device')).not.toBeChecked();
+  await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+  await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
+  const fresh = await context.newPage();
+  await fresh.goto('/');
+  await expect(fresh.getByRole('button', { name: 'Sign in as test owner' })).toBeVisible();
 });
 
 async function capture(page: Page, name: string, shade: string) {

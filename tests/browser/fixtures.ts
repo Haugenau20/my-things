@@ -94,3 +94,25 @@ export async function raceFirstCommit(page: Page, change: () => Promise<void>): 
     },
   );
 }
+
+// Makes the trusted demo root briefly invalid (or valid again) to exercise listener failure.
+export async function setSyntheticDisplayName(displayName: string): Promise<void> {
+  assertLocalTarget('demo-inventory', process.env);
+  if (displayName && !displayName.startsWith('Synthetic '))
+    throw new Error('Synthetic fixture only');
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-inventory',
+    firestore: { host: '127.0.0.1', port: 18080 },
+  });
+  try {
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const reference = context.firestore().doc('inventories/main');
+      const root = (await reference.get()).data();
+      if (root?.ownerUid !== LOCAL_ACCOUNTS.owner.uid || root.schemaVersion !== 2)
+        throw new Error('Trusted demo owner required');
+      await reference.update({ displayName, updatedAt: Timestamp.now() });
+    });
+  } finally {
+    await environment.cleanup();
+  }
+}

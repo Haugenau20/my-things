@@ -29,7 +29,8 @@ photo cache metadata and providing a script for photos already uploaded.
   inventory root and the restore report. `LiveCollection` merges listener changes with records a save
   already read back: a confirmed record wins until the listener reaches its revision, and a confirmed
   removal hides the record until the listener removes it. Components call `sync(update)` with the
-  acknowledged records instead of `reload()`. **Refresh inventory** resubscribes and keeps the previous
+  acknowledged records instead of `reload()`. A follow-up removed the routine refresh button; a listener
+  error offers **Try again**, which resubscribes and keeps the previous
   data visible until the new snapshot set is complete. Listener errors show the existing refresh error.
   Restore, export and orphan inspection keep their own explicit server reads; the listeners pause
   while a restore runs and resubscribe once afterwards.
