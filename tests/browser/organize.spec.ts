@@ -1,4 +1,4 @@
-import { openFullView } from './fixtures';
+import { changeSyntheticNotes, openFullView, raceFirstCommit } from './fixtures';
 import { expect, test } from '@playwright/test';
 
 let errors: string[] = [];
@@ -154,7 +154,6 @@ test('location labels use stable references, occupancy blocks archive, and filte
 
 test('two-tab bulk conflicts report each outcome without overwriting the newer details', async ({
   page,
-  context,
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Sign in as test owner' }).click();
@@ -164,14 +163,9 @@ test('two-tab bulk conflicts report each outcome without overwriting the newer d
     await page.getByRole('button', { name: 'Save & next', exact: true }).click();
     await expect(page.getByRole('button', { name: `Open ${name}`, exact: true })).toBeVisible();
   }
-  const second = await context.newPage();
-  await second.goto('/');
-  await second.getByRole('button', { name: 'Sign in as test owner' }).click();
-  await second.getByRole('button', { name: 'Open Synthetic conflicted item', exact: true }).click();
-  await openFullView(second);
-  await second.getByLabel('Notes', { exact: true }).fill('Newer details from another tab');
-  await second.getByRole('button', { name: 'Save details', exact: true }).click();
-  await expect(second.getByRole('status').filter({ hasText: 'Details saved' })).toBeVisible();
+  await raceFirstCommit(page, () =>
+    changeSyntheticNotes('Synthetic conflicted item', 'Synthetic newer details from another tab'),
+  );
   await page.getByLabel('Select Synthetic conflicted item', { exact: true }).check();
   await page.getByLabel('Select Synthetic successful item', { exact: true }).check();
   await page
@@ -191,7 +185,7 @@ test('two-tab bulk conflicts report each outcome without overwriting the newer d
   await page.getByRole('button', { name: 'Open Synthetic conflicted item', exact: true }).click();
   await openFullView(page);
   await expect(page.getByLabel('Notes', { exact: true })).toHaveValue(
-    'Newer details from another tab',
+    'Synthetic newer details from another tab',
   );
   await expect(page.getByRole('region', { name: 'Edit item' })).toContainText('Needs review');
 });

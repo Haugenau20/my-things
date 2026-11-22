@@ -11,13 +11,18 @@ import {
   reactivateLocation,
   updateLocation,
 } from '../data/organize-repository';
+import type { Sync } from './use-inventory';
+
+function located(kind: 'room' | 'box', value: Room | Box) {
+  return kind === 'room' ? { rooms: [value as Room] } : { boxes: [value as Box] };
+}
 
 function LocationRow({
   value,
   kind,
   services,
   inventoryId,
-  reload,
+  sync,
   browse,
   count,
 }: {
@@ -25,7 +30,7 @@ function LocationRow({
   kind: 'room' | 'box';
   services: FirebaseServices;
   inventoryId: string;
-  reload: () => Promise<void>;
+  sync: Sync;
   browse: (key: string) => void;
   count: number;
 }) {
@@ -43,9 +48,10 @@ function LocationRow({
     setError('');
     setMessage('');
     try {
-      if (archive) await archiveLocation(services.db, inventoryId, kind, value.id);
+      let saved: Room | Box;
+      if (archive) saved = await archiveLocation(services.db, inventoryId, kind, value.id);
       else {
-        const saved = await updateLocation(services.db, inventoryId, kind, base, {
+        saved = await updateLocation(services.db, inventoryId, kind, base, {
           ...(label.trim() === ('name' in base ? base.name : base.label) ? {} : { label }),
           ...(Number(sort) === base.sortOrder ? {} : { sortOrder: Number(sort) }),
           ...(kind === 'box' && 'notes' in base && notes !== base.notes ? { notes } : {}),
@@ -54,7 +60,7 @@ function LocationRow({
       }
       setConfirm(false);
       setMessage(archive ? 'Archived' : 'Location saved');
-      await reload();
+      sync(located(kind, saved));
     } catch (failure) {
       setError(
         failure instanceof Error && /Move all|changed elsewhere/.test(failure.message)
@@ -139,7 +145,7 @@ function LocationRow({
               setBusy(true);
               setError('');
               void reactivateLocation(services.db, inventoryId, kind, value.id)
-                .then(reload)
+                .then((saved) => sync(located(kind, saved)))
                 .then(() => setMessage('Location reactivated'))
                 .catch(() => setError('Could not reactivate this location. Refresh and retry.'))
                 .finally(() => setBusy(false));
@@ -179,7 +185,7 @@ export function LocationManager({
   items,
   services,
   inventoryId,
-  reload,
+  sync,
   browse,
 }: {
   rooms: Room[];
@@ -187,7 +193,7 @@ export function LocationManager({
   items: Item[];
   services: FirebaseServices;
   inventoryId: string;
-  reload: () => Promise<void>;
+  sync: Sync;
   browse: (key: string) => void;
 }) {
   const [room, setRoom] = useState('');
@@ -210,13 +216,16 @@ export function LocationManager({
     setConfirm(undefined);
     try {
       if (kind === 'room') {
-        await createRoom(services.db, inventoryId, room, Math.min(100000, rooms.length));
+        sync({
+          rooms: [await createRoom(services.db, inventoryId, room, Math.min(100000, rooms.length))],
+        });
         setRoom('');
       } else {
-        await createBox(services.db, inventoryId, box, Math.min(100000, boxes.length));
+        sync({
+          boxes: [await createBox(services.db, inventoryId, box, Math.min(100000, boxes.length))],
+        });
         setBox('');
       }
-      await reload();
     } catch {
       setError(
         'Could not create the location. Enter a nonblank label of at most 100 characters, and check your connection.',
@@ -292,7 +301,7 @@ export function LocationManager({
             kind="room"
             services={services}
             inventoryId={inventoryId}
-            reload={reload}
+            sync={sync}
             browse={browse}
             count={counts.get(`room:${value.id}`) ?? 0}
           />
@@ -304,7 +313,7 @@ export function LocationManager({
             kind="box"
             services={services}
             inventoryId={inventoryId}
-            reload={reload}
+            sync={sync}
             browse={browse}
             count={counts.get(`box:${value.id}`) ?? 0}
           />

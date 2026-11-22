@@ -33,8 +33,8 @@ export function CaptureForm({
   rooms: Room[];
   signal: AbortSignal;
   onRoom: (room: Room) => void;
-  onSaved: (item: Item) => Promise<void>;
-  onAttempt: (id: string) => Promise<void>;
+  onSaved: (item: Item) => void;
+  onAttempt: (id: string) => void;
   roomRequest: { sequence: number; room: string };
   defaultCurrency: string | null;
   session: PhotoSession;
@@ -170,11 +170,15 @@ export function CaptureForm({
         };
         setLocked(true);
       }
+      // Live listeners show the draft as soon as it is written; mark it active so recovery does
+      // not offer to discard a capture that is still uploading.
+      onAttempt(attempt.current.id);
       const saved = await saveAttempt(services, inventoryId, attempt.current, signal, (text) => {
         if (!signal.aborted) setStatus(text);
       });
       signal.throwIfAborted();
       acknowledged = true;
+      session.seedPrepared(attempt.current.prepared);
       attempt.current = undefined;
       setLocked(false);
       setName('');
@@ -187,8 +191,7 @@ export function CaptureForm({
       setNotes('');
       setRecent((values) => [saved, ...values].slice(0, 5));
       setStatus(`Saved ${saved.name}. Ready for the next thing.`);
-      await onSaved(saved);
-      signal.throwIfAborted();
+      onSaved(saved);
     } catch (failure) {
       if (!signal.aborted) {
         setDiagnosticFailure(acknowledged ? undefined : failure);
@@ -202,7 +205,7 @@ export function CaptureForm({
                 ? failure.message
                 : 'Could not prepare this photo. Choose a smaller JPEG or PNG.',
         );
-        if (attempt.current) await onAttempt(attempt.current.id);
+        if (attempt.current) onAttempt(attempt.current.id);
       }
     } finally {
       setBusy(false);

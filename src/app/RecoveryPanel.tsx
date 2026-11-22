@@ -6,6 +6,7 @@ import type { FirebaseServices } from '../data/firebase';
 import type { Item, PhotoFile } from '../domain/item';
 import { discardAttempt, recoverAttempt } from '../media/capture';
 import { preparePhoto } from '../media/processing';
+import type { Sync } from './use-inventory';
 function sameFile(actual: PhotoFile, expected: PhotoFile): boolean {
   return (
     actual.sha256 === expected.sha256 &&
@@ -20,13 +21,13 @@ function RecoveryItem({
   services,
   inventoryId,
   signal,
-  reload,
+  sync,
 }: {
   item: Item;
   services: FirebaseServices;
   inventoryId: string;
   signal: AbortSignal;
-  reload: () => Promise<void>;
+  sync: Sync;
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useMutationState();
@@ -39,13 +40,14 @@ function RecoveryItem({
     item.recordState === 'deleting' || item.photos.some((photo) => photo.state === 'deleting');
   async function perform(discard: boolean) {
     let acknowledged = false;
+    let settled: Item | null;
     setBusy(true);
     setError(undefined);
     setDiagnosticFailure(undefined);
     try {
       if (discard) {
         setStatus(attachment ? 'Canceling unfinished photos…' : 'Discarding unfinished capture…');
-        await discardAttempt(services, inventoryId, item, signal);
+        settled = await discardAttempt(services, inventoryId, item, signal);
       } else {
         const prepared = [];
         if (files.length) {
@@ -64,7 +66,7 @@ function RecoveryItem({
             prepared.push(result);
           }
         }
-        await recoverAttempt(
+        settled = await recoverAttempt(
           services,
           inventoryId,
           item,
@@ -78,7 +80,7 @@ function RecoveryItem({
       signal.throwIfAborted();
       acknowledged = true;
       setStatus('Photo operation finished.');
-      await reload();
+      sync(settled ? { items: [settled] } : { removedItems: [item.id] });
     } catch (failure) {
       if (!signal.aborted) {
         setDiagnosticFailure(acknowledged ? undefined : failure);
@@ -164,7 +166,7 @@ export function RecoveryPanel(props: {
   services: FirebaseServices;
   inventoryId: string;
   signal: AbortSignal;
-  reload: () => Promise<void>;
+  sync: Sync;
 }) {
   if (!props.items.length) return null;
   return (
@@ -176,12 +178,13 @@ export function RecoveryPanel(props: {
       </p>
       {props.items.map((item) => (
         <RecoveryItem
-          key={item.id + ':' + item.revision}
+          // Live updates change the revision while this entry's own operation runs; keep it mounted.
+          key={item.id}
           item={item}
           services={props.services}
           inventoryId={props.inventoryId}
           signal={props.signal}
-          reload={props.reload}
+          sync={props.sync}
         />
       ))}
     </section>

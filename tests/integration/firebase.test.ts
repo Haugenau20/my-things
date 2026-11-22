@@ -624,12 +624,17 @@ describe('real client SDK and trusted synthetic seed', () => {
       photos: [],
       reviewStatus: 'needs_review',
     });
-    const originalLoad = captureRepository.loadItems;
-    const spy = vi.spyOn(captureRepository, 'loadItems').mockImplementationOnce(async (...args) => {
-      const snapshot = await originalLoad(...args);
-      await organizeRepository.editItem(services.db, 'main', item, { kind: 'pack', boxId: box.id });
-      return snapshot;
-    });
+    const originalLoad = captureRepository.loadBoxItems;
+    const spy = vi
+      .spyOn(captureRepository, 'loadBoxItems')
+      .mockImplementationOnce(async (...args) => {
+        const snapshot = await originalLoad(...args);
+        await organizeRepository.editItem(services.db, 'main', item, {
+          kind: 'pack',
+          boxId: box.id,
+        });
+        return snapshot;
+      });
     try {
       await expect(
         organizeRepository.archiveLocation(services.db, 'main', 'box', box.id),

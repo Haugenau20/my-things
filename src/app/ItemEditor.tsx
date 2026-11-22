@@ -14,6 +14,7 @@ import {
 import type { Box, ItemCommand, MetadataPatch } from '../domain/organize';
 import { editItem } from '../data/organize-repository';
 import { RoomSelect, BoxSelect } from './LocationSelect';
+import type { Sync } from './use-inventory';
 import { roomLabel, boxLabel } from '../domain/browse';
 
 function fields(item: Item, defaultCurrency: string | null) {
@@ -36,7 +37,7 @@ export function ItemEditor({
   inventoryId,
   defaultCurrency,
   signal,
-  reload,
+  sync,
   next,
   setDefaultCurrency,
   requestDeletion,
@@ -49,7 +50,7 @@ export function ItemEditor({
   inventoryId: string;
   defaultCurrency: string | null;
   signal: AbortSignal;
-  reload: () => Promise<void>;
+  sync: Sync;
   next: () => void;
   setDefaultCurrency: (currency: string) => Promise<void>;
   requestDeletion: (item: Item) => void;
@@ -100,7 +101,7 @@ export function ItemEditor({
         resetControls(saved);
         if (detailsSaved) setForm(fields(saved, defaultCurrency));
         setMessage(text);
-        await reload();
+        sync({ items: [saved] });
         return true;
       }
     } catch (failure) {
@@ -111,7 +112,6 @@ export function ItemEditor({
             ? failure.message
             : 'Could not save. Refresh to check the current record before retrying.',
         );
-        await reload();
       }
     } finally {
       if (!signal.aborted) setBusy(false);

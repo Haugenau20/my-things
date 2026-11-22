@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FirebaseServices } from '../data/firebase';
 import type { Inventory } from '../domain/inventory';
-import type { Item, Room } from '../domain/item';
-import type { Box } from '../domain/organize';
+import type { Item } from '../domain/item';
 import { DEFAULT_FILTERS, filterItems } from '../domain/organize';
 
 const VIEWS = ['things', 'review', 'overview', 'locations', 'trash', 'settings'] as const;
@@ -10,9 +9,8 @@ type View = (typeof VIEWS)[number];
 function hashView(): View {
   return VIEWS.find((view) => window.location.hash === '#' + view) ?? 'things';
 }
-import { loadItems, loadRooms } from '../data/capture-repository';
-import { loadBoxes } from '../data/organize-repository';
-import { loadInventory, updateSettings } from '../data/inventory-repository';
+import { updateSettings } from '../data/inventory-repository';
+import { useInventory } from './use-inventory';
 import { PhotoSession } from '../media/photo-session';
 import { CaptureForm } from './CaptureForm';
 import { RecoveryPanel } from './RecoveryPanel';
@@ -24,8 +22,6 @@ import { OrphanInspection } from './OrphanInspection';
 import { ExportPanel } from './ExportPanel';
 import { MutationActivity } from './mutation-activity';
 import { RestorePanel } from './RestorePanel';
-import { loadRestoreReport } from '../backup/restore-repository';
-import type { RestoreReport } from '../backup/restore-state';
 import type { Environment } from '../data/config';
 import { useNarrow } from './use-narrow';
 import { BottomSheet } from './BottomSheet';
@@ -48,13 +44,10 @@ export function InventoryWorkspace({
   signOut: () => Promise<void>;
   signOutPending: boolean;
 }) {
-  const [items, setItems] = useState<Item[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [boxes, setBoxes] = useState<Box[]>([]);
-  const [settings, setSettings] = useState(inventory);
   const [exportBusy, setExportBusy] = useState(false);
   const [restoreBusy, setRestoreBusy] = useState(false);
-  const [restore, setRestore] = useState<RestoreReport | null>(null);
+  const { items, rooms, boxes, settings, restore, loading, refreshing, error, sync, resync } =
+    useInventory(services, inventoryId, inventory, restoreBusy);
   const [mutating, setMutating] = useState(0);
   const mutations = useRef(new Set<symbol>());
   const reportMutation = useCallback((id: symbol, busy: boolean) => {
@@ -76,48 +69,15 @@ export function InventoryWorkspace({
   const captureContainer = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [browseLocation, setBrowseLocation] = useState<BrowseRequest>();
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(true);
   const [session] = useState(() => new PhotoSession(services.storage));
   const [controller] = useState(() => new AbortController());
-  const version = useRef(0);
-  const reload = useCallback(async () => {
-    const request = ++version.current;
-    setRefreshing(true);
-    try {
-      const [nextItems, nextRooms, nextBoxes, nextSettings, nextRestore] = await Promise.all([
-        loadItems(services.db, inventoryId),
-        loadRooms(services.db, inventoryId),
-        loadBoxes(services.db, inventoryId),
-        loadInventory(services.db, inventoryId, inventory.ownerUid),
-        loadRestoreReport(services.db, inventoryId),
-      ]);
-      if (!controller.signal.aborted && version.current === request) {
-        setItems(nextItems);
-        setRooms(nextRooms);
-        setBoxes(nextBoxes);
-        setSettings(nextSettings);
-        setRestore(nextRestore);
-        setError(false);
-      }
-    } catch {
-      if (!controller.signal.aborted && version.current === request) setError(true);
-    } finally {
-      if (!controller.signal.aborted && version.current === request) {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    }
-  }, [services, inventoryId, inventory.ownerUid, controller]);
-  useEffect(() => {
-    void reload();
-    return () => {
-      ++version.current;
+  useEffect(
+    () => () => {
       controller.abort();
       session.dispose();
-    };
-  }, [reload, controller, session]);
+    },
+    [controller, session],
+  );
   const ordinaryLocked = exportBusy || restoreBusy || (!!restore && restore.state !== 'completed');
   const busy = exportBusy || restoreBusy;
   const navigate = useCallback((next: View) => {
@@ -223,12 +183,12 @@ export function InventoryWorkspace({
         <div className="workspace-main">
           <div className="workspace-toolbar">
             {!['things', 'review', 'trash', 'overview'].includes(view) && <h1>{titles[view]}</h1>}
-            <button className="text-button" disabled={busy} onClick={() => void reload()}>
+            <button className="text-button" disabled={busy} onClick={() => void resync()}>
               Refresh inventory
             </button>
           </div>
           {environment === 'local' && <p className="supporting">Local preview · synthetic data</p>}
-          {restore && restore.state !== 'completed' && (
+          {restore && restore.state !== 'completed' && !restoreBusy && (
             <p role="alert" className="error-message">
               An import is unfinished ({restore.completedRecords} records verified). Ordinary
               changes and full export are paused. Open Restore backup and select every part of the
@@ -239,7 +199,7 @@ export function InventoryWorkspace({
               <button
                 className="text-button"
                 disabled={busy || refreshing}
-                onClick={() => void reload()}
+                onClick={() => void resync()}
               >
                 Refresh recovery report
               </button>
@@ -291,7 +251,6 @@ export function InventoryWorkspace({
                   exportBusy
                 }
                 pause={setRestoreBusy}
-                reload={reload}
                 session={session}
               />
             </details>
@@ -308,7 +267,7 @@ export function InventoryWorkspace({
                     inventory={settings}
                     services={services}
                     inventoryId={inventoryId}
-                    reload={reload}
+                    sync={sync}
                   />
                 )}
               </details>
@@ -329,15 +288,12 @@ export function InventoryWorkspace({
                 services={services}
                 inventoryId={inventoryId}
                 signal={controller.signal}
-                reload={reload}
-                closed={() => {
-                  setDeletionRequested(undefined);
-                  void reload();
-                }}
-                completed={async () => {
+                sync={sync}
+                closed={() => setDeletionRequested(undefined)}
+                completed={() => {
                   setNotice(`Permanently deleted ${deletionRequested.name}.`);
                   setDeletionRequested(undefined);
-                  await reload();
+                  sync({ removedItems: [deletionRequested.id] });
                 }}
               />
             )}
@@ -361,7 +317,7 @@ export function InventoryWorkspace({
                     services={services}
                     inventoryId={inventoryId}
                     signal={controller.signal}
-                    reload={reload}
+                    sync={sync}
                   />
                   <DeletionRecovery
                     items={items.filter(
@@ -377,7 +333,7 @@ export function InventoryWorkspace({
                     items={items}
                     services={services}
                     inventoryId={inventoryId}
-                    reload={reload}
+                    sync={sync}
                     browse={(key) => {
                       const [facet, id] = key.split(':');
                       setBrowseLocation((current) => ({
@@ -417,15 +373,16 @@ export function InventoryWorkspace({
                     signal={controller.signal}
                     activeAttempt={activeAttempt}
                     setActiveAttempt={setActiveAttempt}
-                    reload={reload}
+                    sync={sync}
                     defaultCurrency={settings.defaultCurrency}
                     metadataReady={!refreshing && !error}
                     browseLocation={browseLocation}
                     setDefaultCurrency={async (currency) => {
-                      await updateSettings(services.db, inventoryId, settings, {
-                        defaultCurrency: currency,
+                      sync({
+                        settings: await updateSettings(services.db, inventoryId, settings, {
+                          defaultCurrency: currency,
+                        }),
                       });
-                      await reload();
                     }}
                     captureOpen={captureOpen && view === 'things'}
                     onInspect={() => setCaptureOpen(false)}
@@ -456,15 +413,12 @@ export function InventoryWorkspace({
                               id,
                             }));
                           }}
-                          onRoom={(room) => setRooms((values) => [...values, room])}
-                          onSaved={async () => {
+                          onRoom={(room) => sync({ rooms: [room] })}
+                          onSaved={(saved) => {
                             setActiveAttempt(undefined);
-                            await reload();
+                            sync({ items: [saved] });
                           }}
-                          onAttempt={async (id) => {
-                            setActiveAttempt(id);
-                            await reload();
-                          }}
+                          onAttempt={setActiveAttempt}
                         />
                       </section>
                     }
@@ -488,16 +442,13 @@ export function InventoryWorkspace({
                     }));
                   }}
                   reopen={add}
-                  onRoom={(room) => setRooms((values) => [...values, room])}
-                  onSaved={async (settledId) => {
+                  onRoom={(room) => sync({ rooms: [room] })}
+                  onSaved={(settledId, update) => {
                     if (settledId)
                       setActiveAttempt((current) => (current === settledId ? undefined : current));
-                    await reload();
+                    sync(update);
                   }}
-                  onAttempt={async (id) => {
-                    setActiveAttempt(id);
-                    await reload();
-                  }}
+                  onAttempt={setActiveAttempt}
                   onOpen={(id) => {
                     setCaptureOpen(false);
                     navigate('things');

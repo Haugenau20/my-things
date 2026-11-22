@@ -64,6 +64,12 @@ JPEG content type or replacement denial. Missing policy documents/owner/schema f
 SDK downloads, URL issuance, metadata inspection, listing, uploads and deletion after lookup simplification.
 Sign-out clears app images/URL leases but does not revoke copied links.
 
+After the 2026-11-22 cacheable-photo release, manually confirm in production DevTools that a new
+photo download carries `Cache-Control: private, max-age=31536000, immutable`, that revisiting the
+gallery serves photos from the browser cache, and that a save issues no full items query. Then run
+the owner-started [cache metadata migration](OPERATIONS.md#photo-cache-metadata-migration) dry run
+and apply, and confirm an older photo's header changed while its existing link still downloads.
+
 Run direct SDK/HTTP requests, not only UI navigation tests. A route guard passing says nothing about data
 protection. Verify that deleting/renaming a frontend route does not affect backend authorization.
 

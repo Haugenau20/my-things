@@ -76,3 +76,21 @@ export async function changeSyntheticNotes(name: string, notes: string): Promise
     await environment.cleanup();
   }
 }
+
+/**
+ * Live listeners deliver outside edits before the next click, so a stale-tab conflict must be
+ * raced into a running operation: the page's first transaction commit waits for `change`.
+ */
+export async function raceFirstCommit(page: Page, change: () => Promise<void>): Promise<void> {
+  let raced = false;
+  await page.route(
+    (url) => url.pathname.endsWith('/documents:commit'),
+    async (route) => {
+      if (!raced) {
+        raced = true;
+        await change();
+      }
+      await route.continue();
+    },
+  );
+}

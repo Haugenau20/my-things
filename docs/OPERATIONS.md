@@ -74,6 +74,29 @@ See [export/restore contract](EXPORT_FORMAT.md#5-restore-behavior) for validatio
 limits, and [M3 restore evidence](M3_RESTORE.md) for historical automated results. A completed report
 cannot be reused for a different archive; that needs another separately authorized empty destination.
 
+## Photo cache metadata migration
+
+Photos uploaded before 2026-11-22 carry `private, no-store, max-age=0`, so browsers re-download them
+on every display. `npm run photos:cache` changes only their Cache-Control metadata to
+`private, max-age=31536000, immutable`. It never touches photo bytes, download tokens or Firestore
+records, skips anything outside `inventories/{id}/items/*/photos/*/{detail,thumb}.jpg` or with another
+Cache-Control value, makes every update conditional on the listed metageneration, and is safe to rerun.
+Running it against production is owner-started real-data maintenance; merging this change does not
+authorize or run it.
+
+1. Wait until the release that accepts both values is live (record its workflow result), then refresh
+   every open app tab. Older clients reject the new value during recovery and export.
+2. Optionally take a full export first; the migration is metadata-only, but this is the documented
+   safeguard before real-data maintenance.
+3. Sign in with the repository's Firebase CLI if needed: `npx firebase login`. The account needs
+   `storage.objects.list` and `storage.objects.update` on the photo bucket (the owner account has them).
+4. Dry run, which lists and counts only:
+   `npm run photos:cache -- --project PROJECT_ID --bucket PROJECT_ID.firebasestorage.app --inventory main`
+5. Apply: rerun the same command with `--apply`. Rerun until it reports 0 legacy objects and 0 failures;
+   a precondition failure means the object changed during the run and is retried by the rerun.
+
+To rehearse locally, start `npm run emulators`, then run `npm run photos:cache -- --emulator --inventory main`.
+
 ## Release, retry and rollback
 
 Run `mise exec -- npm run check`, review the PR and obtain merge authorization. After merge, the

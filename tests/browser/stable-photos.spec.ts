@@ -42,6 +42,8 @@ test('metadata edits preserve gallery and inspector photos without more Storage 
   await page.getByRole('button', { name: `Open ${names[0]}`, exact: true }).click();
   const inspector = page.getByRole('region', { name: 'Item inspector', exact: true });
   const detail = inspector.getByRole('img', { name: `${names[0]} · photo 1`, exact: true });
+  // The inspector starts from the thumbnail and upgrades to the detail derivative after a dwell.
+  await expect.poll(() => detail.getAttribute('src')).toContain('detail.jpg');
   await expect
     .poll(() => detail.evaluate((node) => (node as HTMLImageElement).naturalWidth))
     .toBeGreaterThan(0);

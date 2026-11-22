@@ -129,13 +129,23 @@ identity. Do not add `allUsers`/public bucket permissions. Keep URLs in session 
 records, exports, logs and telemetry. There is no public-sharing UI. Production CSP permits images from
 the configured bucket's Firebase Storage endpoint, with a no-referrer policy.
 
-Use private/no-store cache metadata for photo delivery where supported. Keep app-managed photo caches in
-memory, bounded in size, and keyed by account/environment. Clear issued URL references on eviction,
-item removal and sign-out; revoke temporary local capture-preview URLs. Clear metadata, selections,
+Photo objects carry `private, max-age=31536000, immutable` Cache-Control metadata (owner decision
+2026-11-22, superseding private/no-store). Objects are immutable and their token URLs stable, so the
+browser may keep downloaded photos in its own HTTP cache; `private` still forbids shared/CDN caches.
+Consequence: photo bytes can remain in the browser profile's cache after sign-out until the browser
+evicts them or the user clears site data. Use a trusted, unshared browser profile for this app. Legacy
+`private, no-store, max-age=0` objects remain valid; `npm run photos:cache` updates them (see
+[operations](OPERATIONS.md#photo-cache-metadata-migration)). Keep app-managed photo caches in memory,
+bounded in size, and keyed by account/environment. Released URLs stay in session memory for at most
+ten minutes (500 entries). Clear issued URL references on sign-out; revoke temporary local
+capture-preview and just-saved thumbnail URLs on eviction and sign-out. Clear metadata, selections,
 forms, and image caches on sign-out; communicate sign-out to
 other open same-origin app tabs. Do not promise to erase screenshots, downloaded backups, or all possible
-browser/OS remnants or revoke a copied token URL by signing out. Upload acknowledgment/recovery and
-exports continue to use authenticated byte downloads with metadata, length and SHA-256 checks. Gallery
+browser/OS remnants or revoke a copied token URL by signing out. Upload recovery and exports
+continue to use authenticated byte downloads with metadata, length and SHA-256 checks. A fresh upload
+is acknowledged without a download: its local bytes were SHA-256-checked before upload, and the
+upload response's path, size, type, Cache-Control and MD5 must match them; without a reported MD5 the
+authenticated byte download is used. Gallery
 display resolves URLs lazily and relies on immutable verified uploaded objects rather than hashing
 the image again on every view.
 

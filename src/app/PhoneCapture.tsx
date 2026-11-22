@@ -17,6 +17,7 @@ import { PrivatePhoto } from './PrivatePhoto';
 import { PhotoSlots } from './PhotoSlots';
 import { BottomSheet } from './BottomSheet';
 import { useMutationState } from './mutation-activity';
+import type { InventoryUpdate } from './use-inventory';
 
 export function PhoneCapture({
   services,
@@ -45,8 +46,8 @@ export function PhoneCapture({
   close: () => void;
   reopen: () => void;
   onRoom: (room: Room) => void;
-  onSaved: (settledId?: string) => Promise<void>;
-  onAttempt: (id: string) => Promise<void>;
+  onSaved: (settledId?: string, update?: InventoryUpdate) => void;
+  onAttempt: (id: string) => void;
   onOpen: (id: string) => void;
 }) {
   const preference = `my-things:capture-room:${services.app.options.projectId}:${inventoryId}:${ownerUid}`;
@@ -81,15 +82,18 @@ export function PhoneCapture({
   const queueRef = useRef<PhoneCaptureQueue>(null);
   if (!queueRef.current)
     queueRef.current = new PhoneCaptureQueue(
-      (entry) =>
-        saveQueuedCapture(
+      async (entry) => {
+        const saved = await saveQueuedCapture(
           services,
           inventoryId,
           entry,
           signal,
           (text) => queueRef.current?.progress(entry.id, text),
-          (id) => callbacks.current.onAttempt(id),
-        ),
+          async (id) => callbacks.current.onAttempt(id),
+        );
+        if (entry.attempt) session.seedPrepared(entry.attempt.prepared);
+        return saved;
+      },
       () => {
         const next = queueRef.current?.snapshot() ?? [];
         if (!signal.aborted) {
@@ -98,7 +102,7 @@ export function PhoneCapture({
         }
       },
       async (item) => {
-        await callbacks.current.onSaved(item.id);
+        callbacks.current.onSaved(item.id, { items: [item] });
         if (!signal.aborted) {
           setToast(item);
           setNotice('');
@@ -220,18 +224,16 @@ export function PhoneCapture({
     setActionBusy(true);
     setError('');
     try {
-      await editItem(services.db, inventoryId, item, { kind: 'trash' }, signal);
+      const trashed = await editItem(services.db, inventoryId, item, { kind: 'trash' }, signal);
       signal.throwIfAborted();
       setToast(undefined);
       setNotice(`Moved ${item.name} to Trash.`);
-      await onSaved();
+      onSaved(undefined, { items: [trashed] });
     } catch {
-      if (!signal.aborted) {
+      if (!signal.aborted)
         setError(
           'Undo could not be confirmed, or this item changed. Open it to review the latest details before moving it to Trash.',
         );
-        await onSaved();
-      }
     } finally {
       setActionBusy(false);
     }
@@ -258,7 +260,7 @@ export function PhoneCapture({
         }
       }
       signal.throwIfAborted();
-      await onSaved(failed.id);
+      onSaved(failed.id, { removedItems: [failed.id] });
       signal.throwIfAborted();
       queue.discarded(failed.id);
       setDiscardConfirm(false);

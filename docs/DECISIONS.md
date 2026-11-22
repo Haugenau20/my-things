@@ -43,7 +43,7 @@ are not additional claims about the owner's possessions, accounts, budget, or pr
 | D09 | JPEG detail 2,000 px / thumbnail 400 px; no cloud originals | Validate readability and real device formats before mass use |
 | D10 | 2 photos/item; bounded file sizes and processing concurrency | Full embedded-metadata rules validation exceeded the expression budget at higher counts in M1 |
 | D11 | Embedded bounded photo metadata, item revisions, staged recovery | Avoid a new backend merely to obtain cross-service transactions |
-| D12 | In-memory metadata search; 250-document reads; 5,000-item test target | Measure before adding server search/pagination complexity |
+| D12 | In-memory metadata search fed by snapshot listeners; 5,000-item test target | Saves merge acknowledged records; explicit refresh resubscribes. Measure before adding server search/pagination complexity |
 | D13 | Simple category plus notes; no tag/custom-field engine | Add only after a repeated real need appears |
 | D14 | Archive disposed entries as Gone; clear box and retain room | Do not leave sold objects in current box contents |
 | D15 | Empty-destination restore; no merge; optional multipart export | Keep the exit path reliable and memory-bounded |
@@ -268,3 +268,17 @@ PR-09 uses the approved native camera/file-input alternative rather than a live 
 ### 2026-10-11 — Overview counts and navigation
 
 The approved archived-room reconciliation applies to the Room × Box matrix. Totals include Gone and exclude Trash/unfinished records; room-only links preserve the owned Things default, stated beside the totals. Individual cells use the shared Things filter. Many boxes scroll within the desktop card with Room sticky; phone uses a room list with the same cell links. Navigation resets search, secondary filters, selection and explicit grouping so each count opens its exact selection.
+
+### 2026-11-22 — Efficient data loading and cacheable photos
+
+The owner asked for fewer unnecessary Firestore reads and Storage downloads without changing how the
+app is used, and explicitly decided to replace the private/no-store photo cache metadata. Saves no
+longer re-read the whole inventory: snapshot listeners maintain the metadata index and acknowledged
+save results are merged locally by revision. Photo objects are now uploaded with
+`private, max-age=31536000, immutable`; legacy objects remain accepted and the explicit, dry-run-first
+`npm run photos:cache` script updates their metadata only. Consequence: photo bytes may stay in the
+browser HTTP cache after sign-out. Fresh uploads are acknowledged from the upload response's MD5 rather
+than a second download; recovery and export keep authenticated byte checks. Numeric defaults: 10-minute
+/500-entry URL retention, a 16 MiB cap on retained local thumbnails and a 400 ms inspector detail dwell. Running the migration against production
+is a separate owner-started step after the reviewed release. See
+[design](plans/2026-11-22-efficient-loading-design.md).
