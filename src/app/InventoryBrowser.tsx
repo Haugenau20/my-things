@@ -129,6 +129,7 @@ export function InventoryBrowser({
       ...DEFAULT_FILTERS,
       room: browseLocation?.room ?? '',
       box: browseLocation?.box ?? '',
+      decision: browseLocation?.decision ?? '',
     });
     setGroupingChoice(undefined);
     setSelection(new Set());

@@ -3,7 +3,8 @@ import { assertLocalTarget } from '../../scripts/safety';
 import { LOCAL_ACCOUNTS } from '../../src/data/local-accounts';
 import { syntheticInventory } from '../../src/domain/synthetic-inventory';
 import type { Page } from '@playwright/test';
-import { parseItem } from '../../src/domain/item';
+import { captureDraft, parseItem } from '../../src/domain/item';
+import { applyCommand } from '../../src/domain/organize';
 import { Timestamp } from 'firebase/firestore';
 
 // Existing full-detail workflows use the retained full view on desktop and phone.
@@ -114,5 +115,58 @@ export async function setSyntheticDisplayName(displayName: string): Promise<void
     });
   } finally {
     await environment.cleanup();
+  }
+}
+
+const SELLING_EXAMPLES = [
+  ['Synthetic sale chair', { amountMinor: 12050, currency: 'CHF' }, 'not_started'],
+  ['Synthetic sale table', { amountMinor: 3000, currency: 'CHF' }, 'in_progress'],
+  ['Synthetic sale radio', null, 'not_started'],
+  ['Synthetic sale kettle', { amountMinor: 25000, currency: 'SEK' }, 'not_started'],
+  ['Synthetic sold bicycle', { amountMinor: 40000, currency: 'CHF' }, 'completed'],
+] as const;
+// CHF and SEK appear in no other browser fixture, so their totals stay exact in the shared emulator.
+export async function withSellingExamples(run: () => Promise<void>): Promise<void> {
+  assertLocalTarget('demo-inventory', process.env);
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-inventory',
+    firestore: { host: '127.0.0.1', port: 18080 },
+  });
+  const time = Timestamp.now();
+  const paths = SELLING_EXAMPLES.map((_, index) => `inventories/main/items/seed-selling-${index}`);
+  try {
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      const root = (await db.doc('inventories/main').get()).data();
+      if (root?.ownerUid !== LOCAL_ACCOUNTS.owner.uid || root.schemaVersion !== 2)
+        throw new Error('Synthetic fixture requires the trusted v2 demo owner');
+      const batch = db.batch();
+      SELLING_EXAMPLES.forEach(([name, value, progress], index) => {
+        let record = captureDraft(
+          { name, roomId: null, photos: [], reviewStatus: 'reviewed' },
+          time,
+        );
+        record = applyCommand(
+          { ...record, recordState: 'ready', estimatedValue: value },
+          { kind: 'decision', decision: 'sell' },
+          time,
+        );
+        if (progress !== 'not_started')
+          record = applyCommand(record, { kind: 'progress', progress }, time);
+        batch.set(db.doc(paths[index]!), record);
+      });
+      await batch.commit();
+    });
+    await run();
+  } finally {
+    try {
+      await environment.withSecurityRulesDisabled(async (context) => {
+        const batch = context.firestore().batch();
+        for (const path of paths) batch.delete(context.firestore().doc(path));
+        await batch.commit();
+      });
+    } finally {
+      await environment.cleanup();
+    }
   }
 }

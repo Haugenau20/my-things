@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { seedExamples } from './fixtures';
+import { seedExamples, withSellingExamples } from './fixtures';
 
 test('overview cells and single facets reuse Things counts and repeated navigation resets context', async ({
   page,
@@ -140,4 +140,61 @@ test('phone overview uses Room lists and its counts open matching facets', async
   await expect(page.locator('.item-card')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Clear Room filter', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Clear Box filter', exact: true })).toBeVisible();
+});
+
+test('selling totals sum sell values per currency and open the matching things', async ({
+  page,
+}) => {
+  await seedExamples();
+  await withSellingExamples(async () => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Sign in as test owner' }).click();
+    const overview = () =>
+      page
+        .locator('.workspace-sidebar')
+        .getByRole('button', { name: 'Where everything is', exact: true })
+        .click();
+    await overview();
+    const selling = page.getByRole('region', { name: 'Selling totals', exact: true });
+    const open = selling.getByRole('button', { name: /^Browse Still to sell: / });
+    const sold = selling.getByRole('button', { name: /^Browse Sold so far: / });
+    await expect(open).toHaveAttribute('aria-label', /CHF 150\.50/);
+    await expect(open).toHaveAttribute('aria-label', /SEK 250\.00/);
+    await expect(open).toHaveAttribute('aria-label', /without a value/);
+    await expect(sold).toHaveAttribute('aria-label', /CHF 400\.00/);
+    await expect(sold).not.toHaveAttribute('aria-label', /SEK/);
+    await open.click();
+    await expect(
+      page.getByRole('button', { name: 'Clear Decision filter', exact: true }),
+    ).toBeVisible();
+    for (const name of ['chair', 'table', 'radio', 'kettle'])
+      await expect(
+        page.getByRole('button', { name: `Open Synthetic sale ${name}`, exact: true }),
+      ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Open Synthetic sold bicycle', exact: true }),
+    ).toHaveCount(0);
+    await overview();
+    await sold.click();
+    await expect(
+      page.getByRole('button', { name: 'Open Synthetic sold bicycle', exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Open Synthetic sale chair', exact: true }),
+    ).toHaveCount(0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page
+      .getByRole('navigation', { name: 'Phone inventory views' })
+      .getByRole('button', { name: 'More', exact: true })
+      .click();
+    await page
+      .getByRole('dialog', { name: 'More views' })
+      .getByRole('button', { name: 'Where everything is', exact: true })
+      .click();
+    await expect(selling.getByRole('button')).toHaveCount(2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({ path: test.info().outputPath('overview-selling.png'), fullPage: true });
+  });
 });
